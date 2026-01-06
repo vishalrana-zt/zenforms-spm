@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="23094" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24127" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23084"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="FPDrawViewController" customModule="ZenFormsLib" customModuleProvider="target">
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="FPDrawViewController" customModule="ZenForms">
             <connections>
                 <outlet property="alphaButton" destination="BCx-DF-PQY" id="c1m-X0-3s3"/>
                 <outlet property="baseImageView" destination="bnK-FY-6FB" id="8Jp-19-mnK"/>
@@ -30,7 +30,7 @@
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
                 <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="oFU-NZ-rzn">
-                    <rect key="frame" x="0.0" y="59" width="393" height="759"/>
+                    <rect key="frame" x="0.0" y="118" width="393" height="666"/>
                     <subviews>
                         <toolbar opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="7Za-LJ-fvk">
                             <rect key="frame" x="0.0" y="0.0" width="393" height="44"/>
@@ -49,22 +49,22 @@
                             </items>
                         </toolbar>
                         <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="bnK-FY-6FB">
-                            <rect key="frame" x="0.0" y="44" width="393" height="671"/>
+                            <rect key="frame" x="0.0" y="44" width="393" height="578"/>
                         </imageView>
                         <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="7zw-J3-SYb" customClass="ACEDrawingView">
-                            <rect key="frame" x="1" y="44" width="421" height="771"/>
+                            <rect key="frame" x="1" y="44" width="421" height="678"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="0.0" colorSpace="custom" customColorSpace="sRGB"/>
                             <directionalEdgeInsets key="directionalLayoutMargins" top="8" leading="8" bottom="8" trailing="8"/>
                         </view>
                         <slider hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="10" minValue="1" maxValue="20" translatesAutoresizingMaskIntoConstraints="NO" id="j4n-Pr-WDD">
-                            <rect key="frame" x="18" y="674" width="357" height="31"/>
+                            <rect key="frame" x="20" y="577" width="353" height="34"/>
                             <connections>
                                 <action selector="widthChange:" destination="-1" eventType="valueChanged" id="HoF-dU-h0R"/>
                             </connections>
                         </slider>
                         <slider hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="1" minValue="0.10000000149011612" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="TgG-Jh-ehg">
-                            <rect key="frame" x="18" y="674" width="357" height="31"/>
+                            <rect key="frame" x="20" y="577" width="353" height="34"/>
                             <connections>
                                 <action selector="alphaChange:" destination="-1" eventType="valueChanged" id="cp6-PY-CVB"/>
                             </connections>
@@ -76,7 +76,7 @@
                             </constraints>
                         </imageView>
                         <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="q4e-VQ-TrQ">
-                            <rect key="frame" x="0.0" y="715" width="393" height="44"/>
+                            <rect key="frame" x="0.0" y="622" width="393" height="44"/>
                             <subviews>
                                 <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" translatesAutoresizingMaskIntoConstraints="NO" id="E1r-w6-Gfw">
                                     <rect key="frame" x="20" y="0.0" width="353" height="44"/>
