@@ -3,11 +3,12 @@
 //
 
 import UIKit
-// 1
-class ZTLIBLoaderButton: UIButton {
-    // 2
+
+@objc(ZTLIBLoaderButton)
+
+@MainActor
+final class ZTLIBLoaderButton: UIButton {
     var spinner = UIActivityIndicatorView()
-    // 3
     var isLoading = false {
         didSet {
             // whenever `isLoading` state is changed, update the view
@@ -19,7 +20,6 @@ class ZTLIBLoaderButton: UIButton {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        // 4
         setupView()
     }
     
@@ -29,14 +29,12 @@ class ZTLIBLoaderButton: UIButton {
     }
     
     func setupView() {
-        // 5
         spinner.hidesWhenStopped = true
         // to change spinner color
         spinner.color = self.titleColor(for: .normal)
         // default style
         spinner.style = .medium
         
-        // 6
         // add as button subview
         addSubview(spinner)
         // set constraints to always in the middle of button
@@ -47,7 +45,6 @@ class ZTLIBLoaderButton: UIButton {
         ])
     }
     
-    // 7
     func updateView() {
         if isLoading {
             spinner.startAnimating()
