@@ -452,7 +452,23 @@ class FPFormsServiceManager: NSObject {
                                         .remove(at: index))
                             }
                             serverSection.fields = sectionFields
-                            FPFormDataHolder.shared.sections?[sectionIndex] = serverSection
+//                            FPFormDataHolder.shared.sections?[sectionIndex] = serverSection
+                            if let localId = localSection.objectId,
+                               let idx = FPFormDataHolder.shared.sections?.firstIndex(where: { $0.objectId == localId }) {
+                                FPFormDataHolder.shared.sections?[idx] = serverSection
+                            } else {
+                                // Sort a mutable copy, mutate, and assign back
+                                if var sections = FPFormDataHolder.shared.sections {
+                                    sections.sort { ($0.sortPosition ?? "") < ($1.sortPosition ?? "") }
+                                    if sections.indices.contains(sectionIndex) {
+                                        sections[sectionIndex] = serverSection
+                                    } else {
+                                        // If index out of range, append as fallback
+                                        sections.append(serverSection)
+                                    }
+                                    FPFormDataHolder.shared.sections = sections
+                                }
+                            }
                             updatedSection = serverSection
                         }
                     }
