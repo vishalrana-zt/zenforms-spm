@@ -10,7 +10,7 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="FPTableEditViewController" customModule="ZenFormsLib" customModuleProvider="target">
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="FPTableEditViewController" customModule="ZenForms" customModuleProvider="target">
             <connections>
                 <outlet property="btnAddMultipleRows" destination="1QL-P1-3Rz" id="4Z3-GM-3E6"/>
                 <outlet property="btnAssetLink" destination="RBp-da-QRR" id="rcp-Km-KeA"/>
@@ -43,7 +43,7 @@
                                         <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" bounces="NO" alwaysBounceVertical="YES" alwaysBounceHorizontal="YES" bouncesZoom="NO" dataMode="none" translatesAutoresizingMaskIntoConstraints="NO" id="R5Z-QQ-ckQ">
                                             <rect key="frame" x="0.0" y="0.0" width="410" height="755"/>
                                             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                            <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="Wfh-mv-e9t" customClass="FPSpreadsheetCollectionViewLayout" customModule="ZenFormsLib" customModuleProvider="target">
+                                            <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="Wfh-mv-e9t" customClass="FPSpreadsheetCollectionViewLayout" customModule="ZenForms" customModuleProvider="target">
                                                 <size key="itemSize" width="128" height="128"/>
                                                 <size key="headerReferenceSize" width="0.0" height="0.0"/>
                                                 <size key="footerReferenceSize" width="0.0" height="0.0"/>
