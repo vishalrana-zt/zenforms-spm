@@ -1,0 +1,258 @@
+{
+  "originHash" : "9270c88db107cf89673f217a879be31555dfaa56955dcdaabed58c55276e0966",
+  "pins" : [
+    {
+      "identity" : "acedrawingview",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vishalrana-zt/ACEDrawingView.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "e07586e2a8f69f52df58694e532a42558ce87043"
+      }
+    },
+    {
+      "identity" : "alamofire",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/Alamofire.git",
+      "state" : {
+        "revision" : "63dfa86548c4e5d5c6fd6ed42f638e388cbce529",
+        "version" : "5.6.0"
+      }
+    },
+    {
+      "identity" : "dd-sdk-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Datadog/dd-sdk-ios.git",
+      "state" : {
+        "revision" : "27ad5b051697a773f135ed1e4b0fed3a45a0e655",
+        "version" : "2.27.0"
+      }
+    },
+    {
+      "identity" : "fmdb",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ccgus/fmdb.git",
+      "state" : {
+        "revision" : "1227a3fa2b9916bfd75fe380eb45cd210e69e251",
+        "version" : "2.7.12"
+      }
+    },
+    {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift",
+      "state" : {
+        "branch" : "master",
+        "revision" : "aa0079aeb82a4bf00324561a40bffe68c6fe1c26"
+      }
+    },
+    {
+      "identity" : "iqkeyboardcore",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hackiftekhar/IQKeyboardCore.git",
+      "state" : {
+        "revision" : "6501e93b03161ce1c9355d2d689bad91c534104e",
+        "version" : "1.0.8"
+      }
+    },
+    {
+      "identity" : "iqkeyboardmanager",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hackiftekhar/IQKeyboardManager.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "99bd51b14e2243e0334f215872fc604658b42dc8"
+      }
+    },
+    {
+      "identity" : "iqkeyboardnotification",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hackiftekhar/IQKeyboardNotification.git",
+      "state" : {
+        "revision" : "08bdc90e7db64ac88f51da5dc9e82f4c247e7057",
+        "version" : "1.0.6"
+      }
+    },
+    {
+      "identity" : "iqkeyboardreturnmanager",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hackiftekhar/IQKeyboardReturnManager.git",
+      "state" : {
+        "revision" : "495f694a6e62e431d776b4926a18fc26c62db317",
+        "version" : "1.0.6"
+      }
+    },
+    {
+      "identity" : "iqkeyboardtoolbar",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hackiftekhar/IQKeyboardToolbar.git",
+      "state" : {
+        "revision" : "9fef421f6fb39a3e0495f0004f9111b8eaaf0e69",
+        "version" : "1.1.3"
+      }
+    },
+    {
+      "identity" : "iqkeyboardtoolbarmanager",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hackiftekhar/IQKeyboardToolbarManager.git",
+      "state" : {
+        "revision" : "ebbb417870237c4ed8d7a4876c18970c3ae54264",
+        "version" : "1.1.4"
+      }
+    },
+    {
+      "identity" : "iqtextinputviewnotification",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hackiftekhar/IQTextInputViewNotification.git",
+      "state" : {
+        "revision" : "723784a2197121bb76a940cc6d79fd2fa6c23f43",
+        "version" : "1.0.9"
+      }
+    },
+    {
+      "identity" : "iqtextview",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/hackiftekhar/IQTextView.git",
+      "state" : {
+        "revision" : "76f514eba5218bdf67659168ba227c77da5f75fe",
+        "version" : "1.0.5"
+      }
+    },
+    {
+      "identity" : "lottie-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/airbnb/lottie-ios.git",
+      "state" : {
+        "revision" : "047aa81b77adcbf583a966dfef620d17650cc656",
+        "version" : "4.5.1"
+      }
+    },
+    {
+      "identity" : "m13checkbox",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Marxon13/M13Checkbox.git",
+      "state" : {
+        "revision" : "96ff6c8862db87095315480a56dcebe51e15dac8",
+        "version" : "3.4.1"
+      }
+    },
+    {
+      "identity" : "mbprogresshud",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/jdg/MBProgressHUD.git",
+      "state" : {
+        "revision" : "bca42b801100b2b3a4eda0ba8dd33d858c780b0d",
+        "version" : "1.2.0"
+      }
+    },
+    {
+      "identity" : "opentelemetry-swift-packages",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/DataDog/opentelemetry-swift-packages.git",
+      "state" : {
+        "revision" : "4a7295600d4ebb9525a23c11586c5fdb74ae8b7e",
+        "version" : "1.13.1"
+      }
+    },
+    {
+      "identity" : "plcrashreporter",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/microsoft/plcrashreporter.git",
+      "state" : {
+        "revision" : "8c61e5e38e9f737dd68512ed1ea5ab081244ad65",
+        "version" : "1.12.0"
+      }
+    },
+    {
+      "identity" : "ppssignatureview",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vishalrana-zt/PPSSignatureView.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "787016047557ed26de1e7de4e5a3c65ab8e1b6e0"
+      }
+    },
+    {
+      "identity" : "reachability.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ashleymills/Reachability.swift",
+      "state" : {
+        "branch" : "master",
+        "revision" : "21d1dc412cfecbe6e34f1f4c4eb88d3f912654a6"
+      }
+    },
+    {
+      "identity" : "rsselectionmenu",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vishalrana-zt/RSSelectionMenu.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "603dc02252ddcd1235978a224d8d3a89e0a4c933"
+      }
+    },
+    {
+      "identity" : "sdwebimage",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SDWebImage/SDWebImage.git",
+      "state" : {
+        "revision" : "2053b120767c42a70bcba21095f34e4cfb54a75d",
+        "version" : "5.21.3"
+      }
+    },
+    {
+      "identity" : "sdwebimageswiftui",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SDWebImage/SDWebImageSwiftUI.git",
+      "state" : {
+        "revision" : "0e331457ca9af2f0b08bcaa138a91ffb907b004f",
+        "version" : "3.1.4"
+      }
+    },
+    {
+      "identity" : "ssmediamanager",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vishalrana-zt/SSMediaManager",
+      "state" : {
+        "branch" : "main",
+        "revision" : "f06760ed57d67ebe86e1b3c3f9038948f2bb650d"
+      }
+    },
+    {
+      "identity" : "swiftui-flow-layout",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/globulus/swiftui-flow-layout",
+      "state" : {
+        "revision" : "de7da3440c3b87ba94adfa98c698828d7746a76d",
+        "version" : "1.0.5"
+      }
+    },
+    {
+      "identity" : "taglistview",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ElaWorkshop/TagListView.git",
+      "state" : {
+        "revision" : "b30b61826736f4d9ec04aef5df891f3914423f16",
+        "version" : "1.4.1"
+      }
+    },
+    {
+      "identity" : "zen-uiview-shimmer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/harshirzentrades/Zen-UIView-Shimmer.git",
+      "state" : {
+        "revision" : "6b25069ae46e10295dd9f06e821def70ae197698",
+        "version" : "1.0.4"
+      }
+    },
+    {
+      "identity" : "zencolorpicker",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/harshirzentrades/ZenColorPicker.git",
+      "state" : {
+        "branch" : "spm",
+        "revision" : "9573c0964c6687305e912cdc06bfbdd53af93d2c"
+      }
+    }
+  ],
+  "version" : 3
+}

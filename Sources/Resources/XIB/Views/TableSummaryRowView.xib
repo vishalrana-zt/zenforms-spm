@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="TableSummaryRowView" customModule="ZenFormsLib" customModuleProvider="target">
+            <connections>
+                <outlet property="contentView" destination="iN0-l3-epB" id="vYT-TH-tHj"/>
+                <outlet property="matrixStackView" destination="Sdy-9b-NIp" id="qCz-aU-gdD"/>
+                <outlet property="tableName" destination="pmb-wK-gHS" id="yzd-wS-v25"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view contentMode="scaleToFill" id="iN0-l3-epB">
+            <rect key="frame" x="0.0" y="0.0" width="921" height="230"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Table name" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumScaleFactor="0.5" adjustsFontForContentSizeCategory="YES" translatesAutoresizingMaskIntoConstraints="NO" id="pmb-wK-gHS">
+                    <rect key="frame" x="10" y="9.9999999999999982" width="901" height="20.333333333333329"/>
+                    <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="17"/>
+                    <nil key="textColor"/>
+                    <nil key="highlightedColor"/>
+                </label>
+                <stackView opaque="NO" contentMode="scaleToFill" distribution="fillEqually" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="Sdy-9b-NIp">
+                    <rect key="frame" x="10" y="40.333333333333329" width="901" height="145.66666666666669"/>
+                </stackView>
+            </subviews>
+            <viewLayoutGuide key="safeArea" id="vUN-kp-3ea"/>
+            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+            <constraints>
+                <constraint firstItem="pmb-wK-gHS" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" constant="10" id="C69-7e-vPy"/>
+                <constraint firstAttribute="trailing" secondItem="pmb-wK-gHS" secondAttribute="trailing" constant="10" id="EH4-W1-tsj"/>
+                <constraint firstItem="vUN-kp-3ea" firstAttribute="bottom" secondItem="Sdy-9b-NIp" secondAttribute="bottom" constant="10" id="EMI-iO-pWd"/>
+                <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="Sdy-9b-NIp" secondAttribute="trailing" constant="10" id="X39-b7-6tE"/>
+                <constraint firstItem="pmb-wK-gHS" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="top" constant="10" id="ZGm-M7-nh1"/>
+                <constraint firstItem="Sdy-9b-NIp" firstAttribute="top" secondItem="pmb-wK-gHS" secondAttribute="bottom" constant="10" id="xHQ-hG-SDP"/>
+                <constraint firstItem="Sdy-9b-NIp" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="10" id="zYC-K8-1TC"/>
+            </constraints>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <point key="canvasLocation" x="370" y="-263"/>
+        </view>
+    </objects>
+    <resources>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>

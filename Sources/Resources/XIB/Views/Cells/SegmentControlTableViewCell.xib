@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24127" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_1" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <tableViewCell contentMode="scaleToFill" selectionStyle="default" indentationWidth="10" reuseIdentifier="SegmentControlTableViewCell" id="KGk-i7-Jjw" customClass="SegmentControlTableViewCell" customModule="ZenFormsLib" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+            <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" contentMode="center" tableViewCell="KGk-i7-Jjw" id="H2p-sc-9uM">
+                <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" translatesAutoresizingMaskIntoConstraints="NO" id="DY0-cy-MRn">
+                        <rect key="frame" x="0.0" y="2" width="320" height="41"/>
+                        <constraints>
+                            <constraint firstAttribute="height" constant="40" id="xa4-Oo-f2B"/>
+                        </constraints>
+                        <segments>
+                            <segment title="Yes"/>
+                            <segment title="No"/>
+                            <segment title="N/A"/>
+                        </segments>
+                        <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <connections>
+                            <action selector="segmentValueChanged:" destination="KGk-i7-Jjw" eventType="valueChanged" id="RFQ-OH-ETn"/>
+                        </connections>
+                    </segmentedControl>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="DY0-cy-MRn" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" id="2N0-Wc-Cqm"/>
+                    <constraint firstItem="DY0-cy-MRn" firstAttribute="centerY" secondItem="H2p-sc-9uM" secondAttribute="centerY" id="Sfj-6W-Id6"/>
+                    <constraint firstAttribute="trailing" secondItem="DY0-cy-MRn" secondAttribute="trailing" id="yrQ-ll-gfm"/>
+                </constraints>
+            </tableViewCellContentView>
+            <viewLayoutGuide key="safeArea" id="njF-e1-oar"/>
+            <connections>
+                <outlet property="segmentControl" destination="DY0-cy-MRn" id="arw-xE-cqh"/>
+            </connections>
+            <point key="canvasLocation" x="137.68115942028987" y="55.580357142857139"/>
+        </tableViewCell>
+    </objects>
+</document>

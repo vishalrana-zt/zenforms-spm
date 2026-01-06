@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="System colors in document resources" minToolsVersion="11.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="DatasetColorPickerViewController" customModule="ZenFormsLib" customModuleProvider="target">
+            <connections>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+                <outlet property="viewColorPicker" destination="Nc6-o8-A98" id="hJh-aw-0EF"/>
+                <outlet property="viewSelectedColor" destination="bUI-b1-fET" id="3Aa-0e-WBk"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bUI-b1-fET">
+                    <rect key="frame" x="146.66666666666666" y="150" width="100" height="100"/>
+                    <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="100" id="Mgv-gT-1VU"/>
+                        <constraint firstAttribute="width" constant="100" id="aj3-EL-dq9"/>
+                    </constraints>
+                    <userDefinedRuntimeAttributes>
+                        <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
+                            <real key="value" value="50"/>
+                        </userDefinedRuntimeAttribute>
+                    </userDefinedRuntimeAttributes>
+                </view>
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="Nc6-o8-A98" customClass="ColorPickerView" customModule="ZenColorPicker">
+                    <rect key="frame" x="0.0" y="459" width="393" height="393"/>
+                    <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                </view>
+            </subviews>
+            <viewLayoutGuide key="safeArea" id="fH3-HN-tti"/>
+            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+            <constraints>
+                <constraint firstItem="bUI-b1-fET" firstAttribute="centerX" secondItem="Nc6-o8-A98" secondAttribute="centerX" id="Fg4-4o-yHE"/>
+                <constraint firstItem="Nc6-o8-A98" firstAttribute="bottom" secondItem="i5M-Pr-FkT" secondAttribute="bottom" id="Gjj-OX-dRZ"/>
+                <constraint firstAttribute="trailing" secondItem="Nc6-o8-A98" secondAttribute="trailing" id="UF4-11-1bf"/>
+                <constraint firstItem="bUI-b1-fET" firstAttribute="top" secondItem="fH3-HN-tti" secondAttribute="top" constant="32" id="XTW-dE-x3C"/>
+                <constraint firstItem="Nc6-o8-A98" firstAttribute="width" secondItem="i5M-Pr-FkT" secondAttribute="width" id="fz9-zb-ugi"/>
+                <constraint firstItem="Nc6-o8-A98" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="kuX-lE-qg6"/>
+                <constraint firstItem="Nc6-o8-A98" firstAttribute="height" secondItem="i5M-Pr-FkT" secondAttribute="height" multiplier="0.461268" id="mPT-XG-ud0"/>
+            </constraints>
+            <point key="canvasLocation" x="135" y="-130"/>
+        </view>
+    </objects>
+    <resources>
+        <systemColor name="systemBackgroundColor">
+            <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+    </resources>
+</document>
