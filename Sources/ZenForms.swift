@@ -117,7 +117,7 @@ public final class ZenForms {
     }
     
     public func openForm(_ controller:UIViewController, form:FPForms, isNew:Bool, isPreviousForm:Bool, isFromHistory:Bool, isAssetEnabled:Bool, isFromCoPilot: Bool = false) {
-        let viewController:FPFormViewController = FPFormViewController(nibName:"FPFormViewController", bundle: Bundle.module)
+        let viewController:FPFormViewController = FPFormViewController(nibName:"FPFormViewController", bundle: ZenFormsBundle.bundle)
         viewController.customForm = form
         viewController.isAnalysed = form.isAnalysed ?? true || form.isSigned ?? false
         viewController.ticketId = ticketId

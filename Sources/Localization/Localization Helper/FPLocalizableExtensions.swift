@@ -2,7 +2,7 @@
 import Foundation
 import UIKit
 
-protocol FPIBLocalizable {
+internal protocol FPIBLocalizable {
     var localizedKey: String? { get set }
 }
 
