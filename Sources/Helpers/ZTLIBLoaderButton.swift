@@ -7,7 +7,7 @@ import UIKit
 @objc(ZTLIBLoaderButton)
 
 @MainActor
-final class ZTLIBLoaderButton: UIButton {
+public class ZTLIBLoaderButton: UIButton {
     var spinner = UIActivityIndicatorView()
     var isLoading = false {
         didSet {
