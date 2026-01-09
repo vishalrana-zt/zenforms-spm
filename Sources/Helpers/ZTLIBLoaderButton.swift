@@ -18,12 +18,12 @@ public class ZTLIBLoaderButton: UIButton {
     
     var currentView:UIView?
 
-    override init(frame: CGRect) {
+    public override init(frame: CGRect) {
         super.init(frame: frame)
         setupView()
     }
     
-    required init?(coder: NSCoder) {
+    public required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupView()
     }

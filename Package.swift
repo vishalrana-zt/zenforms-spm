@@ -11,6 +11,7 @@ let package = Package(
     products: [
         .library(
             name: "ZenForms",
+            type: .dynamic,
             targets: ["ZenForms"]
         )
     ],
