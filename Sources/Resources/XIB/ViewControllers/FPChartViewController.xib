@@ -192,7 +192,7 @@
                                                 <constraint firstItem="7iE-4F-6mc" firstAttribute="centerY" secondItem="Zws-u5-xl3" secondAttribute="centerY" id="vj9-ZE-hIG"/>
                                             </constraints>
                                         </view>
-                                        <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" bounces="NO" alwaysBounceHorizontal="YES" showsVerticalScrollIndicator="NO" bouncesZoom="NO" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="DXK-un-9yd" customClass="FPIntrinsicCollectionView" customModule="ZenFormsLib" customModuleProvider="target">
+                                        <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" bounces="NO" alwaysBounceHorizontal="YES" showsVerticalScrollIndicator="NO" bouncesZoom="NO" dataMode="prototypes" translatesAutoresizingMaskIntoConstraints="NO" id="DXK-un-9yd" customClass="AutoSizeCollectionView" customModule="ZenForms">
                                             <rect key="frame" x="20" y="70" width="353" height="100"/>
                                             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                             <constraints>

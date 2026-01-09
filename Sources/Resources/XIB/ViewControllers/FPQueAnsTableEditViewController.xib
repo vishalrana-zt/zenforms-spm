@@ -34,7 +34,7 @@
                                         <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" bounces="NO" alwaysBounceVertical="YES" alwaysBounceHorizontal="YES" bouncesZoom="NO" dataMode="none" translatesAutoresizingMaskIntoConstraints="NO" id="R5Z-QQ-ckQ">
                                             <rect key="frame" x="0.0" y="0.0" width="410" height="726"/>
                                             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                            <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="Wfh-mv-e9t" customClass="FPQueAnsCollectionViewLayout" customModule="crm" customModuleProvider="target">
+                                            <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="Wfh-mv-e9t" customClass="FPQueAnsCollectionViewLayout" customModule="ZenForms">
                                                 <size key="itemSize" width="128" height="128"/>
                                                 <size key="headerReferenceSize" width="0.0" height="0.0"/>
                                                 <size key="footerReferenceSize" width="0.0" height="0.0"/>
