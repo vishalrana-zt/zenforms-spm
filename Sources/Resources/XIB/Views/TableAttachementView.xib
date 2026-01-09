@@ -20,10 +20,10 @@
         <view tag="1991" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="iN0-l3-epB">
             <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
             <subviews>
-                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="OaB-QN-74l">
+                <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OaB-QN-74l">
                     <rect key="frame" x="20" y="218" width="353" height="466"/>
                     <subviews>
-                        <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="24" translatesAutoresizingMaskIntoConstraints="NO" id="P6x-Qs-Nla">
+                        <stackView opaque="NO" contentMode="scaleToFill" ambiguous="YES" axis="vertical" spacing="24" translatesAutoresizingMaskIntoConstraints="NO" id="P6x-Qs-Nla">
                             <rect key="frame" x="10" y="10" width="333" height="446"/>
                             <subviews>
                                 <stackView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="gDy-it-aDI">
@@ -52,12 +52,9 @@
                                         </button>
                                     </subviews>
                                 </stackView>
-                                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="74e-Km-pJK" customClass="TagListView" customModule="TagListView">
+                                <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="74e-Km-pJK" customClass="TagListView" customModule="TagListView">
                                     <rect key="frame" x="0.0" y="54" width="333" height="328"/>
                                     <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                    <constraints>
-                                        <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="50" id="69a-6G-yOv"/>
-                                    </constraints>
                                     <userDefinedRuntimeAttributes>
                                         <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
                                             <real key="value" value="5"/>
@@ -83,7 +80,7 @@
                                         <userDefinedRuntimeAttribute type="boolean" keyPath="enableRemoveButton" value="YES"/>
                                     </userDefinedRuntimeAttributes>
                                 </view>
-                                <stackView opaque="NO" contentMode="scaleToFill" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="fXz-4Q-sao">
+                                <stackView opaque="NO" contentMode="scaleToFill" ambiguous="YES" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="fXz-4Q-sao">
                                     <rect key="frame" x="0.0" y="406" width="333" height="40"/>
                                     <subviews>
                                         <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mTQ-Vn-Prd">
@@ -150,7 +147,6 @@
                 <constraint firstItem="OaB-QN-74l" firstAttribute="centerX" secondItem="vUN-kp-3ea" secondAttribute="centerX" id="6Df-dz-FWE"/>
                 <constraint firstItem="OaB-QN-74l" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="20" id="FCR-oh-ufn"/>
                 <constraint firstItem="OaB-QN-74l" firstAttribute="centerY" secondItem="vUN-kp-3ea" secondAttribute="centerY" id="YjR-fG-scr"/>
-                <constraint firstItem="vUN-kp-3ea" firstAttribute="bottom" secondItem="OaB-QN-74l" secondAttribute="bottom" constant="100" id="sEj-gA-iaa"/>
                 <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="OaB-QN-74l" secondAttribute="trailing" constant="20" id="tQc-1m-6K0"/>
             </constraints>
             <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
