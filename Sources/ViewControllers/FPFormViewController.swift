@@ -267,11 +267,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         formTableView.register(UINib(nibName: "FPTableCollectionViewCell", bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: TABLE_CELL)
         formTableView.register(UINib(nibName: "FPDropDownTableViewCell", bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: "FPDropDownTableViewCell")
         formTableView.register(UINib(nibName: "ReasonsCollectionViewCell", bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: SEGMENT_CELL)
-        formTableView.register(UINib(nibName: "FPFileInputTableViewCell", bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FILE_CELL)
-
-
-//        formTableView.register(UINib(nibName: "FPChartViewCell", bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: CHART_CELL)
-        
+        formTableView.register(UINib(nibName: "FPFileInputTableViewCell", bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FILE_CELL)        
         formTableView.register(UITableViewCell.self, forCellReuseIdentifier: "FPChartFieldCell")
         formTableView.register(UITableViewCell.self, forCellReuseIdentifier: "FPSignatureFieldCell")
         formTableView.register(UITableViewCell.self, forCellReuseIdentifier: "FPLabelFieldCell")

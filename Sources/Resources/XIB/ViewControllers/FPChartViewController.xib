@@ -198,7 +198,7 @@
                                             <constraints>
                                                 <constraint firstAttribute="height" constant="100" placeholder="YES" id="OVJ-95-yNB"/>
                                             </constraints>
-                                            <collectionViewFlowLayout key="collectionViewLayout" scrollDirection="horizontal" minimumLineSpacing="10" minimumInteritemSpacing="10" id="rX6-1W-oNr" customClass="FPSpreadsheetCollectionViewLayout" customModule="ZenFormsLib" customModuleProvider="target">
+                                            <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="10" minimumInteritemSpacing="10" id="rX6-1W-oNr" customClass="FPSpreadsheetCollectionViewLayout" customModule="ZenForms">
                                                 <size key="itemSize" width="128" height="128"/>
                                                 <size key="headerReferenceSize" width="0.0" height="0.0"/>
                                                 <size key="footerReferenceSize" width="0.0" height="0.0"/>
