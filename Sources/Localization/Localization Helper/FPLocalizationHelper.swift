@@ -2,7 +2,7 @@
 import Foundation
 let LIB_ENGLISH_LANGUAGE_CODE = "en"
 internal final class FPLocalizationHelper {
-    public static func localize(_ key: String) -> String {
+    static func localize(_ key: String) -> String {
         let lang = UserDefaults.libCurrentLanguage
         let libBundle = ZenFormsBundle.bundle
         guard let path = libBundle.path(forResource: lang, ofType: "lproj") else {
@@ -15,7 +15,7 @@ internal final class FPLocalizationHelper {
         return localizevalue
     }
 
-    public static func localizeWith(args: [CVarArg], key: String) -> String {
+    static func localizeWith(args: [CVarArg], key: String) -> String {
         String(format: localize(key), args)
     }
 }
