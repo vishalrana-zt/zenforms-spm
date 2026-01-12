@@ -69,8 +69,8 @@ class PlaceholderTextView: UITextView {
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
         
-        let cancelButton = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelButtonTapped))
-        let doneButton = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(doneButtonTapped))
+        let cancelButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelButtonTapped))
+        let doneButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style: .done, target: self, action: #selector(doneButtonTapped))
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         
         toolbar.items = [cancelButton, flexibleSpace, doneButton]

@@ -136,15 +136,10 @@ class FPReasonAiCell : UITableViewCell {
             })
             optionMenu.addAction(action)
         }
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: {
-            (alert: UIAlertAction!) -> Void in
-        
-        })
+        let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: nil)
         optionMenu.addAction(cancelAction)
         if UIDevice.current.userInterfaceIdiom == .phone {
-            FPUtility.topViewController()?.present(optionMenu, animated: true) {
-                print("completion block")
-            }
+            FPUtility.topViewController()?.present(optionMenu, animated: true) {}
         } else {
             if let popoverController = optionMenu.popoverPresentationController {
                 popoverController.sourceView = self
