@@ -120,6 +120,7 @@
 "msg_enterShortfileName" = "¡Por favor acorte el nombre!";
 "msg_formNameNotBlank" = "Asegúrese de que el nombre del formulario no esté en blanco.";
 "lbl_Name" = "Nombre";
+"lbl_Something_went_wrong" = "algo salió mal";
 "please_wait" = "Por favor espera...";
 "Loading" = "Cargando...";
 "Saving" = "Ahorro";
