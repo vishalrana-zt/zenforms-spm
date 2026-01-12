@@ -253,7 +253,7 @@
                                                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="niI-dk-0SB">
                                                                         <rect key="frame" x="0.0" y="0.0" width="40" height="30"/>
                                                                         <subviews>
-                                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="zpY-iz-c4F" customClass="CircularProgressView" customModule="ZenFormsLib" customModuleProvider="target">
+                                                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="zpY-iz-c4F" customClass="CircularProgressView" customModule="ZenForms">
                                                                                 <rect key="frame" x="7.5" y="2.5" width="25" height="25"/>
                                                                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                                                                 <constraints>
