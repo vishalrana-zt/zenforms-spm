@@ -31,7 +31,7 @@ extension UIButton: FPIBLocalizable {
     }
 
     // Not visible to the app
-    internal func applyLocalizedTitle(_ key: String?) {
+    internal func applyLocalizedTitle(_ key: String) {
         let value = FPLocalizationHelper.localize(key)
         setTitle(value, for: .normal)
         setTitle(value, for: .highlighted)
