@@ -91,6 +91,8 @@ class FPReasonAiCell : UITableViewCell {
             let date = Date(timeIntervalSince1970: TimeInterval(timestampInSeconds))
             txtFieldDate.text = FPUtility.dateString(date, withCustomFormat: "dd MMM yyyy")
             dateTimeStamp = Int(timestampInSeconds)
+        }else{
+            txtFieldDate.text = ""
         }
         self.severityKey = customReason?.severity ?? ""
         let value = severityData.filter({ $0["param"] == severityKey}).first?["data"]
@@ -170,7 +172,7 @@ class FPReasonAiCell : UITableViewCell {
             reasonTextField.text = ""
         }
        
-        if let recommendationDesc = customReason?.recommendations?.last?.description {
+        if let recommendationDesc = customReason?.recommendations?.last(where: { $0.description?.isEmpty == false })?.description{
             recommendationTextField.text = recommendationDesc
            recommendationTextField.placeholderLabel.isHidden = true
         }else{

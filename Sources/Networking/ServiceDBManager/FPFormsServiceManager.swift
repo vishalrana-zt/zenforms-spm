@@ -108,13 +108,32 @@ class FPFormsServiceManager: NSObject {
     }
     
     
-    class func upsertData(ticketId: NSNumber, moduleId: Int, form: FPForms, completion: @escaping GetFormWithError) {
+    class func upsertLocalData(ticketId: NSNumber, moduleId: Int, form: FPForms, completion: @escaping GetFormWithError) {
         FPFormsDatabaseManager().upsert(form: form, ticketId: ticketId, moduleId: moduleId) { nform, success in
             if success {
                 completion(nform, nil)
             }else {
                 let tempError = FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong"))
                 completion(nil, tempError)
+            }
+        }
+    }
+    
+    
+    class func upsertServerData(ticketId: NSNumber, moduleId: Int, localForm: FPForms, serverform:FPForms, completion: @escaping GetFormWithError) {
+        FPFormsDatabaseManager().updateServerFormOnly(form: serverform, ticketId: ticketId) { form, success in
+            let serverSections = serverform.sections ?? []
+            let localSqliteId = localForm.sqliteId ?? 0
+            serverSections.forEach { section in
+                section.moduleEntityLocalId = localSqliteId
+                if let localSection = localForm.sections?.filter({$0.sortPosition == section.sortPosition}).first {
+                    section.sqliteId = localSection.sqliteId
+                    FPSectionDetailsDatabaseManager().deleteSectionDetails(forArray: [localSection])
+                    FPSectionDetailsDatabaseManager().insertSectionDetails([section], localSqliteId) { _ in }
+                }
+            }
+            FPFormsDatabaseManager().fetchFormBy(sqliteId: localSqliteId, shouldIncludeMedia: false, moduleId: FPFormMduleId) { form in
+                completion(form, nil)
             }
         }
     }
@@ -142,7 +161,9 @@ class FPFormsServiceManager: NSObject {
         }
     }
     
-    
+    class func markFormLocallySync(form: FPForms, ticketId: NSNumber, completion: @escaping ((Bool) -> ())) {
+        FPFormsDatabaseManager().markFormLocallySync(form: form, ticketId: ticketId, completion: completion)
+    }
     
     class func deleteFormLocally(form: FPForms, ticketId:NSNumber, moduleId: Int, completion: @escaping GetFormWithError) {
         DispatchQueue.global(qos: .userInitiated).async {
@@ -579,7 +600,7 @@ class FPFormsServiceManager: NSObject {
         guard FPUtility.isConnectedToNetwork() else {
             DispatchQueue.global(qos: .userInitiated).async {
                 form.isSyncedToServer = false
-                self.upsertData(ticketId: ticketId, moduleId: FPFormMduleId, form: form) { form, error in
+                self.upsertLocalData(ticketId: ticketId, moduleId: FPFormMduleId, form: form) { form, error in
                     completion(form, error)
                 }
             }
@@ -626,10 +647,9 @@ class FPFormsServiceManager: NSObject {
                         }
                     }
                     if isStaffTechnician{
-                        FPFormsServiceManager.preComileFPForm(form: formOnline, ticketID: ticketId.stringValue) {
-                        }
+                        FPFormsServiceManager.preComileFPForm(form: formOnline, ticketID: ticketId.stringValue) {}
                     }
-                    self.upsertData(ticketId: ticketId, moduleId: FPFormMduleId, form: formOnline) { dbform, error in
+                    self.upsertServerData(ticketId: ticketId, moduleId: FPFormMduleId, localForm: form, serverform: formOnline) { dbform, error in
                         completion(dbform, error)
                     }
                 } else {
@@ -645,7 +665,7 @@ class FPFormsServiceManager: NSObject {
             DispatchQueue.global(qos: .userInitiated).async {
                 form.isSyncedToServer = false
                 form.isActive = true
-                self.upsertData(ticketId: ticketId, moduleId: FPFormMduleId, form: form) { form, error in
+                self.upsertLocalData(ticketId: ticketId, moduleId: FPFormMduleId, form: form) { form, error in
                     let group = DispatchGroup()
                     for linking in FPFormDataHolder.shared.arrLinkingDB{
                         let updated = linking

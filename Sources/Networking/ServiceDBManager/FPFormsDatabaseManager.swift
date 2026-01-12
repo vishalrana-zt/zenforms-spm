@@ -525,6 +525,12 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         }
     }
     
+    func updateServerFormOnly(form: FPForms, ticketId: NSNumber, completion: @escaping FormCompletionHandler) {
+        let updateQuery = self.getUpdateQuery(form: form, sqliteId: form.sqliteId ?? 0, ticketId: ticketId, moduleId: FPFormMduleId, sectionDelta: false)
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([updateQuery], dbManager: self) { success in
+            completion(form, success)
+        }
+    }
     
     func markPartialFormNeedtoSync(form: FPForms, ticketId: NSNumber, moduleId: Int, shouldUpdateBySqliteId: Bool, completion: @escaping successCompletionHandler) {
         var updateQuery = ""
@@ -543,6 +549,17 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         }
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([updateQuery], dbManager: self) { success in
             completion(success)
+        }
+    }
+    
+    func markFormLocallySync(form: FPForms, ticketId: NSNumber, completion: @escaping ((Bool) -> ())) {
+        if let sqliteId = form.sqliteId {
+            let updateQuery = self.getUpdateQuery(form: form, sqliteId: sqliteId, ticketId: ticketId, moduleId: FPFormMduleId)
+            FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([updateQuery], dbManager: self) { success in
+                completion(success)
+            }
+        }else {
+            completion(false)
         }
     }
     

@@ -378,15 +378,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         guard let form = FPFormDataHolder.shared.customForm else {
             return
         }
-       
-        //stop validating whole form is it may give error to other section and user might not able to reach there
-//        if FPUtility.isConnectedToNetwork(), self.isNew{
-//            guard self.validateToSave() else {
-//                self.section =  self.previousSection
-//                self.previousSection = -1
-//                return
-//            }
-//        }
         
         guard self.validatePartialSectionToSave(sectionIndex: self.previousSection) else {
             self.section =  self.previousSection
@@ -428,6 +419,15 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         
         if !self.isNew, form.objectId == nil{
+            
+            if FPUtility.isConnectedToNetwork()  {
+                //sync form first if not created
+                self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.previousSection) { success in
+                    self.handleSectionControlUI()
+                }
+                return
+            }
+            
             guard let formSection = FPFormDataHolder.shared.getProcessedSection(sectionIndex: self.previousSection) else{
                 self.stopLoadings()
                 return
@@ -575,6 +575,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
 
         if !self.isNew, form.objectId == nil{
+            if FPUtility.isConnectedToNetwork()  {
+                //sync form first if not created
+                self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.section) { success in
+                    self.showPreviousSection()
+                }
+                return
+            }
+            
             guard let formSection = FPFormDataHolder.shared.getProcessedSection(sectionIndex: self.section) else{
                 self.stopLoadings()
                 return
@@ -635,7 +643,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
 //                return
 //            }
 //        }
-//        
+//
         guard self.validatePartialSectionToSave(sectionIndex: self.section) else {
             return
         }
@@ -669,6 +677,15 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         
         if !self.isNew, form.objectId == nil{
+            
+            if FPUtility.isConnectedToNetwork()  {
+                //sync form first if not created
+                self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.section) { success in
+                    self.showNextSection()
+                }
+                return
+            }
+            
             guard let formSection = FPFormDataHolder.shared.getProcessedSection(sectionIndex: self.section) else{
                 self.stopLoadings()
                 return
@@ -838,7 +855,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 at: section,
                                 forAsset: [asset], assetData: assetData,  completion: { status in
                                     self.handleSectionControlUI()
-                                    if(FPFormDataHolder.shared.customForm?.objectId != nil && FPFormDataHolder.shared.customForm?.objectId != "" && !self.isRescan){
+                                    if let _ = FPFormDataHolder.shared.customForm?.objectId{
                                         self.continuePartialSave(
                                             form:  FPFormDataHolder.shared.customForm!,
                                             isDismiss: false,
@@ -867,9 +884,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         self.deletePreviousAndAddNewSectionAssetLinkIntoDB(assetData: assetData, section:section, prevSection: prevSection)
                                     }
                                     self.handleSectionControlUI()
-                                    if(
-                                        FPFormDataHolder.shared.customForm?.objectId != nil && FPFormDataHolder.shared.customForm?.objectId != "" && !self.isRescan
-                                    ){
+                                    if let _ = FPFormDataHolder.shared.customForm?.objectId{
                                         self.continuePartialSave(
                                             form:  FPFormDataHolder.shared.customForm!,
                                             isDismiss: false,
@@ -935,7 +950,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     func addDynamicSection(section:FPSectionDetails, at sectionIndex:Int){
         FPFormDataHolder.shared.addDynamicSection(section, at: sectionIndex) { status in
             self.handleSectionControlUI()
-            if(FPFormDataHolder.shared.customForm?.objectId != nil && FPFormDataHolder.shared.customForm?.objectId != ""){
+            if let _ = FPFormDataHolder.shared.customForm?.objectId{
                 self.continuePartialSave(
                     form:  FPFormDataHolder.shared.customForm!,
                     isDismiss: false,
@@ -1051,7 +1066,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         DispatchQueue.global(qos: .userInitiated).async {
             form.isSyncedToServer = false
-            FPFormsServiceManager.upsertData(ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId, form: form) { fpform, error in
+            FPFormsServiceManager.upsertLocalData(ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId, form: form) { fpform, error in
                 if error == nil, let nfpform = fpform {
                     DispatchQueue.main.async {
                         if isNewForm{
@@ -1213,6 +1228,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                             let fpform = serverForm
                                             fpform.isSyncedToServer = true
                                             fpform.sqliteId = FPFormDataHolder.shared.customForm?.sqliteId
+                                            let sortedSection = serverForm.sections?.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""}) ?? []
+                                            fpform.sections = []
+                                            fpform.sections?.append(contentsOf: sortedSection)
                                             FPFormDataHolder.shared.customForm = fpform
                                         }
                                         completion?(true)
@@ -2244,10 +2262,9 @@ extension FPFormViewController: UIPickerViewDelegate {
         }
         if isSectionNameRefresh == false{
             self.formTableView.reloadData()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                //to fix QA-6471 rendering issues
-                self.formTableView.reloadData()
-            }
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+//                self.formTableView.reloadData()
+//            }
         }
     }
 }
@@ -2382,7 +2399,7 @@ extension FPFormViewController: UIImagePickerControllerDelegate{
 
 // MARK: - PHPickerViewController
 
-extension FPFormViewController: PHPickerViewControllerDelegate{    
+extension FPFormViewController: PHPickerViewControllerDelegate{
     func showPHImagePickerController() {
         var configuration = PHPickerConfiguration(photoLibrary: PHPhotoLibrary.shared())
         configuration.selectionLimit = 10

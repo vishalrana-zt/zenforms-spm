@@ -155,16 +155,12 @@ public final class ZenForms {
    
     public func syncZenForm(form:FPForms, syncDelegate: ZenFormsSyncAssetLinkingDelegate?, isAssetEnabled:Bool , completion: @escaping (_ success: Bool) -> ()){
         isAssetENABLED = isAssetEnabled
-        DispatchQueue.main.async {
-            _ = FPUtility.showHUDWithSyncingMessage()
-        }
         FPFormsServiceManager.getFilesFromForm(form: form)
         FPFormsServiceManager.uploadMediasAttached { status in
             FPFormsServiceManager.uploadTableAttachments { status in
                 let processedForm = FPFormsServiceManager.getProceessedForm(isNew: form.objectId == nil)
                 FPUtility.findAssetLinkingsFor(form: processedForm, synclinkingDelegate: syncDelegate) { assetLinkJson in
                     FPFormsServiceManager.routeToSaveCustomForm(ticketId: ticketId ?? 0, isNew: form.objectId == nil, form: processedForm, setSynced: true, assetLinkDetail:assetLinkJson) { form, error in
-                        FPUtility.hideHUD()
                         if error == nil {
                             if isEnableQuickNotes, let form = form, let strTicketId = ticketId?.stringValue{
                                 FPFormsServiceManager.preComileFPForm(form: form, ticketID: strTicketId) { }
@@ -179,6 +175,12 @@ public final class ZenForms {
                     }
                 }
             }
+        }
+    }
+    
+    public class func  updateZenFormSyncStatusLocally(form: FPForms, ticketId: NSNumber, completion: @escaping ((Bool) -> ())) {
+        FPFormsServiceManager.markFormLocallySync(form: form, ticketId: ticketId) { success in
+            completion(success)
         }
     }
     

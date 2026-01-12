@@ -44,6 +44,7 @@ public class FPForms : NSObject{
     public var deletedSections: String?
     public var downloadStatus: String?
     public var dwnldEnmStatus: INSPECTION_FORM_DOWNLOAD_STATUS = .NOT_REQUESTED
+    public var isLoading: Bool? = false
 
     public var downloadURL: String?
 
