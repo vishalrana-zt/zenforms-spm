@@ -15,7 +15,7 @@ extension UILabel: FPIBLocalizable {
     }
     
     // Not visible to the app
-    internal func applyLocalizedLable(_ key: String) {
+    internal func applyLocalizedLable(_ key: String?) {
         if let key = key { text = FPLocalizationHelper.localize(key) }
     }
 }
@@ -31,7 +31,7 @@ extension UIButton: FPIBLocalizable {
     }
 
     // Not visible to the app
-    internal func applyLocalizedTitle(_ key: String) {
+    internal func applyLocalizedTitle(_ key: String?) {
         let value = FPLocalizationHelper.localize(key)
         setTitle(value, for: .normal)
         setTitle(value, for: .highlighted)
@@ -57,7 +57,7 @@ extension UINavigationItem: FPIBLocalizable {
     }
     
     // Not visible to the app
-    internal func applyLocalizedValue(_ key: String) {
+    internal func applyLocalizedValue(_ key: String?) {
         if let key = key { text = FPLocalizationHelper.localize(key) }
     }
 }
@@ -71,7 +71,7 @@ extension UIBarItem: FPIBLocalizable {
     }
     
     // Not visible to the app
-    internal func applyLocalizedName(_ key: String) {
+    internal func applyLocalizedName(_ key: String?) {
         if let key = key { title = FPLocalizationHelper.localize(key) }
     }
 }
@@ -85,7 +85,7 @@ extension UITextField: FPIBLocalizable {
     }
     
     // Not visible to the app
-    internal func applyLocalizedPlaceholder(_ key: String) {
+    internal func applyLocalizedPlaceholder(_ key: String?) {
         if let key = key {
             placeholder = FPLocalizationHelper.localize(key)
         }
