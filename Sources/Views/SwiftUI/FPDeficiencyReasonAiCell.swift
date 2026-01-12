@@ -299,7 +299,7 @@ struct FPDeficiencyReasonAiCell: View {
             ZTDateTextFieldView(
                 date: $dueDate,
                 placeholder: FPLocalizationHelper.localize("lbl_Due_Date_PH"),
-                displayFormat: "dd MMM yyyy",
+                displayFormat: Reason_cell_DATE_STRING_FORMAT,
                 minDate: Date(),
                 maxDate: nil) { date in
                     dueDate = date

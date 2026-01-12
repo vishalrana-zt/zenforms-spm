@@ -10,6 +10,7 @@ internal import SSMediaManager
 internal import SDWebImage
 internal import Lottie
 import Speech
+internal let Reason_cell_DATE_STRING_FORMAT:String = "dd MMM yyyy"
 
 class FPReasonAiCell : UITableViewCell {
     var delegate:PFFileInputDelegate?
@@ -89,7 +90,7 @@ class FPReasonAiCell : UITableViewCell {
             // If timestamp is too large, assume it's in milliseconds and convert
             let timestampInSeconds = backendTimestamp > 9999999999 ? backendTimestamp / 1000 : backendTimestamp
             let date = Date(timeIntervalSince1970: TimeInterval(timestampInSeconds))
-            txtFieldDate.text = FPUtility.dateString(date, withCustomFormat: "dd MMM yyyy")
+            txtFieldDate.text = FPUtility.dateString(date, withCustomFormat: Reason_cell_DATE_STRING_FORMAT)
             dateTimeStamp = Int(timestampInSeconds)
         }else{
             txtFieldDate.text = ""
@@ -103,9 +104,9 @@ class FPReasonAiCell : UITableViewCell {
         SFSpeechRecognizer.requestAuthorization { authStatus in
             switch authStatus {
             case .authorized:
-                print("Speech recognition authorized")
+               break
             case .denied, .restricted, .notDetermined:
-                print("Speech recognition not available")
+                break
             @unknown default:
                 break
             }
@@ -114,7 +115,7 @@ class FPReasonAiCell : UITableViewCell {
     @objc func dateButtonPressed() {
         if let  datePicker = self.txtFieldDate.inputView as? UIDatePicker {
             let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "dd MMM yyyy"
+            dateFormatter.dateFormat = Reason_cell_DATE_STRING_FORMAT
             self.selectedDate = datePicker.date
             self.dateTimeStamp = Int(datePicker.date.timeIntervalSince1970)
             self.txtFieldDate.text = dateFormatter.string(from: datePicker.date)
