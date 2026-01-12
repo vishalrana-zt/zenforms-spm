@@ -7,94 +7,68 @@ internal protocol FPIBLocalizable {
 }
 
 extension UILabel: FPIBLocalizable {
-    @IBInspectable var localizedKey: String? {
+    var localizedKey: String? {
         get { nil }
         set(key) {
-            applyLocalizedLable(key)
+            if let key = key { text = FPLocalizationHelper.localize(key) }
         }
-    }
-    
-    // Not visible to the app
-    internal func applyLocalizedLable(_ key: String?) {
-        if let key = key { text = FPLocalizationHelper.localize(key) }
     }
 }
 
 extension UIButton: FPIBLocalizable {
-    @IBInspectable var localizedKey: String? {
+    var localizedKey: String? {
         get { nil }
         set(key) {
             if let key = key {
-                applyLocalizedTitle(key)
+                setTitle(FPLocalizationHelper.localize(key), for: .normal)
+                setTitle(FPLocalizationHelper.localize(key), for: .highlighted)
+                setTitle(FPLocalizationHelper.localize(key), for: .selected)
+                setTitle(FPLocalizationHelper.localize(key), for: .disabled)
+                makeTitleAdjustAutomatically()
             }
+
         }
     }
-
-    // Not visible to the app
-    internal func applyLocalizedTitle(_ key: String) {
-        let value = FPLocalizationHelper.localize(key)
-        setTitle(value, for: .normal)
-        setTitle(value, for: .highlighted)
-        setTitle(value, for: .selected)
-        setTitle(value, for: .disabled)
-        makeTitleAdjustAutomatically()
-    }
     
-    internal func updateButtonTitle(title:String){
+    func updateButtonTitle(title:String){
         setTitle(title, for: .normal)
         setTitle(title, for: .highlighted)
         setTitle(title, for: .selected)
         setTitle(title, for: .disabled)
     }
-
-    // Even stricter
-    fileprivate func makeTitleAdjustAutomatically() {
-        titleLabel?.adjustsFontSizeToFitWidth = true
-        titleLabel?.minimumScaleFactor = 0.5
-        titleLabel?.lineBreakMode = .byTruncatingTail
+    
+    func makeTitleAdjustAutomatically() {
+        self.titleLabel?.adjustsFontSizeToFitWidth = true
+        self.titleLabel?.minimumScaleFactor = 0.5
+        self.titleLabel?.lineBreakMode = .byTruncatingTail
     }
 }
 
 extension UINavigationItem: FPIBLocalizable {
-    @IBInspectable var localizedKey: String? {
+    var localizedKey: String? {
         get { nil }
         set(key) {
-            applyLocalizedValue(key)
+            if let key = key { title = FPLocalizationHelper.localize(key) }
         }
-    }
-    
-    // Not visible to the app
-    internal func applyLocalizedValue(_ key: String?) {
-        if let key = key { title = FPLocalizationHelper.localize(key) }
     }
 }
 
 extension UIBarItem: FPIBLocalizable {
-    @IBInspectable var localizedKey: String? {
+    var localizedKey: String? {
         get { nil }
         set(key) {
-            applyLocalizedName(key)
+            if let key = key { title = FPLocalizationHelper.localize(key) }
         }
-    }
-    
-    // Not visible to the app
-    internal func applyLocalizedName(_ key: String?) {
-        if let key = key { title = FPLocalizationHelper.localize(key) }
     }
 }
 
 extension UITextField: FPIBLocalizable {
-    @IBInspectable var localizedKey: String? {
+    var localizedKey: String? {
         get { nil }
         set(key) {
-            applyLocalizedPlaceholder(key)
-        }
-    }
-    
-    // Not visible to the app
-    internal func applyLocalizedPlaceholder(_ key: String?) {
-        if let key = key {
-            placeholder = FPLocalizationHelper.localize(key)
+            if let key = key {
+                placeholder = FPLocalizationHelper.localize(key)
+            }
         }
     }
 }
