@@ -39,6 +39,13 @@ extension UIButton: FPIBLocalizable {
         setTitle(value, for: .disabled)
         makeTitleAdjustAutomatically()
     }
+    
+    internal func updateButtonTitle(title:String){
+        setTitle(title, for: .normal)
+        setTitle(title, for: .highlighted)
+        setTitle(title, for: .selected)
+        setTitle(title, for: .disabled)
+    }
 
     // Even stricter
     fileprivate func makeTitleAdjustAutomatically() {
