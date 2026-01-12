@@ -68,6 +68,8 @@ extension UITextField: FPIBLocalizable {
         set(key) {
             if let key = key {
                 placeholder = FPLocalizationHelper.localize(key)
+                self.adjustsFontSizeToFitWidth = true
+                self.minimumFontSize = 12.0
             }
         }
     }
