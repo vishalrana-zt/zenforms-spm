@@ -25,7 +25,7 @@ protocol DynamicReasonsViewDelegate: AnyObject {
 
 class FPSegmentView: UIView {
     
-    @IBOutlet weak var reasonsTableView: AutoSizeTableView!
+    @IBOutlet weak var reasonsTableView: FPSelfSizedTableView!
     @IBOutlet var contentView: UIView!
     
     private static let INDEX_SEGMENT = 0
