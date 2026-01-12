@@ -58,7 +58,7 @@ extension UINavigationItem: FPIBLocalizable {
     
     // Not visible to the app
     internal func applyLocalizedValue(_ key: String?) {
-        if let key = key { title = LocalizationHelper.localize(key) }
+        if let key = key { title = FPLocalizationHelper.localize(key) }
     }
 }
 
