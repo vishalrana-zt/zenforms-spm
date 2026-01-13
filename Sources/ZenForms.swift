@@ -317,19 +317,19 @@ public final class ZenForms {
         }
     }
     
-//    public class func getInspectionFormsV2(ticketId:NSNumber, params:[String:Any], showLoader: Bool,  completion: @escaping (_ customForms: [FPForms], _ total:Int, _ error: Error?) -> Void) {
-//        FPFormsServiceManager.getAllInspectionFormsFor(ticketId: ticketId, params: params, showLoader: showLoader) { customForms, total, error in
-//            completion(customForms, total, error)
-//        }
-//    }
-//    
-//    public class func queryInspectionFormsFor(ticketId:NSNumber, params:[String:Any], showLoader: Bool,  completion: @escaping (_ customForms: [FPForms], _ total:Int, _ error: Error?) -> Void) {
-//        FPFormsServiceManager.queryInspectionFormsFor(ticketId: ticketId, params: params, showLoader: showLoader, completion: completion)
-//    }
-//    
-//    public class func upsertInspectionFormsFor(ticketId:NSNumber, inspectionForms:[FPForms], completion:@escaping (_ forms: [FPForms]?) -> ()) {
-//        FPFormsServiceManager.upsertInspectionFormsFor(ticketId: ticketId, forms: inspectionForms, completion: completion)
-//    }
+    public class func getInspectionFormsV2(ticketId:NSNumber, params:[String:Any], showLoader: Bool,  completion: @escaping (_ customForms: [FPForms], _ total:Int, _ error: Error?) -> Void) {
+        FPFormsServiceManager.getAllInspectionFormsFor(ticketId: ticketId, params: params, showLoader: showLoader) { customForms, total, error in
+            completion(customForms, total, error)
+        }
+    }
+    
+    public class func queryInspectionFormsFor(ticketId:NSNumber, params:[String:Any], showLoader: Bool,  completion: @escaping (_ customForms: [FPForms], _ total:Int, _ error: Error?) -> Void) {
+        FPFormsServiceManager.queryInspectionFormsFor(ticketId: ticketId, params: params, showLoader: showLoader, completion: completion)
+    }
+    
+    public class func upsertInspectionFormsFor(ticketId:NSNumber, inspectionForms:[FPForms], completion:@escaping (_ forms: [FPForms]?) -> ()) {
+        FPFormsServiceManager.upsertInspectionFormsFor(ticketId: ticketId, forms: inspectionForms, completion: completion)
+    }
 
     public class func deleteFPForms(ticketId: NSNumber, forms: [FPForms], showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
         FPFormsServiceManager.deleteCustomForms(ticketId: ticketId, forms: forms, showLoader: showLoader, completion: completion)
@@ -389,10 +389,6 @@ public final class ZenForms {
             _  = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: FPLocalizationHelper.localize("msg_scan_failed"), completion: nil)
         }
     }
-    
-//    public class func isFPFormSynced(objectId:String) -> Bool {
-//        return FPFormsDatabaseManager().isFormSynced(objectId: objectId)
-//    }
 }
  
 public class ZenFormsBuilder: NSObject{
