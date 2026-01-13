@@ -2267,8 +2267,8 @@ extension FPFormViewController: UIPickerViewDelegate {
             for row in 0..<rows {
                 let indexPath = IndexPath(row: row, section: section)
                 guard let sectionItem = FPFormDataHolder.shared.getRowForSection(self.section, at: indexPath.row) else{ continue }
-                if sectionItem.getUIType() == .TABLE || field.getUIType() == .TABLE_RESTRICTED{
-                    idexs.append(idexs)
+                if sectionItem.getUIType() == .TABLE || sectionItem.getUIType() == .TABLE_RESTRICTED{
+                    idexs.append(indexPath)
                 }
             }
             if !idexs.isEmpty{
