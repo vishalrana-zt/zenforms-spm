@@ -2263,7 +2263,7 @@ extension FPFormViewController: UIPickerViewDelegate {
         if isSectionNameRefresh == false{
             self.formTableView.reloadData()
             let rows = formTableView.numberOfRows(inSection: section)
-            let idexs = [IndexPath]()
+            var idexs = [IndexPath]()
             for row in 0..<rows {
                 let indexPath = IndexPath(row: row, section: section)
                 guard let sectionItem = FPFormDataHolder.shared.getRowForSection(self.section, at: indexPath.row) else{ continue }
