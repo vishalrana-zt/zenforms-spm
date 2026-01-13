@@ -254,7 +254,7 @@ struct FPSectionDetailsDatabaseManager: FPDataBaseQueries {
     func getFetchQueryOR(_ moduleEntityLocalId:NSNumber, moduleEntityId:String, _ moduleId: Int) -> String {
         return """
         SELECT * FROM \(FPSectionDetailsDatabaseManager.getTableName())
-        WHERE (\(FPColumn.moduleEntityLocalId) = \(moduleEntityLocalId) OR \(FPColumn.moduleEntityId) = \(moduleEntityId)) AND
+        WHERE (\(FPColumn.moduleEntityLocalId) = '\(moduleEntityLocalId)' OR \(FPColumn.moduleEntityId) = '\(moduleEntityId)') AND
         \(FPColumn.moduleId) = \(moduleId)
         """
     }
