@@ -2262,19 +2262,24 @@ extension FPFormViewController: UIPickerViewDelegate {
         }
         if isSectionNameRefresh == false{
             self.formTableView.reloadData()
-            var idexs = [IndexPath]()
-            if let indexPathRows = formTableView.indexPathsForVisibleRows {
-                for indxPth in indexPathRows {
-                    guard let sectionItem = FPFormDataHolder.shared.getRowForSection(self.section, at: indxPth.row) else{ continue }
-                    if sectionItem.getUIType() == .TABLE || sectionItem.getUIType() == .TABLE_RESTRICTED{
-                        idexs.append(indxPth)
-                    }
-                }
-            }
-            if !idexs.isEmpty{
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.formTableView.reloadRows(at: idexs, with: .none)
-                }
+//            var idexs = [IndexPath]()
+//            if let indexPathRows = formTableView.indexPathsForVisibleRows {
+//                for indxPth in indexPathRows {
+//                    guard let sectionItem = FPFormDataHolder.shared.getRowForSection(self.section, at: indxPth.row) else{ continue }
+//                    if sectionItem.getUIType() == .TABLE || sectionItem.getUIType() == .TABLE_RESTRICTED{
+//                        idexs.append(indxPth)
+//                    }
+//                }
+//            }
+//            if !idexs.isEmpty{
+//                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+//                    self.formTableView.reloadRows(at: idexs, with: .none)
+//                }
+//            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                //to fix QA-6471 rendering issues
+                self.formTableView.reloadData()
             }
         }
     }
