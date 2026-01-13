@@ -2272,7 +2272,7 @@ extension FPFormViewController: UIPickerViewDelegate {
                 }
             }
             if !idexs.isEmpty{
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     self.formTableView.reloadRows(at: idexs, with: .none)
                 }
             }
