@@ -2262,9 +2262,20 @@ extension FPFormViewController: UIPickerViewDelegate {
         }
         if isSectionNameRefresh == false{
             self.formTableView.reloadData()
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-//                self.formTableView.reloadData()
-//            }
+            let rows = formTableView.numberOfRows(inSection: section)
+            let idexs = [IndexPath]()
+            for row in 0..<rows {
+                let indexPath = IndexPath(row: row, section: section)
+                guard let sectionItem = FPFormDataHolder.shared.getRowForSection(self.section, at: indexPath.row) else{ continue }
+                if sectionItem.getUIType() == .TABLE || field.getUIType() == .TABLE_RESTRICTED{
+                    idexs.append(idexs)
+                }
+            }
+            if !idexs.isEmpty{
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    self.formTableView.reloadRows(at: idexs, with: .none)
+                }
+            }
         }
     }
 }
