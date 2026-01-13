@@ -1244,108 +1244,108 @@ class FPFormsServiceManager: NSObject {
     }
 }
 
-//// MARK: - FP Form List Revamp
-//
-//extension FPFormsServiceManager {
-//    class func getAllInspectionFormsFor(ticketId: NSNumber, params:[String:Any], showLoader: Bool, completion: @escaping GetInspectionFormsCompletionBlock) {
-//        router.request(.getInspectionForms(params)) { (json, _data, response, _error) in
-//            if _error == nil {
-//                guard let result = json?["result"] as? [String: Any] else {
-//                    if showLoader {
-//                        FPUtility.hideHUD()
-//                    }
-//                    completion([FPForms](), 0, FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
-//                    return
-//                }
-//                guard let results = result["data"] as? [[String:Any]] else {
-//                    if showLoader {
-//                        FPUtility.hideHUD()
-//                    }
-//                    completion([FPForms](), 0, FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
-//                    return
-//                }
-//                if let deletedFpFormIds = result["deleted"] as? [NSNumber], !deletedFpFormIds.isEmpty{
-//                    ZenForms.deleteInspectionFormsByIds(deletedFpFormIds.map{$0.stringValue}, ticketId: ticketId) { }
-//                }
-//                let total = result["total"] as? Int ?? 0
-//                self.processInspectionForms(arrResults: results, total: total, ticketId) { forms, total,  error  in
-//                    completion(forms, total, error)
-//                }
-//            } else {
-//                if showLoader {
-//                    FPUtility.hideHUD()
-//                }
-//                completion([FPForms](), 0, _error)
-//            }
-//        }
-//    }
-//    
-//    class func processInspectionForms(arrResults: [[String: Any]], total:Int, _ ticketId: NSNumber, completion: @escaping GetInspectionFormsCompletionBlock) {
-//        var arrForms = [FPForms]()
-//        for item in arrResults {
-//            arrForms.append(FPForms(dict: item, isForLocal: false))
-//        }
-//        if arrForms.count > 0{
-//            let arrIds = arrForms.map { $0.objectId ?? "0" }
-//            var params = [String:Any]()
-//            params["ids"] = arrIds
-//            //   params["ticketId"] = ticketId
-//            self.queryInspectionFormsFor(ticketId: ticketId, params: params, mtotal: total, showLoader: false) { forms, quryTotal, error  in
-//                completion(forms, quryTotal, error)
-//            }
-//        }else{
-//            completion(arrForms, total, nil)
-//        }
-//    }
-//
-//    class func upsertInspectionFormsFor(ticketId: NSNumber, forms: [FPForms], completion:@escaping (_ forms: [FPForms]?) -> ()) {
-//        serialQueueUpsertFPForms.async {
-//            FPFormsDatabaseManager().insertORUpdate(forms: forms, ticketId: ticketId) { forms in
-//                DispatchQueue.main.async {
-//                    completion(forms)
-//                }
-//            }
-//        }
-//    }
-//    
-//    
-//    class func queryInspectionFormsFor(ticketId: NSNumber, params:[String:Any], mtotal:Int? = 1, showLoader: Bool, completion: @escaping GetInspectionFormsCompletionBlock) {
-//        
-//        if showLoader {
-//            DispatchQueue.main.async {
-//                FPUtility.showHUDWithLoadingMessage()
-//            }
-//        }
-//        router.request(.queryInspectionForms(params)) { (json, _data, response, _error) in
-//            if _error == nil {
-//                guard let results = json?["result"] as? [[String: Any]] else {
-//                    if showLoader {
-//                        FPUtility.hideHUD()
-//                    }
-//                    completion([], 0, FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
-//                    return
-//                }
-//                var arrForms = [FPForms]()
-//                for item in results {
-//                    arrForms.append(FPForms(dict: item, isForLocal: false))
-//                }
-//                self.upsertInspectionFormsFor(ticketId: ticketId, forms: arrForms) { forms in
-//                    DispatchQueue.main.async {
-//                        if showLoader {
-//                            FPUtility.hideHUD()
-//                        }
-//                        completion(arrForms, mtotal ?? 1, nil)
-//                    }
-//                }
-//                
-//            } else {
-//                if showLoader {
-//                    DispatchQueue.main.async {
-//                        FPUtility.hideHUD()
-//                    }
-//                }
-//                completion([], 0, _error)
-//            }
-//        }
-//    }
-//}
+// MARK: - FP Form List Revamp
+
+extension FPFormsServiceManager {
+    class func getAllInspectionFormsFor(ticketId: NSNumber, params:[String:Any], showLoader: Bool, completion: @escaping GetInspectionFormsCompletionBlock) {
+        router.request(.getInspectionForms(params)) { (json, _data, response, _error) in
+            if _error == nil {
+                guard let result = json?["result"] as? [String: Any] else {
+                    if showLoader {
+                        FPUtility.hideHUD()
+                    }
+                    completion([FPForms](), 0, FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                    return
+                }
+                guard let results = result["data"] as? [[String:Any]] else {
+                    if showLoader {
+                        FPUtility.hideHUD()
+                    }
+                    completion([FPForms](), 0, FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                    return
+                }
+                if let deletedFpFormIds = result["deleted"] as? [NSNumber], !deletedFpFormIds.isEmpty{
+                    ZenForms.deleteInspectionFormsByIds(deletedFpFormIds.map{$0.stringValue}, ticketId: ticketId) { }
+                }
+                let total = result["total"] as? Int ?? 0
+                self.processInspectionForms(arrResults: results, total: total, ticketId) { forms, total,  error  in
+                    completion(forms, total, error)
+                }
+            } else {
+                if showLoader {
+                    FPUtility.hideHUD()
+                }
+                completion([FPForms](), 0, _error)
+            }
+        }
+    }
+    
+    class func processInspectionForms(arrResults: [[String: Any]], total:Int, _ ticketId: NSNumber, completion: @escaping GetInspectionFormsCompletionBlock) {
+        var arrForms = [FPForms]()
+        for item in arrResults {
+            arrForms.append(FPForms(dict: item, isForLocal: false))
+        }
+        if arrForms.count > 0{
+            let arrIds = arrForms.map { $0.objectId ?? "0" }
+            var params = [String:Any]()
+            params["ids"] = arrIds
+            //   params["ticketId"] = ticketId
+            self.queryInspectionFormsFor(ticketId: ticketId, params: params, mtotal: total, showLoader: false) { forms, quryTotal, error  in
+                completion(forms, quryTotal, error)
+            }
+        }else{
+            completion(arrForms, total, nil)
+        }
+    }
+
+    class func upsertInspectionFormsFor(ticketId: NSNumber, forms: [FPForms], completion:@escaping (_ forms: [FPForms]?) -> ()) {
+        serialQueueUpsertFPForms.async {
+            FPFormsDatabaseManager().insertORUpdate(forms: forms, ticketId: ticketId) { forms in
+                DispatchQueue.main.async {
+                    completion(forms)
+                }
+            }
+        }
+    }
+    
+    
+    class func queryInspectionFormsFor(ticketId: NSNumber, params:[String:Any], mtotal:Int? = 1, showLoader: Bool, completion: @escaping GetInspectionFormsCompletionBlock) {
+        
+        if showLoader {
+            DispatchQueue.main.async {
+                FPUtility.showHUDWithLoadingMessage()
+            }
+        }
+        router.request(.queryInspectionForms(params)) { (json, _data, response, _error) in
+            if _error == nil {
+                guard let results = json?["result"] as? [[String: Any]] else {
+                    if showLoader {
+                        FPUtility.hideHUD()
+                    }
+                    completion([], 0, FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                    return
+                }
+                var arrForms = [FPForms]()
+                for item in results {
+                    arrForms.append(FPForms(dict: item, isForLocal: false))
+                }
+                self.upsertInspectionFormsFor(ticketId: ticketId, forms: arrForms) { forms in
+                    DispatchQueue.main.async {
+                        if showLoader {
+                            FPUtility.hideHUD()
+                        }
+                        completion(arrForms, mtotal ?? 1, nil)
+                    }
+                }
+                
+            } else {
+                if showLoader {
+                    DispatchQueue.main.async {
+                        FPUtility.hideHUD()
+                    }
+                }
+                completion([], 0, _error)
+            }
+        }
+    }
+}
