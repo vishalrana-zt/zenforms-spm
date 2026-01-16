@@ -29,6 +29,16 @@ class FPTableCollectionViewCell: UITableViewCell {
             if let cellItem = cellItem,let index = tableIndexPath {
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: cellItem)
             }
+            
+            // Ensure data source is set before reloading
+            if viewModel != nil && collMain.dataSource == nil {
+                collMain.dataSource = viewModel
+                collMain.delegate = viewModel
+            }
+            
+            // Force layout recalculation when cellItem changes
+            // This will reload data and recalculate layout
+            recalculateLayout()
         }
     }
     
@@ -45,6 +55,23 @@ class FPTableCollectionViewCell: UITableViewCell {
             layout.isNew = true
             layout.delegate = viewModel
             collMain.reloadData()
+            
+            // Force layout recalculation after data is loaded
+            // If cellItem already exists, ensure layout recalculates with current data
+            if cellItem != nil {
+                DispatchQueue.main.async { [weak self] in
+                    self?.recalculateLayout()
+                }
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    // Even without cellItem, ensure layout is ready when bounds become valid
+                    if self.collMain.bounds.width > 0 && self.collMain.bounds.height > 0 {
+                        layout.invalidateLayout()
+                        self.collMain.layoutIfNeeded()
+                    }
+                }
+            }
         }
     }
     
@@ -83,6 +110,12 @@ class FPTableCollectionViewCell: UITableViewCell {
         self.titleText = displayName
         self.tableIndexPath = indexPath
         self.btnAddRow.isHidden = !isShowAddRow
+        
+        // Ensure viewModel exists before setting cellItem
+        if viewModel == nil {
+            viewModel = FPQueAnsCollectionViewModel()
+        }
+        
         self.viewModel?.widthQuesColumn = self.fieldDetails?.getUIType() == .TABLE ? WIDTH_CONTENT : WIDTH_QUES_COLUMN
         if let component = FPFormDataHolder.shared.getTableComponentAt(index: indexPath){
             self.cellItem = component
@@ -91,6 +124,76 @@ class FPTableCollectionViewCell: UITableViewCell {
             self.cellItem = TableComponent().prepareData(item: tableOptions ?? TableOptions(), values: item.value,index: indexPath,fieldDetails: item, customForm: customForm)
             FPFormDataHolder.shared.addTableComponentAt(index: indexPath, component: self.cellItem!)
         }
+        
+        // Force layout recalculation after configuration
+        DispatchQueue.main.async { [weak self] in
+            self?.recalculateLayout()
+        }
+    }
+    
+    func recalculateLayout() {
+        guard let layout = collMain.collectionViewLayout as? FPQueAnsCollectionViewLayout else {
+            return
+        }
+        
+        // Always reload data first - this ensures cells are created and data source is queried
+        // Data loading doesn't require valid bounds
+        collMain.reloadData()
+        
+        // Only do layout calculations if collection view has valid bounds
+        // This prevents incorrect calculations when cell is off-screen with zero bounds
+        guard collMain.bounds.width > 0 && collMain.bounds.height > 0 else {
+            // If bounds are invalid, schedule layout recalculation for later
+            // But data is already loaded, so cells will be created when bounds become valid
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                if self.collMain.bounds.width > 0 && self.collMain.bounds.height > 0 {
+                    layout.isNew = true
+                    layout.invalidateLayout()
+                    self.collMain.layoutIfNeeded()
+                }
+            }
+            return
+        }
+        
+        // Clear layout cache to force recalculation
+        layout.isNew = true
+        layout.invalidateLayout()
+        
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.collMain.layoutIfNeeded()
+            layout.invalidateLayout()
+            self.collMain.setNeedsLayout()
+            self.collMain.layoutIfNeeded()
+        }
+    }
+    
+    private var previousBounds: CGRect = .zero
+    
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Recalculate layout when cell bounds change from zero to non-zero
+        // This ensures layout is correct when cell becomes visible after being configured off-screen
+        let currentBounds = collMain.bounds
+        let boundsChanged = !currentBounds.equalTo(previousBounds)
+        let boundsAreValid = currentBounds.width > 0 && currentBounds.height > 0
+        let wasZeroBounds = previousBounds.width == 0 || previousBounds.height == 0
+        
+        if boundsChanged && boundsAreValid && wasZeroBounds {
+            // Cell just got valid bounds (became visible), recalculate layout
+            if let layout = collMain.collectionViewLayout as? FPQueAnsCollectionViewLayout {
+                layout.isNew = true
+                layout.invalidateLayout()
+                collMain.reloadData()
+                DispatchQueue.main.async { [weak self] in
+                    self?.collMain.layoutIfNeeded()
+                }
+            }
+        }
+        
+        previousBounds = currentBounds
     }
     
     @IBAction func didAddRowTapped(_ sender: Any) {

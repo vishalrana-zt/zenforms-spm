@@ -15,11 +15,15 @@ final class FPQueAnsCollectionViewLayout: UICollectionViewLayout {
     private var contentSizeCache = CGSize.zero
     private var columnCountCache = 0
     private var rowCountCache = 0
-    var isNew = false
-    // Saves the starting offset of the collection view. This offset will be applied to the rect of
-    // each cell to find the true origin. For example, this project contains a navigation bar which
-    // has a height of 64 points. This means that the true origin of the collection view is
-    // `CGPoint(x: 0, y: -64)`.
+    var isNew = false {
+        didSet {
+            // Clear cache when isNew is set to true to force recalculation
+            if isNew {
+                contentSizeCache = CGSize.zero
+            }
+        }
+    }
+    
     private var originalContentOffset = CGPoint.zero
     
     override var collectionViewContentSize: CGSize {

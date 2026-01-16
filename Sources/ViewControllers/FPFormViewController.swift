@@ -1587,8 +1587,26 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 cell.collMain.layoutIfNeeded()
                 cell.collMain.reloadData()
+                // Ensure cell has valid bounds before recalculating
+                cell.setNeedsLayout()
+                cell.layoutIfNeeded()
+                cell.recalculateLayout()
             }
         }
+    }
+    
+    func tableView(_ tableView: UITableView, estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        // Provide estimated height to help table view calculate cell positions correctly
+        // This prevents cells from being configured with incorrect bounds
+        guard let sectionItem = FPFormDataHolder.shared.getRowForSection(self.section, at: indexPath.row) else{
+            return 200 // Default estimated height
+        }
+        
+        // Return a reasonable estimate based on field type
+        if sectionItem.getUIType() == .TABLE {
+            return 300 // Tables typically need more height
+        }
+        return 200 // Default for other field types
     }
     
     fileprivate func fileItemDidTapped(_ title: String, _ indexPath: IndexPath) {
