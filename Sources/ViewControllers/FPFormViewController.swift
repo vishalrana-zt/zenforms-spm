@@ -2280,10 +2280,10 @@ extension FPFormViewController: UIPickerViewDelegate {
         }
         if isSectionNameRefresh == false{
             self.formTableView.reloadData()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                //to fix QA-6471 rendering issues
-                self.formTableView.reloadData()
-            }
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+//                //to fix QA-6471 rendering issues
+//                self.formTableView.reloadData()
+//            }
         }
     }
 }
