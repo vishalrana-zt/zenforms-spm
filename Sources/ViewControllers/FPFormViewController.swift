@@ -1053,7 +1053,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         FPFormDataHolder.shared.getFilesFromValue(form: fpform)
         FPFormsDatabaseManager().updateForm(form: fpform, ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId, shouldUpdateBySqliteId: false) {  _, _ in
             DispatchQueue.main.async {
-                self.formTableView.reloadSections(IndexSet(integer: sectionIndex), with: .automatic)
+                self.formTableView.reloadData()
             }
         }
     }
