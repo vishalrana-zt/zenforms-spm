@@ -25,8 +25,8 @@ let package = Package(
 
         // MARK: - Networking & Observability
         .package(url: "https://github.com/Alamofire/Alamofire.git", exact: "5.6.0"),
-        .package(url: "https://github.com/Datadog/dd-sdk-ios.git", .upToNextMajor(from: "2.24.0")),
-
+        .package(url: "https://github.com/Datadog/dd-sdk-ios.git", .upToNextMajor(from: "3.0.0")),
+        
         // MARK: - Database
         .package(url: "https://github.com/ccgus/fmdb.git", .upToNextMajor(from:"2.7.12")),
         .package(url: "https://github.com/groue/GRDB.swift", branch: "master"),
