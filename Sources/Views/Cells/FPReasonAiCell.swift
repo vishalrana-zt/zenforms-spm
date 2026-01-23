@@ -87,11 +87,11 @@ class FPReasonAiCell : UITableViewCell {
     func setSeverityDataAndDueDate(customReason: FPReasonsRow?){
         if let dueDate = customReason?.dueDate{
             let backendTimestamp: TimeInterval = TimeInterval(dueDate)
-            // If timestamp is too large, assume it's in milliseconds and convert
-            let timestampInSeconds = backendTimestamp > 9999999999 ? backendTimestamp / 1000 : backendTimestamp
-            let date = Date(timeIntervalSince1970: TimeInterval(timestampInSeconds))
+//            // If timestamp is too large, assume it's in milliseconds and convert
+//            let timestampInSeconds = backendTimestamp > 9999999999 ? backendTimestamp / 1000 : backendTimestamp
+            let date = Date(milliseconds: Int64(backendTimestamp))
             txtFieldDate.text = FPUtility.dateString(date, withCustomFormat: Reason_cell_DATE_STRING_FORMAT)
-            dateTimeStamp = Int(timestampInSeconds)
+            dateTimeStamp = Int(backendTimestamp)
         }else{
             txtFieldDate.text = ""
         }
@@ -117,7 +117,7 @@ class FPReasonAiCell : UITableViewCell {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = Reason_cell_DATE_STRING_FORMAT
             self.selectedDate = datePicker.date
-            self.dateTimeStamp = Int(datePicker.date.timeIntervalSince1970)
+            self.dateTimeStamp = Int(datePicker.date.millisecondsSince1970)
             self.txtFieldDate.text = dateFormatter.string(from: datePicker.date)
         }
         self.txtFieldDate.resignFirstResponder()
