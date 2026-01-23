@@ -91,6 +91,8 @@ class FPReasonAiCell : UITableViewCell {
 //            let timestampInSeconds = backendTimestamp > 9999999999 ? backendTimestamp / 1000 : backendTimestamp
             let date = Date(milliseconds: Int64(backendTimestamp))
             txtFieldDate.text = FPUtility.dateString(date, withCustomFormat: Reason_cell_DATE_STRING_FORMAT)
+            self.selectedDate = date
+            self.txtFieldDate.updateSelectedDate(date)
             dateTimeStamp = Int(backendTimestamp)
         }else{
             txtFieldDate.text = ""
@@ -117,6 +119,7 @@ class FPReasonAiCell : UITableViewCell {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = Reason_cell_DATE_STRING_FORMAT
             self.selectedDate = datePicker.date
+            self.txtFieldDate.updateSelectedDate(datePicker.date)
             self.dateTimeStamp = Int(datePicker.date.millisecondsSince1970)
             self.txtFieldDate.text = dateFormatter.string(from: datePicker.date)
         }

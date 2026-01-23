@@ -1197,38 +1197,59 @@ extension Dictionary where Key == String  {
 
 }
 
+private var datePickerKey: UInt8 = 0
 extension UITextField {
-
+    
+    var datePicker: UIDatePicker? {
+        get {
+            objc_getAssociatedObject(self, &datePickerKey) as? UIDatePicker
+        }
+        set {
+            objc_setAssociatedObject(self, &datePickerKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+    
     func addInputViewDatePicker(target: Any, selector: Selector,minimumDate: Date? = nil,currentDate:Date? = Date()) {
+        
+        let screenWidth = UIScreen.main.bounds.width
+        
+        //Add DatePicker as inputView
+        var datePicker = UIDatePicker(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 216))
+        datePicker.datePickerMode = .date
+        datePicker.date = currentDate ?? Date()
+        if minimumDate == minimumDate{
+            datePicker.minimumDate = minimumDate
+        }
+        if #available(iOS 13.4, *) {
+            datePicker.preferredDatePickerStyle = .wheels
+        } else {
+            // Fallback on earlier versions
+        }
+        
+        self.inputView = datePicker
+        self.datePicker = datePicker
 
-   let screenWidth = UIScreen.main.bounds.width
-
-   //Add DatePicker as inputView
-   var datePicker = UIDatePicker(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 216))
-   datePicker.datePickerMode = .date
-    datePicker.date = currentDate ?? Date()
-      if minimumDate == minimumDate{
-          datePicker.minimumDate = minimumDate
-      }
-      if #available(iOS 13.4, *) {
-          datePicker.preferredDatePickerStyle = .wheels
-      } else {
-          // Fallback on earlier versions
-      }
-      
-   self.inputView = datePicker
-
-   //Add Tool Bar as input AccessoryView
-   let toolBar = UIToolbar(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 44))
-   let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-   let cancelBarButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelPressed))
-   let doneBarButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style: .plain, target: target, action: selector)
-   toolBar.setItems([cancelBarButton, flexibleSpace, doneBarButton], animated: false)
-
-   self.inputAccessoryView = toolBar
-}
-
-  @objc func cancelPressed() {
-    self.resignFirstResponder()
-  }
+        //Add Tool Bar as input AccessoryView
+        let toolBar = UIToolbar(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 44))
+        let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let cancelBarButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelPressed))
+        let doneBarButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style: .plain, target: target, action: selector)
+        toolBar.setItems([cancelBarButton, flexibleSpace, doneBarButton], animated: false)
+        
+        self.inputAccessoryView = toolBar
+    }
+    
+    /// Helper to get selected date anytime
+    func selectedDate() -> Date? {
+        return datePicker?.date
+    }
+    
+    /// Helper to update date later
+    func updateSelectedDate(_ date: Date, animated: Bool = true) {
+        datePicker?.setDate(date, animated: animated)
+    }
+    
+    @objc func cancelPressed() {
+        self.resignFirstResponder()
+    }
 }
