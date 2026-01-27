@@ -243,8 +243,11 @@ class FPTableEditViewController: UIViewController {
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: tableComponent)
                 self.didCompletedEdit?(tableComponent)
             }
-            FPFormDataHolder.shared.tableMediaCache.forEach { tableMedia in
-                FPFormDataHolder.shared.updateTableFieldValue(media: tableMedia)
+            let snapshot = FPFormDataHolder.shared.tableMediaCache
+            snapshot.forEach { tableMedia in
+                DispatchQueue.main.async {
+                    FPFormDataHolder.shared.updateTableFieldValue(media: tableMedia)
+                }
             }
             FPFormDataHolder.shared.tableMediaCache = []
             
