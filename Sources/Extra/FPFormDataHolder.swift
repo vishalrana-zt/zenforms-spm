@@ -794,20 +794,26 @@ struct FPFormDataHolder{
     mutating func updateTableFieldValue(media:TableMedia,isPostUpload:Bool = false){
         var mediaObjct = media
         addUpdateTableMedia(media: &mediaObjct)
+        guard let parentIndex = mediaObjct.parentTableIndex,
+              let childIndex = mediaObjct.childTableIndex,
+              childIndex.section > 0 else {
+            return
+        }
         var sections = getFormSections()
-        if var sectionObject = sections[safe:mediaObjct.parentTableIndex!.section]{
+        if var sectionObject = sections[safe: parentIndex.section]{
             var sectionFields = sectionObject.fields
-            if let field = sectionFields[safe:mediaObjct.parentTableIndex!.row]{
+            if let field = sectionFields[safe: parentIndex.row]{
                 if(field.getUIType() == .TABLE || field.getUIType() == .TABLE_RESTRICTED){
                     var  tempValue = field.value
                     if var valueArray = tempValue?.getArray(){
                         var rowValue:[String:Any] = [:]
-                        if(valueArray.count>mediaObjct.childTableIndex!.section-1){
-                            rowValue = valueArray[safe:mediaObjct.childTableIndex!.section-1] ?? [:]
+                        let rowSectionIndex = childIndex.section - 1
+                        if valueArray.count > rowSectionIndex {
+                            rowValue = valueArray[safe: rowSectionIndex] ?? [:]
                         }
                         var mediaDict = [String:Any]()
                         if let  mediaObject = rowValue[mediaObjct.key!] as? String{
-                             mediaDict = mediaObject.getDictonary()
+                            mediaDict = mediaObject.getDictonary()
                         }else{
                             mediaDict = (rowValue[mediaObjct.key!] as? [String:Any]) ?? [:]
                         }
@@ -838,36 +844,37 @@ struct FPFormDataHolder{
                             }
                             mediaDict["files"] = files
                         }
-                    
+                        
                         rowValue[media.key!] = mediaDict
-                        if(valueArray.count>mediaObjct.childTableIndex!.section-1){
-                            valueArray[mediaObjct.childTableIndex!.section-1] = rowValue
+                        if valueArray.count > rowSectionIndex {
+                            valueArray[rowSectionIndex] = rowValue
                         }else{
                             valueArray.append(rowValue)
                         }
-                        if let component  = tableComponents[mediaObjct.parentTableIndex!]{
+                        if let component  = tableComponents[parentIndex]{
                             component.values = valueArray
-                            var rowIndex = mediaObjct.childTableIndex!.section-1
-                            if(component.rows!.count <= rowIndex) {
-                                rowIndex -= 1
+                            let rowIndex = rowSectionIndex
+                            if var rows = component.rows,
+                               rows.indices.contains(rowIndex) {
+                                var row = rows[rowIndex]
+                                if let columnIndex = row.columns.firstIndex(where: {$0.key == media.key}) {
+                                    var column  = row.columns[columnIndex]
+                                    column.value = mediaDict.getJson()
+                                    row.columns[columnIndex] = column
+                                }
+                                rows[rowIndex] = row
+                                component.rows = rows
                             }
-                            var row = component.rows![rowIndex]
-                            if let columnIndex = row.columns.firstIndex(where: {$0.key == media.key}){
-                                var column  = row.columns[columnIndex]
-                                column.value = mediaDict.getJson()
-                                row.columns[columnIndex] = column
-                            }
-                            component.rows![rowIndex] = row
-                            tableComponents[mediaObjct.parentTableIndex!] = component
+                            tableComponents[parentIndex] = component
                         }
                         tempValue = valueArray.getJson()
                     }
                     field.value = tempValue
                 }
-                sectionFields[media.parentTableIndex!.row] = field
+                sectionFields[parentIndex.row] = field
             }
             sectionObject.fields = sectionFields
-            sections[media.parentTableIndex!.section] = sectionObject
+            sections[parentIndex.section] = sectionObject
         }
         self.sections = sections
     }
