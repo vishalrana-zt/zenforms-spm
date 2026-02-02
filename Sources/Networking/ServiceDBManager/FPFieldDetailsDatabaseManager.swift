@@ -268,11 +268,24 @@ struct FPFieldDetailsDatabaseManager: FPDataBaseQueries {
     }
     func getUpdateQuery(_ sqliteId: Int, _ item: FPFieldDetails) -> String {
         var updateQuery = self.getUpdateQuery()
-        if let value = item.objectId {
-            updateQuery += "\(FPColumn.id)='\(value)',"
-        }else {
-            updateQuery += "\(FPColumn.id)= NULL,"
-        }
+       
+    // ✅ SAFE id update (prevents UNIQUE constraint crash)
+       if let value = item.objectId {
+           updateQuery += """
+           \(FPColumn.id) = CASE
+               WHEN NOT EXISTS (
+                   SELECT 1 FROM \(FPFieldDetailsDatabaseManager.getTableName())
+                   WHERE \(FPColumn.id) = '\(value)'
+                     AND \(FPColumn.sqliteId) != \(sqliteId)
+               )
+               THEN '\(value)'
+               ELSE \(FPColumn.id)
+           END,
+           """
+       } else {
+           updateQuery += "\(FPColumn.id)= NULL,"
+       }
+        
         if let value = item.templateId {
             updateQuery += "\(FPColumn.templateId)='\(value)',"
         }else {
