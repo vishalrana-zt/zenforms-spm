@@ -1289,7 +1289,7 @@ extension FPFormsServiceManager {
             let arrIds = arrForms.map { $0.objectId ?? "0" }
             var params = [String:Any]()
             params["ids"] = arrIds
-            //   params["ticketId"] = ticketId
+            params["ticketIds"] = [ticketId]
             self.queryInspectionFormsFor(ticketId: ticketId, params: params, mtotal: total, showLoader: false) { forms, quryTotal, error  in
                 completion(forms, quryTotal, error)
             }
