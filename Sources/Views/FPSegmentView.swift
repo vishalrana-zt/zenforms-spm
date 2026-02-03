@@ -300,7 +300,7 @@ extension FPSegmentView: SegmentControlDelegate {
         self.cellItem?.value = self.valueString
         updateSelectedValue()
         if self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true || self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true {
-            DispatchQueue.main.asyncAfter(deadline:.now() + 0.1) {
+            DispatchQueue.main.asyncAfter(deadline:.now() + 0.3) {
                 self.stopRecorder()
                 self.delegate.reloadCollectionAt(index: self.collectionIndex)
             }
