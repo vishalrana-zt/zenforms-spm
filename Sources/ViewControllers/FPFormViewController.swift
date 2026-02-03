@@ -1770,7 +1770,7 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
                 tag: indexPath.row,
                 arrOptions: self.getRadioOptions(section: section, row: indexPath.row, item: sectionItem)) { value in
                     FPFormDataHolder.shared.updateRowWith(value: value, inSection: self.section, atIndex: indexPath.row)
-                    self.safeReloadRows(indexPaths: [indexPath])
+                    self.safeReloadRows([indexPath])
                 }
         }
         .margins(.all, 0)
@@ -1779,7 +1779,7 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
     
     private func safeReloadRows(_ indexPaths: [IndexPath]) {
         let section = 0
-        let maxRows = checklistTable.numberOfRows(inSection: section)
+        let maxRows = formTableView.numberOfRows(inSection: section)
 
         let validPaths = indexPaths.filter { $0.row >= 0 && $0.row < maxRows }
         guard !validPaths.isEmpty else { return }
