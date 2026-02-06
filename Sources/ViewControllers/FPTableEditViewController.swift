@@ -1032,18 +1032,18 @@ extension FPTableEditViewController: TableContentCellDelegate{
             var rawVars: [String: Any] = [:]
             for column in updatedRow.columns {
                 debugPrint(column.value)
-                var strExpVal = ""
-                if let strVal = self.inferValue(column.value) as? String{
-                    strExpVal = strVal
-                }else if let dbVal = self.inferValue(column.value) as? Double{
-                    strExpVal = String(format: "%.2f", dbVal)
-                }
-                debugPrint(strExpVal)
+//                var strExpVal = ""
+//                if let strVal = self.inferValue(column.value) as? String{
+//                    strExpVal = strVal
+//                }else if let dbVal = self.inferValue(column.value) as? Double{
+//                    strExpVal = String(format: "%.2f", dbVal)
+//                }
+//                debugPrint(strExpVal)
                 
                 if orginalExpression.range(of: "\\b\(column.key)\\b", options: .regularExpression) != nil {
                     debugPrint("column found: \(column.key)")
-                    debugPrint("column value: \(column.value)")
-                    rawVars[column.key] = strExpVal
+                    rawVars[column.key] = self.inferValue(column.value)
+                    debugPrint("column value: \(self.inferValue(column.value))")
                 }
                 
 //                
