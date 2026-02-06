@@ -1029,6 +1029,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
         var updatedRow = row
         for formula in arrTblFormulas {
             var orginalExpression = formula.expression ?? ""
+            var rawVars: [String: Any] = [:]
             for column in updatedRow.columns {
                 debugPrint(column.value)
                 var strExpVal = ""
@@ -1038,8 +1039,16 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     strExpVal = String(format: "%.2f", dbVal)
                 }
                 debugPrint(strExpVal)
-                orginalExpression = orginalExpression.replacingOccurrences(of: "\\b\(column.key)\\b", with: strExpVal, options: .regularExpression)
-                debugPrint(orginalExpression)
+                
+                if orginalExpression.range(of: "\\b\(column.key)\\b", options: .regularExpression) != nil {
+                    debugPrint("column found: \(column.key)")
+                    debugPrint("column value: \(column.value)")
+                    rawVars[column.key] = strExpVal
+                }
+                
+//                
+//                orginalExpression = orginalExpression.replacingOccurrences(of: "\\b\(column.key)\\b", with: strExpVal, options: .regularExpression)
+//                debugPrint(orginalExpression)
 
             }
             if let columnIndex = row.columns.firstIndex(where: {$0.key == formula.name}){
@@ -1049,8 +1058,13 @@ extension FPTableEditViewController: TableContentCellDelegate{
 //                }else{
 //                    updatedRow.columns[columnIndex].value = "-"
 //                }
+                debugPrint("formula: \(orginalExpression)")
+                debugPrint("variables: \(rawVars)")
+
                 do {
-                    let value = try ZTExpressionEngine.evaluate(orginalExpression, variables: [:])
+                    let value = try ZTExpressionEngine.evaluate(orginalExpression, variables: rawVars)
+                    debugPrint("result: \(value)")
+
                     if let dbvalue = value as? Double{
                         updatedRow.columns[columnIndex].value = String(format: "%.2f", dbvalue)
                     }else  if let strVal = value as? String{
