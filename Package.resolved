@@ -1,5 +1,5 @@
 {
-  "originHash" : "e058f558a90cf1e7c8074e3937faf3dae2698da9a10b3e033f884eb567aa4264",
+  "originHash" : "84ea3ffd6f4224f3ab0f2ecf35d89f9967967f5c33175caf44435b3ec888f659",
   "pins" : [
     {
       "identity" : "acedrawingview",
@@ -260,6 +260,15 @@
       "state" : {
         "branch" : "spm",
         "revision" : "9573c0964c6687305e912cdc06bfbdd53af93d2c"
+      }
+    },
+    {
+      "identity" : "ztexpressionengine",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vishalrana-zt/ZTExpressionEngine",
+      "state" : {
+        "branch" : "main",
+        "revision" : "4c6d572803a884654a934828acd3ae09276db6a8"
       }
     }
   ],

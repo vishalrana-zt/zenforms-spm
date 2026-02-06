@@ -12,6 +12,7 @@ internal import RSSelectionMenu
 internal import IQKeyboardManagerSwift
 internal import IQKeyboardToolbar
 internal import IQKeyboardToolbarManager
+internal import ZTExpressionEngine
 
 enum SortColumnOption: Int {
     case ascending
@@ -1030,6 +1031,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
                 }else{
                     updatedRow.columns[columnIndex].value = "-"
                 }
+               // let value = ZTExpressionEngine.evaluate(orginalExpression, variables: <#T##[String : Any]#>)
 //                //resultColmun
 //                if let dblvalue = NSExpression(format: orginalExpression).expressionValue(with: nil, context: nil) as? Double{
 //                    updatedRow.columns[columnIndex].value = String(format: "%.2f", dblvalue)

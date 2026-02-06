@@ -43,7 +43,8 @@ let package = Package(
         // MARK: - Internal Libraries
         .package(url: "https://github.com/vishalrana-zt/PPSSignatureView.git", branch: "master"),
         .package(url: "https://github.com/vishalrana-zt/RSSelectionMenu.git", branch: "master"),
-        .package(url: "https://github.com/vishalrana-zt/SSMediaManager", branch: "main")
+        .package(url: "https://github.com/vishalrana-zt/SSMediaManager", branch: "main"),
+        .package(url: "https://github.com/vishalrana-zt/ZTExpressionEngine", branch: "main")
     ],
     targets: [
         .target(
@@ -68,7 +69,8 @@ let package = Package(
                 .product(name: "SDWebImageSwiftUI", package: "SDWebImageSwiftUI"),
                 .product(name: "PPSSignatureView", package: "PPSSignatureView"),
                 .product(name: "RSSelectionMenu", package: "RSSelectionMenu"),
-                .product(name: "SSMediaManager", package: "SSMediaManager")
+                .product(name: "SSMediaManager", package: "SSMediaManager"),
+                .product(name: "ZTExpressionEngine", package: "ZTExpressionEngine")
             ],
             resources: [
                 .process("Resources/JSON"),
