@@ -1016,22 +1016,51 @@ extension FPTableEditViewController: TableContentCellDelegate{
         }
     }
     
+    func inferValue(_ value: String) -> Any {
+        let replaced = value.replacingOccurrences(of: "__X2E__", with: ".")
+        let trimmed = replaced.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let number = Double(trimmed) {
+            return number
+        }
+        return trimmed
+    }
+    
     func processAutoCalculationFor(row: Rows, with data:ColumnData) -> Rows{
         var updatedRow = row
         for formula in arrTblFormulas {
             var orginalExpression = formula.expression ?? ""
             for column in updatedRow.columns {
-                let dblvalue = (column.value.replacingOccurrences(of: "__X2E__", with: ".") as NSString).doubleValue
-                let strDblVal = String(format: "%.2f", dblvalue)
-                orginalExpression = orginalExpression.replacingOccurrences(of: "\\b\(column.key)\\b", with: strDblVal, options: .regularExpression)
+                debugPrint(column.value)
+                var strExpVal = ""
+                if let strVal = self.inferValue(column.value) as? String{
+                    strExpVal = strVal
+                }else if let dbVal = self.inferValue(column.value) as? Double{
+                    strExpVal = String(format: "%.2f", dbVal)
+                }
+                debugPrint(strExpVal)
+                orginalExpression = orginalExpression.replacingOccurrences(of: "\\b\(column.key)\\b", with: strExpVal, options: .regularExpression)
+                debugPrint(orginalExpression)
+
             }
             if let columnIndex = row.columns.firstIndex(where: {$0.key == formula.name}){
-                if let dblvalue = zenFormsDelegate?.safelyEvaluteExpression(strExpression: orginalExpression) as? Double{
-                    updatedRow.columns[columnIndex].value = String(format: "%.2f", dblvalue)
-                }else{
-                    updatedRow.columns[columnIndex].value = "-"
+                
+//                if let dblvalue = zenFormsDelegate?.safelyEvaluteExpression(strExpression: orginalExpression) as? Double{
+//                    updatedRow.columns[columnIndex].value = String(format: "%.2f", dblvalue)
+//                }else{
+//                    updatedRow.columns[columnIndex].value = "-"
+//                }
+                do {
+                    let value = try ZTExpressionEngine.evaluate(orginalExpression, variables: [:])
+                    if let dbvalue = value as? Double{
+                        updatedRow.columns[columnIndex].value = String(format: "%.2f", dbvalue)
+                    }else  if let strVal = value as? String{
+                        updatedRow.columns[columnIndex].value = strVal
+                    }else{
+                        updatedRow.columns[columnIndex].value = "-"
+                    }
+                } catch {
+                    debugPrint(error)
                 }
-               // let value = ZTExpressionEngine.evaluate(orginalExpression, variables: <#T##[String : Any]#>)
 //                //resultColmun
 //                if let dblvalue = NSExpression(format: orginalExpression).expressionValue(with: nil, context: nil) as? Double{
 //                    updatedRow.columns[columnIndex].value = String(format: "%.2f", dblvalue)
