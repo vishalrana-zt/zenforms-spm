@@ -24,47 +24,31 @@ class ZTLIBNavigationController: UINavigationController {
     }
     
     func applyNavbarTheme() {
-        var appTint = UIColor(named: "BT-Primary") ?? .systemBlue
+        
+        var primaryColor = UIColor(named: "BT-Primary") ?? .systemBlue
         if #available(iOS 26.0, *) {
-            appTint = UIColor(named: "ZT-Black") ?? .label
+            primaryColor = UIColor(named: "ZT-Black") ?? .label
         }
-
+        
         let baseTitleFont = UIFont.preferredFont(forTextStyle: .headline)
-        let baseLargeTitleFont = UIFont.preferredFont(forTextStyle: .largeTitle)
-
-        let scaledTitleFont =
-            UIFontMetrics(forTextStyle: .headline).scaledFont(for: baseTitleFont)
-
-        let scaledLargeTitleFont =
-            UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: baseLargeTitleFont)
 
         let appearance = UINavigationBarAppearance()
-
-        if #available(iOS 26.0, *) {
-            appearance.configureWithTransparentBackground()
-            appearance.backgroundEffect =
-                UIBlurEffect(style: .systemUltraThinMaterial)
-            appearance.backgroundColor =
-                UIColor.systemBackground.withAlphaComponent(0.85)
-
-            appearance.shadowColor = UIColor.separator
-        } else {
-            appearance.configureWithOpaqueBackground()
-            appearance.backgroundColor = .systemBackground
-            appearance.shadowColor = UIColor.black.withAlphaComponent(0.2)
-        }
-
+        appearance.configureWithOpaqueBackground()
+        
+        let resolvedBackground = UIColor.systemBackground.resolvedColor(with: UITraitCollection.current)
+        appearance.backgroundColor = resolvedBackground
         appearance.titleTextAttributes = [
-            .font: scaledTitleFont,
-            .foregroundColor: appTint
+            .font: baseTitleFont,
+            .foregroundColor: primaryColor
         ]
+        
+        let titleLabelAppearance = UILabel.appearance(whenContainedInInstancesOf: [UINavigationBar.self])
+        titleLabelAppearance.adjustsFontSizeToFitWidth = true
+        titleLabelAppearance.minimumScaleFactor = 0.8
+        titleLabelAppearance.adjustsFontForContentSizeCategory = true
 
-        appearance.largeTitleTextAttributes = [
-            .font: scaledLargeTitleFont,
-            .foregroundColor: appTint
-        ]
+        let navBar = UINavigationBar.appearance()
 
-        let navBar = self.navigationBar
         navBar.standardAppearance = appearance
         navBar.scrollEdgeAppearance = appearance
         navBar.compactAppearance = appearance
@@ -73,16 +57,10 @@ class ZTLIBNavigationController: UINavigationController {
             navBar.compactScrollEdgeAppearance = appearance
         }
 
+        navBar.tintColor = primaryColor
         navBar.prefersLargeTitles = false
-        navBar.tintColor = appTint
-        navBar.barStyle = .default
 
-        navBar.isTranslucent = true
-
-        navBar.layer.shadowOpacity = 0
-        navBar.layer.shadowRadius = 0
-        navBar.layer.shadowColor = nil
-        navBar.layer.shadowOffset = .zero
+        appearance.shadowColor = UIColor.black.withAlphaComponent(0.2)
     }
 
 }
