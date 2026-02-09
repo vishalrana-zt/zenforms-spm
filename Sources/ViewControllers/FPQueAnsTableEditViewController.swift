@@ -78,13 +78,7 @@ class FPQueAnsTableEditViewController: UIViewController {
             self.navigationItem.rightBarButtonItem = rightBarButton
         }
         
-        let customCancelButton = UIButton(type: .custom)
-        customCancelButton.setTitleColor(UIColor(named: "BT-Primary"), for: .normal)
-        customCancelButton.tintColor = UIColor(named: "BT-Primary")
-        customCancelButton.setTitle(FPLocalizationHelper.localize("Cancel"), for: .normal)
-        customCancelButton.sizeToFit()
-        customCancelButton.addTarget(self, action: #selector(cancelButtonClicked(button:)), for:.touchUpInside)
-        let cancelButton = UIBarButtonItem(customView:customCancelButton)
+        let cancelButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelButtonClicked))
         self.navigationItem.leftBarButtonItem = cancelButton
         let bundle = ZenFormsBundle.bundle
         
@@ -158,7 +152,7 @@ class FPQueAnsTableEditViewController: UIViewController {
         })
     }
     
-    @objc func cancelButtonClicked(button:UIButton) {
+    @objc func cancelButtonClicked() {
         view.endEditing(true)
         self.navigationController?.popViewController(animated: true)
     }
@@ -254,7 +248,7 @@ extension FPQueAnsTableEditViewController{
         }
         let rightBarButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(rightBarButtonTapped))
         menu.navigationItem.rightBarButtonItem = rightBarButton
-        menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
+//        menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
         if isSortFilterApplied == true, let index = arrAppliedFilters.firstIndex(where: { $0.indPath == sortFilterColumnIndexPath}), let appliedFilter  = arrAppliedFilters[safe: index]{
             let strSort = appliedFilter.option == .ascending ? FPLocalizationHelper.localize("lbl_Ascending"): FPLocalizationHelper.localize("lbl_Descending")
             menu.setSelectedItems(items: [strSort]) {  (_, _, _, _) in }

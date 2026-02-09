@@ -131,7 +131,7 @@ public final class ZenForms {
         isAssetENABLED = isAssetEnabled
         isFromCoPILOT = isFromCoPilot
         viewController.modalPresentationStyle = .overFullScreen
-        let navVC = UINavigationController(rootViewController:viewController)
+        let navVC = ZTLIBNavigationController(rootViewController:viewController)
         navVC.modalPresentationStyle = .overFullScreen
         controller.navigationController?.present(navVC, animated: true) {}
     }

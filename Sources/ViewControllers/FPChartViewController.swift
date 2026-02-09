@@ -81,7 +81,7 @@ class FPChartViewController: UIViewController {
     func setBarButtons(){
         self.navigationItem.title = cloneItem.displayName ?? ""
         if !self.isAnalysed && !self.isFromHistory {
-            let saveBtn = UIBarButtonItem.init(barButtonSystemItem: UIBarButtonItem.SystemItem.save, target: self, action: #selector(saveButtonAction))
+            let saveBtn = UIBarButtonItem(title:FPLocalizationHelper.localize("SAVE"), style:.plain, target: self, action: #selector(saveButtonAction))
             self.navigationItem.rightBarButtonItems = [saveBtn]
         }
     }
