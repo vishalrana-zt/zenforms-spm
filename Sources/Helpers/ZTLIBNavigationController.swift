@@ -26,41 +26,59 @@ class ZTLIBNavigationController: UINavigationController {
     func applyNavbarTheme() {
         var appTint = UIColor(named: "BT-Primary") ?? .systemBlue
         if #available(iOS 26.0, *) {
-            appTint = UIColor(named: "ZT-Black") ?? .black
+            appTint = UIColor(named: "ZT-Black") ?? .label
         }
-        let titleFont = UIFont.preferredFont(forTextStyle: .headline)
-        let largeTitleFont = UIFont.preferredFont(forTextStyle: .largeTitle)
+
+        let baseTitleFont = UIFont.preferredFont(forTextStyle: .headline)
+        let baseLargeTitleFont = UIFont.preferredFont(forTextStyle: .largeTitle)
+
+        let scaledTitleFont =
+            UIFontMetrics(forTextStyle: .headline).scaledFont(for: baseTitleFont)
+
+        let scaledLargeTitleFont =
+            UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: baseLargeTitleFont)
 
         let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .systemBackground
-        appearance.shadowColor = UIColor.black.withAlphaComponent(0.2)
+
+        if #available(iOS 26.0, *) {
+            appearance.configureWithTransparentBackground()
+            appearance.backgroundEffect =
+                UIBlurEffect(style: .systemUltraThinMaterial)
+            appearance.backgroundColor =
+                UIColor.systemBackground.withAlphaComponent(0.85)
+
+            appearance.shadowColor = UIColor.separator
+        } else {
+            appearance.configureWithOpaqueBackground()
+            appearance.backgroundColor = .systemBackground
+            appearance.shadowColor = UIColor.black.withAlphaComponent(0.2)
+        }
 
         appearance.titleTextAttributes = [
-            .font: titleFont,
-            .foregroundColor: appTint
-        ]
-        appearance.largeTitleTextAttributes = [
-            .font: largeTitleFont,
+            .font: scaledTitleFont,
             .foregroundColor: appTint
         ]
 
-        // Apply the appearance only to this navigation controller's bar
+        appearance.largeTitleTextAttributes = [
+            .font: scaledLargeTitleFont,
+            .foregroundColor: appTint
+        ]
+
         let navBar = self.navigationBar
         navBar.standardAppearance = appearance
         navBar.scrollEdgeAppearance = appearance
         navBar.compactAppearance = appearance
+
         if #available(iOS 16.0, *) {
             navBar.compactScrollEdgeAppearance = appearance
         }
 
+        navBar.prefersLargeTitles = false
         navBar.tintColor = appTint
         navBar.barStyle = .default
 
-        // Use opaque background to avoid translucency artifacts
-        navBar.isTranslucent = false
+        navBar.isTranslucent = true
 
-        // Remove any layer-based shadows that can conflict with appearance
         navBar.layer.shadowOpacity = 0
         navBar.layer.shadowRadius = 0
         navBar.layer.shadowColor = nil
