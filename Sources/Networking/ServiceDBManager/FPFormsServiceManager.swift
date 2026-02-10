@@ -466,12 +466,16 @@ class FPFormsServiceManager: NSObject {
                                 sortedServerSectionFields.enumerated().forEach { (index,_) in
                                     sortedServerSectionFields[index].sqliteId = sortedLocalSectionFields[index].sqliteId
                                 }
+                                serverSection.fields = sortedServerSectionFields
                             }
-                            var sectionFields = sortedServerSectionFields
+                            
+                            //make sure assetId field at last---
+                            var sectionFields = serverSection.fields
                             if let index = sectionFields.firstIndex(where: {$0.getUIType() == .HIDDEN && $0.name == "assetId"}){
                                 sectionFields.append(sectionFields.remove(at: index))
                             }
                             serverSection.fields = sectionFields
+                            //--------
 //                            FPFormDataHolder.shared.sections?[sectionIndex] = serverSection
                             if let localId = localSection.objectId,
                                let idx = FPFormDataHolder.shared.sections?.firstIndex(where: { $0.objectId == localId }) {
