@@ -1036,8 +1036,9 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     let value = try ZTExpressionEngine.evaluate(orginalExpression, variables: rawVars)
                     debugPrint("result: \(value)")
                     if let dbvalue = value as? Double{
-                        updatedRow.columns[columnIndex].value = String(format: "%.2f", dbvalue)
-                    }else  if let strVal = value as? String{
+                        updatedRow.columns[columnIndex].value = dbvalue.formattedMax4Decimal()
+//                        updatedRow.columns[columnIndex].value = String(format: "%.2f", dbvalue)
+                    }else if let strVal = value as? String{
                         updatedRow.columns[columnIndex].value = strVal
                     }else{
                         updatedRow.columns[columnIndex].value = "-"
@@ -1370,5 +1371,17 @@ extension UIImageView {
         let templateImage = self.image?.withRenderingMode(.alwaysTemplate)
         self.image = templateImage
         self.tintColor = color
+    }
+}
+
+extension Double {
+
+    func formattedMax4Decimal() -> String {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 4
+        formatter.numberStyle = .decimal
+        
+        return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
     }
 }
