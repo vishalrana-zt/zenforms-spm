@@ -29,7 +29,6 @@ public protocol ZenFormsDelegate: NSObject {
     func newFormCancelClicked()
     func addQuickNoteClicked()
     func mixpanelEvent(eventName: String, properties:[String:Any]?)
-    func safelyEvaluteExpression(strExpression: String) -> Double?
 }
 
 public protocol ZenFormsAssetLinkingDelegate: NSObject {

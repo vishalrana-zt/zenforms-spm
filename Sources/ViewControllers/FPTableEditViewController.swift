@@ -1019,26 +1019,6 @@ extension FPTableEditViewController: TableContentCellDelegate{
         return trimmed
     }
     
-    func xprocessAutoCalculationFor(row: Rows, with data:ColumnData) -> Rows{
-        var updatedRow = row
-        for formula in arrTblFormulas {
-            var orginalExpression = formula.expression ?? ""
-            for column in updatedRow.columns {
-                let dblvalue = (column.value.replacingOccurrences(of: "__X2E__", with: ".") as NSString).doubleValue
-                let strDblVal = String(format: "%.2f", dblvalue)
-                orginalExpression = orginalExpression.replacingOccurrences(of: "\\b\(column.key)\\b", with: strDblVal, options: .regularExpression)
-            }
-            if let columnIndex = row.columns.firstIndex(where: {$0.key == formula.name}){
-                if let dblvalue = zenFormsDelegate?.safelyEvaluteExpression(strExpression: orginalExpression) as? Double{
-                    updatedRow.columns[columnIndex].value = String(format: "%.2f", dblvalue)
-                }else{
-                    updatedRow.columns[columnIndex].value = "-"
-                }
-            }
-        }
-        return updatedRow
-    }
-    
     func processAutoCalculationFor(row: Rows, with data:ColumnData) -> Rows{
         var updatedRow = row
         for formula in arrTblFormulas {
