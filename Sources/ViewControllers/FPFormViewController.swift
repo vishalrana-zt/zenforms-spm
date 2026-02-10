@@ -2314,7 +2314,7 @@ extension FPFormViewController:FPCollectionCellDelegate{
     
     func reloadCollectionAt(index: IndexPath) {
         debugPrint("reloadCollectionAt -\(index.row)")
-        self.formTableView.reloadRows(at: [IndexPath(row: index.row, section: 0)], with: .none)
+        self.safeReloadRows([IndexPath(row: index.row, section: 0)])
     }
     
     func reloadCollection() {
