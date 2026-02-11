@@ -460,13 +460,23 @@ class FPFormsServiceManager: NSObject {
                     if let localSection = FPFormDataHolder.shared.getSection(at: sectionIndex){
                         if let serverSection = formOnline.sections?.filter({$0.sortPosition == localSection.sortPosition} ).first as? FPSectionDetails{
                             serverSection.sqliteId = localSection.sqliteId
-                            if serverSection.fields.count == localSection.fields.count, !serverSection.fields.isEmpty {
-                                var sortedServerSectionFields =  serverSection.fields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""})
-                                let sortedLocalSectionFields =  localSection.fields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""})
-                                sortedServerSectionFields.enumerated().forEach { (index,_) in
-                                    sortedServerSectionFields[index].sqliteId = sortedLocalSectionFields[index].sqliteId
+                            
+                            //restoring sqliteId from local array to server array
+                            var localDict: [Int: NSNumber] = [:]
+
+                            localSection.fields.forEach { field in
+                                if let objectId = field.objectId?.intValue,
+                                   let sqliteId = field.sqliteId {
+                                    localDict[objectId] = sqliteId
                                 }
-                                serverSection.fields = sortedServerSectionFields
+                            }
+
+                            serverSection.fields = serverSection.fields.map { field in
+                                var field = field
+                                if let objectId = field.objectId?.intValue {
+                                    field.sqliteId = localDict[objectId]
+                                }
+                                return field
                             }
                             
                             //make sure assetId field at last---

@@ -399,7 +399,7 @@ struct FPFormDataHolder{
     
     public func getFieldsIn(section:Int)->[FPFieldDetails]{
         let section = getFormSections()[safe: section]
-        return section?.fields ?? []
+        return section?.fields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""}) ?? []
     }
     
     public func getSectionCount()->Int{
