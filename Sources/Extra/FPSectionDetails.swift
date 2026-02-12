@@ -127,9 +127,11 @@ public class FPSectionDetails: NSObject {
         item.createdAt = FPUtility.getStringWithTZFormat(Date())
         item.updatedAt = item.createdAt
         item.locallyUpdatedAt = item.createdAt
+        var itemfields = [FPFieldDetails]()
         for field in self.fields {
-            item.fields.append(field.copyFPFieldDetails(isTemplate))
+            itemfields.append(field.copyFPFieldDetails(isTemplate))
         }
+        item.fields = itemfields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""})
         item.showSummary = self.showSummary
         item.sectionOptions = self.sectionOptions
         item.isHidden = self.isHidden
@@ -152,9 +154,11 @@ public class FPSectionDetails: NSObject {
         item.createdAt = FPUtility.getStringWithTZFormat(Date())
         item.updatedAt = item.createdAt
         item.locallyUpdatedAt = item.createdAt
+        var itemfields = [FPFieldDetails]()
         for field in self.fields {
-            item.fields.append(field.copyPreviousFPFormFieldDetails())
+            itemfields.append(field.copyPreviousFPFormFieldDetails())
         }
+        item.fields = itemfields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""})
         item.showSummary = self.showSummary
         item.sectionOptions = self.sectionOptions
         item.isHidden = self.isHidden
@@ -164,3 +168,4 @@ public class FPSectionDetails: NSObject {
     
     
 }
+

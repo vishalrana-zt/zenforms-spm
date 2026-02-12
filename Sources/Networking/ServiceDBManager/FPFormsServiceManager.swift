@@ -460,19 +460,32 @@ class FPFormsServiceManager: NSObject {
                     if let localSection = FPFormDataHolder.shared.getSection(at: sectionIndex){
                         if let serverSection = formOnline.sections?.filter({$0.sortPosition == localSection.sortPosition} ).first as? FPSectionDetails{
                             serverSection.sqliteId = localSection.sqliteId
-                            if serverSection.fields.count == localSection.fields.count, serverSection.fields.count > 0 {
-                                for index in 0...serverSection.fields.count - 1 {
-                                    serverSection.fields[index].sqliteId = localSection.fields[index].sqliteId
+                            
+                            //restoring sqliteId from local array to server array
+                            var localDict: [Int: NSNumber] = [:]
+
+                            localSection.fields.forEach { field in
+                                if let objectId = field.objectId?.intValue,
+                                   let sqliteId = field.sqliteId {
+                                    localDict[objectId] = sqliteId
                                 }
                             }
+
+                            serverSection.fields = serverSection.fields.map { field in
+                                var field = field
+                                if let objectId = field.objectId?.intValue {
+                                    field.sqliteId = localDict[objectId]
+                                }
+                                return field
+                            }
+                            
+                            //make sure assetId field at last---
                             var sectionFields = serverSection.fields
-                            if let index = sectionFields
-                                .firstIndex(where: {$0.getUIType() == .HIDDEN && $0.name == "assetId"}){
-                                sectionFields
-                                    .append(sectionFields
-                                        .remove(at: index))
+                            if let index = sectionFields.firstIndex(where: {$0.getUIType() == .HIDDEN && $0.name == "assetId"}){
+                                sectionFields.append(sectionFields.remove(at: index))
                             }
                             serverSection.fields = sectionFields
+                            //--------
 //                            FPFormDataHolder.shared.sections?[sectionIndex] = serverSection
                             if let localId = localSection.objectId,
                                let idx = FPFormDataHolder.shared.sections?.firstIndex(where: { $0.objectId == localId }) {

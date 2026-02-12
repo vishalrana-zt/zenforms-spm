@@ -173,8 +173,8 @@ struct FPFormDataHolder{
             }
             return field
         })
-        if let assetObjectId = assetData.assetObjectId {
-            sectionToInsert = self.addHiddenAssetFieldIn(sectionToInsert: sectionToInsert, assetId: assetObjectId, sortPostion: "\(sectionToInsert.fields.first?.sortPosition ?? "00")0")
+        if let assetObjectId = assetData.assetObjectId, let sortPosition = sectionToInsert.fields.last?.sortPosition {
+            sectionToInsert = self.addHiddenAssetFieldIn(sectionToInsert: sectionToInsert, assetId: assetObjectId, sortPostion: "\(sortPosition)1")
         }
         if let assetID = assetData.assetObjectId?.intValue{
             attachedAssetIds.append(assetID)
@@ -363,9 +363,8 @@ struct FPFormDataHolder{
             }
             return field
         })
-        if let assetObjectId {
-            sectionToInsert = self.addHiddenAssetFieldIn(sectionToInsert: sectionToInsert, assetId: assetObjectId, sortPostion: "\(sectionToInsert.fields.first?.sortPosition ?? "00")0")
-
+        if let assetObjectId, let sortPosition = sectionToInsert.fields.last?.sortPosition {
+            sectionToInsert = self.addHiddenAssetFieldIn(sectionToInsert: sectionToInsert, assetId: assetObjectId, sortPostion: "\(sortPosition)1")
         }
         sections?.remove(at: sectionIndex)
 
@@ -400,7 +399,7 @@ struct FPFormDataHolder{
     
     public func getFieldsIn(section:Int)->[FPFieldDetails]{
         let section = getFormSections()[safe: section]
-        return section?.fields ?? []
+        return section?.fields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""}) ?? []
     }
     
     public func getSectionCount()->Int{
