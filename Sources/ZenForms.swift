@@ -131,15 +131,10 @@ public final class ZenForms {
         isAssetENABLED = isAssetEnabled
         isFromCoPILOT = isFromCoPilot
         viewController.modalPresentationStyle = .overFullScreen
-        if #available(iOS 26.0, *) {
-            let navVc = ZTLIBNavigationController(rootViewController:viewController)
-            navVc.modalPresentationStyle = .overFullScreen
-            controller.navigationController?.present(navVc, animated: true) {}
-        }else{
-            let navVC = UINavigationController(rootViewController:viewController)
-            navVC.modalPresentationStyle = .overFullScreen
-            controller.navigationController?.present(navVC, animated: true) {}
-        }
+//        let navVc = ZTLIBNavigationController(rootViewController:viewController)
+        let navVC = UINavigationController(rootViewController:viewController)
+        navVC.modalPresentationStyle = .overFullScreen
+        controller.navigationController?.present(navVC, animated: true) {}
     }
 
     public func getComputedFieldsForZenForm(ticketID:String){
