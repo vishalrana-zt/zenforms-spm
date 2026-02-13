@@ -8,7 +8,7 @@
 import Foundation
 import UIKit
 
-class xFPSelfSizedTableView: UITableView {
+class FPSelfSizedTableView: UITableView {
     
     var maxHeight: CGFloat = UIScreen.main.bounds.size.height
     
@@ -30,26 +30,5 @@ class xFPSelfSizedTableView: UITableView {
     override var intrinsicContentSize: CGSize {
         layoutIfNeeded()
         return CGSize(width: UIView.noIntrinsicMetric, height: contentSize.height)
-    }
-}
-
-class FPSelfSizedTableView: UITableView {
-
-    var maxHeight: CGFloat = .greatestFiniteMagnitude
-
-    override var contentSize: CGSize {
-        didSet {
-            guard oldValue != contentSize else { return }
-            invalidateIntrinsicContentSize()
-            superview?.setNeedsLayout()
-            superview?.layoutIfNeeded()
-        }
-    }
-
-    override var intrinsicContentSize: CGSize {
-        return CGSize(
-            width: UIView.noIntrinsicMetric,
-            height: min(maxHeight, contentSize.height)
-        )
     }
 }

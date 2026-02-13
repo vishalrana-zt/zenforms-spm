@@ -72,28 +72,13 @@ class FPSegmentView: UIView {
         commonInit()
     }
     
-    private func xcommonInit() {
+    private func commonInit() {
         let bundle = ZenFormsBundle.bundle
         bundle.loadNibNamed("FPSegmentView", owner: self, options:nil)
         addSubview(contentView)
         setUpTableView()
         self.contentView.frame = self.bounds
         self.contentView.autoresizingMask = [.flexibleHeight,.flexibleWidth]
-    }
-    
-    private func commonInit() {
-        let bundle = ZenFormsBundle.bundle
-        bundle.loadNibNamed("FPSegmentView", owner: self, options: nil)
-        guard let contentView = contentView else { return }
-        addSubview(contentView)
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            contentView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: self.trailingAnchor),
-            contentView.topAnchor.constraint(equalTo: self.topAnchor),
-            contentView.bottomAnchor.constraint(equalTo: self.bottomAnchor)
-        ])
-        setUpTableView()
     }
 
     
@@ -111,7 +96,6 @@ class FPSegmentView: UIView {
         self.reasonsTableView.dataSource = self
         self.reasonsTableView.sectionHeaderHeight = UITableView.automaticDimension
         self.reasonsTableView.estimatedSectionHeaderHeight = 14
-        self.reasonsTableView.isScrollEnabled = false
     }
     
     fileprivate func setValueFromSelectedIndex(_ withSelectedIndex: Int) {
@@ -318,12 +302,9 @@ extension FPSegmentView: SegmentControlDelegate {
         updateSelectedValue()
         if self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true || self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true {
             stopRecorder()
-            DispatchQueue.main.async {
-                self.reasonsTableView.layoutIfNeeded()
-                self.layoutIfNeeded()
-                DispatchQueue.main.async {
-                    self.delegate.reloadCollectionAt(index: self.collectionIndex)
-                }
+            self.stopRecorder()
+            DispatchQueue.main.asyncAfter(deadline:.now() + 0.3) {
+                self.delegate.reloadCollectionAt(index: self.collectionIndex)
             }
         }
     }
