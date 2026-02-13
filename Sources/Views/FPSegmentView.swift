@@ -72,7 +72,7 @@ class FPSegmentView: UIView {
         commonInit()
     }
     
-    private func commonInit() {
+    private func xcommonInit() {
         let bundle = ZenFormsBundle.bundle
         bundle.loadNibNamed("FPSegmentView", owner: self, options:nil)
         addSubview(contentView)
@@ -80,6 +80,22 @@ class FPSegmentView: UIView {
         self.contentView.frame = self.bounds
         self.contentView.autoresizingMask = [.flexibleHeight,.flexibleWidth]
     }
+    
+    private func commonInit() {
+        let bundle = ZenFormsBundle.bundle
+        bundle.loadNibNamed("FPSegmentView", owner: self, options: nil)
+        guard let contentView = contentView else { return }
+        addSubview(contentView)
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            contentView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: self.trailingAnchor),
+            contentView.topAnchor.constraint(equalTo: self.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: self.bottomAnchor)
+        ])
+        setUpTableView()
+    }
+
     
     func setUpTableView() {
         self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPListSelectionCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FPListSelectionCell)
@@ -302,9 +318,7 @@ extension FPSegmentView: SegmentControlDelegate {
         if self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true || self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true {
             DispatchQueue.main.asyncAfter(deadline:.now() + 0.3) {
                 self.stopRecorder()
-                DispatchQueue.main.asyncAfter(deadline:.now() + 0.3) {
-                    self.delegate.reloadCollectionAt(index: self.collectionIndex)
-                }
+                self.delegate.reloadCollectionAt(index: self.collectionIndex)
             }
         }
     }
