@@ -43,23 +43,29 @@ class FPSegmentView: UIView {
 
     var cellItem: FPReasonsComponent? {
         didSet {
-          //  if cellItem?.value == "NO" {
-            if self.fieldItem?.openDeficencySelectedOption(value: cellItem?.value ?? "") == true{
-                let count = self.cellItem?.rows?.count ?? 0
-                if isEnableReasonAICell {
-                    tableRowCount = count + 2
-                }else{
-                    tableRowCount = count + 3
-                    if let files =  FPFormDataHolder.shared.getFiledFilesArray()[collectionIndex],files.count>0{
-                        tableRowCount += 1
-                    }
-                }
-            } else {
-                tableRowCount = 1
-            }
-            self.reasonsTableView.reloadData()
-            self.setNeedsLayout()
+            refreshTableRowCountAndReload()
         }
+    }
+    
+    /// Updates tableRowCount from current cellItem and reloads the inner table. Call from didSet and from segmentValueChangedAt so the current view is in sync before the parent reloads the row (avoids UI hiding when segment value changes, especially first time in landscape).
+    private func refreshTableRowCountAndReload() {
+        if self.fieldItem?.openDeficencySelectedOption(value: cellItem?.value ?? "") == true {
+            let count = self.cellItem?.rows?.count ?? 0
+            if isEnableReasonAICell {
+                tableRowCount = count + 2
+            } else {
+                tableRowCount = count + 3
+                if let files = FPFormDataHolder.shared.getFiledFilesArray()[collectionIndex], files.count > 0 {
+                    tableRowCount += 1
+                }
+            }
+        } else {
+            tableRowCount = 1
+        }
+        self.reasonsTableView.reloadData()
+        self.setNeedsLayout()
+        // Force inner table layout so contentSize (and thus intrinsic height) is correct before parent reads it. Prevents row height 0 / "UI hidden" when segment changes.
+        self.reasonsTableView.layoutIfNeeded()
     }
     
     override init(frame: CGRect) {
@@ -73,22 +79,21 @@ class FPSegmentView: UIView {
     }
     
     private func commonInit() {
-        let bundle = ZenFormsBundle.bundle
+        let bundle = Bundle(for: type(of: self))
         bundle.loadNibNamed("FPSegmentView", owner: self, options:nil)
         addSubview(contentView)
         setUpTableView()
         self.contentView.frame = self.bounds
         self.contentView.autoresizingMask = [.flexibleHeight,.flexibleWidth]
     }
-
     
     func setUpTableView() {
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPListSelectionCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FPListSelectionCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.SegmentControlTableViewCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.SegmentControlTableViewCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.CustomReasonTextFieldTableViewCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.CustomReasonTextFieldTableViewCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileReasonCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FileReasonCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileTagListCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FileTagListCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPReasonAiCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FPReasonAiCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPListSelectionCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.FPListSelectionCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.SegmentControlTableViewCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.SegmentControlTableViewCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.CustomReasonTextFieldTableViewCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.CustomReasonTextFieldTableViewCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileReasonCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.FileReasonCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileTagListCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.FileTagListCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPReasonAiCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.FPReasonAiCell)
 
         
 
@@ -301,9 +306,9 @@ extension FPSegmentView: SegmentControlDelegate {
         self.cellItem?.value = self.valueString
         updateSelectedValue()
         if self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true || self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true {
-            stopRecorder()
-            self.stopRecorder()
-            DispatchQueue.main.asyncAfter(deadline:.now() + 0.3) {
+            refreshTableRowCountAndReload()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.stopRecorder()
                 self.delegate.reloadCollectionAt(index: self.collectionIndex)
             }
         }
