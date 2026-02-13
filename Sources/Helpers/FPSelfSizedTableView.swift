@@ -39,12 +39,17 @@ class FPSelfSizedTableView: UITableView {
 
     override var contentSize: CGSize {
         didSet {
+            guard oldValue != contentSize else { return }
             invalidateIntrinsicContentSize()
+            superview?.setNeedsLayout()
+            superview?.layoutIfNeeded()
         }
     }
 
     override var intrinsicContentSize: CGSize {
-        let height = min(maxHeight, contentSize.height)
-        return CGSize(width: UIView.noIntrinsicMetric, height: height)
+        return CGSize(
+            width: UIView.noIntrinsicMetric,
+            height: min(maxHeight, contentSize.height)
+        )
     }
 }

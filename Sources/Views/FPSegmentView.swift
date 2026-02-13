@@ -111,6 +111,7 @@ class FPSegmentView: UIView {
         self.reasonsTableView.dataSource = self
         self.reasonsTableView.sectionHeaderHeight = UITableView.automaticDimension
         self.reasonsTableView.estimatedSectionHeaderHeight = 14
+        self.reasonsTableView.isScrollEnabled = false
     }
     
     fileprivate func setValueFromSelectedIndex(_ withSelectedIndex: Int) {
@@ -316,9 +317,13 @@ extension FPSegmentView: SegmentControlDelegate {
         self.cellItem?.value = self.valueString
         updateSelectedValue()
         if self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true || self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true {
-            DispatchQueue.main.asyncAfter(deadline:.now() + 0.3) {
-                self.stopRecorder()
-                self.delegate.reloadCollectionAt(index: self.collectionIndex)
+            stopRecorder()
+            DispatchQueue.main.async {
+                self.reasonsTableView.layoutIfNeeded()
+                self.layoutIfNeeded()
+                DispatchQueue.main.async {
+                    self.delegate.reloadCollectionAt(index: self.collectionIndex)
+                }
             }
         }
     }

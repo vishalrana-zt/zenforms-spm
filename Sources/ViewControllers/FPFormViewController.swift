@@ -1783,7 +1783,13 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
         let validPaths = indexPaths.filter { $0.row >= 0 && $0.row < maxRows }
         guard !validPaths.isEmpty else { return }
         
-        formTableView.reloadRows(at: validPaths, with: .automatic)
+        DispatchQueue.main.async {
+            UIView.performWithoutAnimation {
+                self.formTableView.beginUpdates()
+                self.formTableView.reloadRows(at: validPaths, with: .none)
+                self.formTableView.endUpdates()
+            }
+        }
     }
     
     //MARK: get Input Cell
