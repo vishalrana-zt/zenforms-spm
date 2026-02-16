@@ -47,6 +47,26 @@ class FPSegmentView: UIView {
         }
     }
     
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        notifyTableToUpdateHeight()
+    }
+
+    private func notifyTableToUpdateHeight() {
+        DispatchQueue.main.async {
+            var view = self.superview
+            while view != nil && !(view is UITableView) {
+                view = view?.superview
+            }
+
+            if let tableView = view as? UITableView {
+                tableView.beginUpdates()
+                tableView.endUpdates()
+            }
+        }
+    }
+
+    
     /// Updates tableRowCount from current cellItem and reloads the inner table. Call from didSet and from segmentValueChangedAt so the current view is in sync before the parent reloads the row (avoids UI hiding when segment value changes, especially first time in landscape).
     private func refreshTableRowCountAndReload() {
         if self.fieldItem?.openDeficencySelectedOption(value: cellItem?.value ?? "") == true {
@@ -62,10 +82,12 @@ class FPSegmentView: UIView {
         } else {
             tableRowCount = 1
         }
-        self.reasonsTableView.reloadData()
-        self.setNeedsLayout()
-        // Force inner table layout so contentSize (and thus intrinsic height) is correct before parent reads it. Prevents row height 0 / "UI hidden" when segment changes.
-        self.reasonsTableView.layoutIfNeeded()
+
+        reasonsTableView.reloadData()
+        reasonsTableView.layoutIfNeeded()
+
+        reasonsTableView.invalidateIntrinsicContentSize()
+        invalidateIntrinsicContentSize()
     }
     
     override init(frame: CGRect) {
@@ -305,15 +327,20 @@ extension FPSegmentView: SegmentControlDelegate {
         setValueFromSelectedIndex(withSelectedIndex)
         self.cellItem?.value = self.valueString
         updateSelectedValue()
-        if self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true || self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true {
-            DispatchQueue.main.async {
-                self.stopRecorder()
-                self.refreshTableRowCountAndReload()
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                self.delegate.reloadCollectionAt(index: self.collectionIndex)
-            }
-        }
+
+        let shouldChangeLayout =
+        self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true ||
+        self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true
+
+        guard shouldChangeLayout else { return }
+
+        stopRecorder()
+        refreshTableRowCountAndReload()
+
+        // ⭐ force UITableView row height recalculation immediately
+        notifyTableToUpdateHeight()
+
+        delegate.reloadCollectionAt(index: collectionIndex)
     }
 }
 
