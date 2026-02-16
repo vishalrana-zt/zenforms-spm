@@ -20,11 +20,16 @@ class ReasonsCollectionViewCell: UITableViewCell {
     var index = IndexPath()
     var fieldItem :FPFieldDetails?
     var isNew: Bool = true
+    
     override func awakeFromNib() {
         super.awakeFromNib()
         customView.translatesAutoresizingMaskIntoConstraints = false
-        customView.widthAnchor.constraint(equalToConstant: UIScreen.main.bounds.size.width - 20).isActive = true
-        self.layoutIfNeeded()
+        NSLayoutConstraint.activate([
+            customView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 8),
+            customView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 10),
+            customView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            customView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -8)
+        ])
     }
     
     func configureCell(with item: FPFieldDetails, indexPath: IndexPath) {

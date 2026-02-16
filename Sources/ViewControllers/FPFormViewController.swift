@@ -277,6 +277,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         
         formTableView.delegate = self
         formTableView.dataSource = self
+        formTableView.rowHeight = UITableView.automaticDimension
+        formTableView.estimatedRowHeight = 200
     }
     
     override func viewDidLoad() {
