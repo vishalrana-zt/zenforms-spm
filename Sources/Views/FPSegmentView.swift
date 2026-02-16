@@ -88,12 +88,12 @@ class FPSegmentView: UIView {
     }
     
     func setUpTableView() {
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPListSelectionCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.FPListSelectionCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.SegmentControlTableViewCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.SegmentControlTableViewCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.CustomReasonTextFieldTableViewCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.CustomReasonTextFieldTableViewCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileReasonCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.FileReasonCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileTagListCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.FileTagListCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPReasonAiCell, bundle: Bundle(for: type(of: self))), forCellReuseIdentifier: FPConstansts.NibName.FPReasonAiCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPListSelectionCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FPListSelectionCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.SegmentControlTableViewCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.SegmentControlTableViewCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.CustomReasonTextFieldTableViewCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.CustomReasonTextFieldTableViewCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileReasonCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FileReasonCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileTagListCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FileTagListCell)
+        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPReasonAiCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FPReasonAiCell)
 
         
 
