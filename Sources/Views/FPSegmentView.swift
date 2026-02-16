@@ -306,9 +306,11 @@ extension FPSegmentView: SegmentControlDelegate {
         self.cellItem?.value = self.valueString
         updateSelectedValue()
         if self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true || self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true {
-            refreshTableRowCountAndReload()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            DispatchQueue.main.async {
                 self.stopRecorder()
+                self.refreshTableRowCountAndReload()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 self.delegate.reloadCollectionAt(index: self.collectionIndex)
             }
         }
