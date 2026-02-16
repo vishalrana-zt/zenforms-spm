@@ -1786,7 +1786,7 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
         DispatchQueue.main.async {
             UIView.performWithoutAnimation {
                 self.formTableView.beginUpdates()
-                self.formTableView.reloadRows(at: validPaths, with: .none)
+                self.formTableView.reloadRows(at: validPaths, with: .automatic)
                 self.formTableView.endUpdates()
             }
         }
