@@ -56,7 +56,7 @@ class FPSegmentView: UIView {
         guard let tableView = sequence(first: superview, next: { $0?.superview })
             .first(where: { $0 is UITableView }) as? UITableView else { return }
 
-        DispatchQueue.main.async {
+        UIView.performWithoutAnimation {
             tableView.beginUpdates()
             tableView.endUpdates()
             tableView.layoutIfNeeded()
