@@ -79,7 +79,7 @@ class FPSegmentView: UIView {
     }
     
     private func commonInit() {
-        let bundle = Bundle(for: type(of: self))
+        let bundle = ZenFormsBundle.bundle
         bundle.loadNibNamed("FPSegmentView", owner: self, options:nil)
         addSubview(contentView)
         setUpTableView()
