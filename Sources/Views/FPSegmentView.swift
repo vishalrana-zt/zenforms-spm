@@ -53,16 +53,13 @@ class FPSegmentView: UIView {
     }
 
     private func notifyTableToUpdateHeight() {
-        DispatchQueue.main.async {
-            var view = self.superview
-            while view != nil && !(view is UITableView) {
-                view = view?.superview
-            }
+        guard let tableView = sequence(first: superview, next: { $0?.superview })
+            .first(where: { $0 is UITableView }) as? UITableView else { return }
 
-            if let tableView = view as? UITableView {
-                tableView.beginUpdates()
-                tableView.endUpdates()
-            }
+        UIView.performWithoutAnimation {
+            tableView.beginUpdates()
+            tableView.endUpdates()
+            tableView.layoutIfNeeded()
         }
     }
 
@@ -83,8 +80,10 @@ class FPSegmentView: UIView {
             tableRowCount = 1
         }
 
-        reasonsTableView.reloadData()
-        reasonsTableView.layoutIfNeeded()
+        UIView.performWithoutAnimation {
+            reasonsTableView.reloadData()
+            reasonsTableView.layoutIfNeeded()
+        }
 
         reasonsTableView.invalidateIntrinsicContentSize()
         invalidateIntrinsicContentSize()
@@ -335,12 +334,16 @@ extension FPSegmentView: SegmentControlDelegate {
         guard shouldChangeLayout else { return }
 
         stopRecorder()
-        refreshTableRowCountAndReload()
 
-        // ⭐ force UITableView row height recalculation immediately
-        notifyTableToUpdateHeight()
+        UIView.performWithoutAnimation {
+            refreshTableRowCountAndReload()
+            notifyTableToUpdateHeight()
+        }
 
-        delegate.reloadCollectionAt(index: collectionIndex)
+        // reload collection AFTER layout settled
+        DispatchQueue.main.async {
+            self.delegate.reloadCollectionAt(index: self.collectionIndex)
+        }
     }
 }
 
