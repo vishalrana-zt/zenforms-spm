@@ -568,7 +568,7 @@ extension FPReasonAiCell : UICollectionViewDelegate, UICollectionViewDataSource,
             self.setRecommendationChecklist()
             self.updateData()
             FPFormDataHolder.shared.removeAiSuggestion(indexPath: self.indexPath!)
-            self.delegate1?.updateCustomAiSuggestionWith()
+            //self.delegate1?.updateCustomAiSuggestionWith()
         }else{
             
         }

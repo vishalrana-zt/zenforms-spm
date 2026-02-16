@@ -359,7 +359,7 @@ extension FPSegmentView: CustomReasonTextFieldTableViewCellDelegate {
     }
     
     func updateCustomAiSuggestionWith() {
-        self.delegate.reloadCollectionAt(index: self.collectionIndex)
+        //self.delegate.reloadCollectionAt(index: self.collectionIndex)
     }
 }
 
