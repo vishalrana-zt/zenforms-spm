@@ -84,7 +84,7 @@ struct FPRadioCheckboxFieldCell: View {
             }
         } else {
             let orgValue = FPUtility().fetchCompataibleSpecialCharsStringFromDB(strInput: fieldItem.value ?? "")
-            return option.isSelected || orgValue == == option.value
+            return option.isSelected || orgValue == option.value
         }
         return false
     }
