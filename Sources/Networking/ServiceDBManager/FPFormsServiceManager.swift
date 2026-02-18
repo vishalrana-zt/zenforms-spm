@@ -461,22 +461,45 @@ class FPFormsServiceManager: NSObject {
                         if let serverSection = formOnline.sections?.filter({$0.sortPosition == localSection.sortPosition} ).first as? FPSectionDetails{
                             serverSection.sqliteId = localSection.sqliteId
                             
-                            //restoring sqliteId from local array to server array
-                            var localDict: [Int: NSNumber] = [:]
+                            // MARK: Reconcile local ↔ server fields safely
+                            // 1️⃣ Lookup tables from local
+                            var localByObjectId: [Int: NSNumber] = [:]
+                            var localBySortPosition: [Int: NSNumber] = [:]
 
-                            localSection.fields.forEach { field in
-                                if let objectId = field.objectId?.intValue,
-                                   let sqliteId = field.sqliteId {
-                                    localDict[objectId] = sqliteId
+                            for field in localSection.fields {
+
+                                if let sqliteId = field.sqliteId {
+
+                                    // primary identity (after first sync)
+                                    if let objectId = field.objectId?.intValue {
+                                        localByObjectId[objectId] = sqliteId
+                                    }
+
+                                    // fallback identity (first sync)
+                                    let key = Int(field.sortPosition ?? "") ?? -1
+                                    localBySortPosition[key] = sqliteId
                                 }
                             }
 
+                            // 2️⃣ Attach sqliteId to server fields
                             serverSection.fields = serverSection.fields.map { field in
-                                var field = field
-                                if let objectId = field.objectId?.intValue {
-                                    field.sqliteId = localDict[objectId]
+                                var newField = field
+
+                                // Priority 1 → objectId match
+                                if let objectId = field.objectId?.intValue,
+                                   let sqliteId = localByObjectId[objectId] {
+
+                                    newField.sqliteId = sqliteId
+                                    return newField
                                 }
-                                return field
+
+                                // Priority 2 → first save fallback
+                                let key = Int(field.sortPosition ?? "") ?? -1
+                                if let sqliteId = localBySortPosition[key] {
+                                    newField.sqliteId = sqliteId
+                                }
+
+                                return newField
                             }
                             
                             //make sure assetId field at last---
@@ -529,6 +552,64 @@ class FPFormsServiceManager: NSObject {
             }
         }
     }
+    
+    func reconcileSectionFields(serverSection: inout FPSectionDetails, localSection: FPSectionDetails) {
+
+        // Attach section sqliteId
+        serverSection.sqliteId = localSection.sqliteId
+
+        guard !serverSection.fields.isEmpty else { return }
+
+        // MARK: Build lookup tables from LOCAL
+
+        var localByServerId: [NSNumber: NSNumber] = [:]
+        var localBySortPosition: [Int: NSNumber] = [:]
+
+        for localField in localSection.fields {
+
+            // 1️⃣ Permanent identity
+            if let serverId = localField.objectId{
+                localByServerId[serverId] = localField.sqliteId
+            }
+
+            // 2️⃣ Temporary identity (first sync)
+            let key = sortKey(localField.sortPosition)
+            localBySortPosition[key] = localField.sqliteId
+        }
+
+        // MARK: Attach sqliteId to SERVER fields
+
+        for index in serverSection.fields.indices {
+
+            let serverField = serverSection.fields[index]
+
+            // Priority 1 — Match by serverObjectId
+            if let serverId = serverField.objectId,
+               let sqliteId = localByServerId[serverId] {
+
+                serverSection.fields[index].sqliteId = sqliteId
+                continue
+            }
+
+            // Priority 2 — Fallback to sortPosition (first sync only)
+            let key = sortKey(serverField.sortPosition)
+
+            if let sqliteId = localBySortPosition[key] {
+                serverSection.fields[index].sqliteId = sqliteId
+            }
+            else {
+                // New field from backend
+                // leave sqliteId nil → will insert new row
+                debugPrint("🆕 Insert new field from server at sortPosition:", key)
+            }
+        }
+    }
+
+    
+    private func sortKey(_ value: String?) -> Int {
+        Int(value ?? "") ?? -1
+    }
+
     
     static func uploadTableAttachments(medias:[TableMedia] =  [],startIndex:Int = 0,completion:@escaping(_ status:Bool)->Void){
         guard FPUtility.isConnectedToNetwork() else {
