@@ -487,8 +487,7 @@ class FPFormsServiceManager: NSObject {
                             serverSection.fields = sectionFields
                             //--------
 //                            FPFormDataHolder.shared.sections?[sectionIndex] = serverSection
-                            if let localId = localSection.objectId,
-                               let idx = FPFormDataHolder.shared.sections?.firstIndex(where: { $0.objectId == localId }) {
+                            if let idx = FPFormDataHolder.shared.sections?.firstIndex(where: { $0.sortPosition == localSection.sortPosition }) {
                                 FPFormDataHolder.shared.sections?[idx] = serverSection
                             } else {
                                 // Sort a mutable copy, mutate, and assign back
