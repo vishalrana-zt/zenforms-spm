@@ -1036,7 +1036,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     let value = try ZTExpressionEngine.evaluate(orginalExpression, variables: rawVars)
                     debugPrint("result: \(value)")
                     if let dbvalue = value as? Double{
-                        updatedRow.columns[columnIndex].value = dbvalue.formattedMax4Decimal()
+                        updatedRow.columns[columnIndex].value = dbvalue.formattedMax2Decimal()
 //                        updatedRow.columns[columnIndex].value = String(format: "%.2f", dbvalue)
                     }else if let strVal = value as? String{
                         updatedRow.columns[columnIndex].value = strVal
