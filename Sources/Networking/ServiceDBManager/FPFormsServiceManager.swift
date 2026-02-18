@@ -508,23 +508,28 @@ class FPFormsServiceManager: NSObject {
                                 sectionFields.append(sectionFields.remove(at: index))
                             }
                             serverSection.fields = sectionFields
-                            //--------
-//                            FPFormDataHolder.shared.sections?[sectionIndex] = serverSection
-                            if let idx = FPFormDataHolder.shared.sections?.firstIndex(where: { $0.sortPosition == localSection.sortPosition }) {
-                                FPFormDataHolder.shared.sections?[idx] = serverSection
-                            } else {
-                                // Sort a mutable copy, mutate, and assign back
-                                if var sections = FPFormDataHolder.shared.sections {
-                                    sections.sort { ($0.sortPosition ?? "") < ($1.sortPosition ?? "") }
-                                    if sections.indices.contains(sectionIndex) {
-                                        sections[sectionIndex] = serverSection
-                                    } else {
-                                        // If index out of range, append as fallback
-                                        sections.append(serverSection)
-                                    }
-                                    FPFormDataHolder.shared.sections = sections
-                                }
+                            
+                            
+                            var sections = FPFormDataHolder.shared.sections ?? []
+                            // MARK: 1. Match by permanent identity (objectId)
+                            if let localObjectId = localSection.objectId,
+                               let idx = sections.firstIndex(where: { $0.objectId == localObjectId }) {
+                                sections[idx] = serverSection
+                                FPFormDataHolder.shared.sections = sections
+                                
                             }
+                            // MARK: 2. First sync fallback (sortPosition)
+                            else if let sort = localSection.sortPosition,
+                               let idx = sections.firstIndex(where: { $0.sortPosition == sort }) {
+                                sections[idx] = serverSection
+                                FPFormDataHolder.shared.sections = sections
+                            }
+                            // MARK: 3. New section from server → INSERT (do NOT overwrite random index)
+                            else{
+                                sections.append(serverSection)
+                            }
+                            FPFormDataHolder.shared.sections = sections
+                            
                             updatedSection = serverSection
                         }
                     }
