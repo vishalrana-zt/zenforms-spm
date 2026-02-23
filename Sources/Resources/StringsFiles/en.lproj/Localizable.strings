@@ -51,6 +51,8 @@
 "lbl_Camera" = "Camera";
 "No_Camera" = "Device has no camera";
 "msg_pls_sign_green_box" = "Please sign within the green box";
+"No_Signature" = "No Signature";
+"Please_Get_Signature" = "Please get signature of customer before saving";
 "lbl_Custom_Reason" = "Custom Reason";
 "lbl_Enter_label" = "Enter label";
 "lbl_ViewEdit" = "View/Edit";
