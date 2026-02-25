@@ -12,6 +12,7 @@ internal import RSSelectionMenu
 internal import IQKeyboardManagerSwift
 internal import IQKeyboardToolbar
 internal import IQKeyboardToolbarManager
+internal import ZTExpressionEngine
 
 enum SortColumnOption: Int {
     case ascending
@@ -149,13 +150,7 @@ class FPTableEditViewController: UIViewController {
         arrBtns.append(settingsButton)
         self.navigationItem.rightBarButtonItems = arrBtns
         
-        let customCancelButton = UIButton(type: .custom)
-        customCancelButton.setTitleColor(UIColor(named: "BT-Primary"), for: .normal)
-        customCancelButton.tintColor = UIColor(named: "BT-Primary")
-        customCancelButton.setTitle(FPLocalizationHelper.localize("Cancel"), for: .normal)
-        customCancelButton.sizeToFit()
-        customCancelButton.addTarget(self, action: #selector(cancelButtonClicked(button:)), for:.touchUpInside)
-        let cancelButton = UIBarButtonItem(customView:customCancelButton)
+        let cancelButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelButtonClicked))
         self.navigationItem.leftBarButtonItem = cancelButton
         let bundle = ZenFormsBundle.bundle
         
@@ -265,7 +260,7 @@ class FPTableEditViewController: UIViewController {
         })
     }
     
-    @objc func cancelButtonClicked(button:UIButton) {
+    @objc func cancelButtonClicked() {
         view.endEditing(true)
         if self.isAssetEnabled, let isAssetTable = self.tableComponent?.tableOptions?.isAssetTable, isAssetTable{
             let otherFieldTableSavedLinkings = FPFormDataHolder.shared.arrLinkingDB.filter { $0.fieldTemplateId != self.fieldDetails?.templateId || $0.isTableSaved == true}
@@ -547,7 +542,7 @@ extension FPTableEditViewController{
         }
         let rightBarButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(rightBarButtonTapped))
         menu.navigationItem.rightBarButtonItem = rightBarButton
-        menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
+//        menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
         if isSortFilterApplied == true, let index = arrAppliedFilters.firstIndex(where: { $0.indPath == sortFilterColumnIndexPath}), let appliedFilter  = arrAppliedFilters[safe: index]{
             let strSort = appliedFilter.option == .ascending ? FPLocalizationHelper.localize("lbl_Ascending"): FPLocalizationHelper.localize("lbl_Descending")
             menu.setSelectedItems(items: [strSort]) {  (_, _, _, _) in }
@@ -631,7 +626,7 @@ extension FPTableEditViewController{
             }
             let rightBarButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(rightBarButtonTapped))
             menu.navigationItem.rightBarButtonItem = rightBarButton
-            menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
+//            menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
             menu.tableView?.configureRSSelectionMenuTable()
             menu.setNavigationBar(title: FPLocalizationHelper.localize("lbl_Sort_Filter"), attributes: [NSAttributedString.Key.foregroundColor: isFromCoPILOT ? UIColor.white : UIColor.black], barTintColor: UIColor(named: "BT-Primary"), tintColor: isFromCoPILOT ? UIColor.white : UIColor.black)
             menu.onDismiss = { selectedItems in
@@ -1015,25 +1010,42 @@ extension FPTableEditViewController: TableContentCellDelegate{
         }
     }
     
+    func inferValue(_ value: String) -> Any {
+        let replaced = value.replacingOccurrences(of: "__X2E__", with: ".")
+        let trimmed = replaced.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let number = Double(trimmed) {
+            return number
+        }
+        return trimmed
+    }
+    
     func processAutoCalculationFor(row: Rows, with data:ColumnData) -> Rows{
         var updatedRow = row
         for formula in arrTblFormulas {
             var orginalExpression = formula.expression ?? ""
+            var rawVars: [String: Any] = [:]
             for column in updatedRow.columns {
-                let dblvalue = (column.value.replacingOccurrences(of: "__X2E__", with: ".") as NSString).doubleValue
-                let strDblVal = String(format: "%.2f", dblvalue)
-                orginalExpression = orginalExpression.replacingOccurrences(of: "\\b\(column.key)\\b", with: strDblVal, options: .regularExpression)
+                if orginalExpression.range(of: "\\b\(column.key)\\b", options: .regularExpression) != nil {
+                    rawVars[column.key] = self.inferValue(column.value)
+                }
             }
             if let columnIndex = row.columns.firstIndex(where: {$0.key == formula.name}){
-                if let dblvalue = zenFormsDelegate?.safelyEvaluteExpression(strExpression: orginalExpression) as? Double{
-                    updatedRow.columns[columnIndex].value = String(format: "%.2f", dblvalue)
-                }else{
-                    updatedRow.columns[columnIndex].value = "-"
+                debugPrint("formula: \(orginalExpression)")
+                debugPrint("variables: \(rawVars)")
+                do {
+                    let value = try ZTExpressionEngine.evaluate(orginalExpression, variables: rawVars)
+                    debugPrint("result: \(value)")
+                    if let dbvalue = value as? Double{
+                        updatedRow.columns[columnIndex].value = dbvalue.formattedMax2Decimal()
+//                        updatedRow.columns[columnIndex].value = String(format: "%.2f", dbvalue)
+                    }else if let strVal = value as? String{
+                        updatedRow.columns[columnIndex].value = strVal
+                    }else{
+                        updatedRow.columns[columnIndex].value = "-"
+                    }
+                } catch {
+                    debugPrint(error)
                 }
-//                //resultColmun
-//                if let dblvalue = NSExpression(format: orginalExpression).expressionValue(with: nil, context: nil) as? Double{
-//                    updatedRow.columns[columnIndex].value = String(format: "%.2f", dblvalue)
-//                }
             }
         }
         return updatedRow
@@ -1359,5 +1371,17 @@ extension UIImageView {
         let templateImage = self.image?.withRenderingMode(.alwaysTemplate)
         self.image = templateImage
         self.tintColor = color
+    }
+}
+
+extension Double {
+
+    func formattedMax2Decimal() -> String {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.numberStyle = .decimal
+        
+        return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
     }
 }

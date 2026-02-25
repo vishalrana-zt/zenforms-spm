@@ -43,23 +43,50 @@ class FPSegmentView: UIView {
 
     var cellItem: FPReasonsComponent? {
         didSet {
-          //  if cellItem?.value == "NO" {
-            if self.fieldItem?.openDeficencySelectedOption(value: cellItem?.value ?? "") == true{
-                let count = self.cellItem?.rows?.count ?? 0
-                if isEnableReasonAICell {
-                    tableRowCount = count + 2
-                }else{
-                    tableRowCount = count + 3
-                    if let files =  FPFormDataHolder.shared.getFiledFilesArray()[collectionIndex],files.count>0{
-                        tableRowCount += 1
-                    }
-                }
-            } else {
-                tableRowCount = 1
-            }
-            self.reasonsTableView.reloadData()
-            self.setNeedsLayout()
+            refreshTableRowCountAndReload()
         }
+    }
+    
+    override func didMoveToSuperview() {
+        super.didMoveToSuperview()
+        notifyTableToUpdateHeight()
+    }
+
+    private func notifyTableToUpdateHeight() {
+        guard let tableView = sequence(first: superview, next: { $0?.superview })
+            .first(where: { $0 is UITableView }) as? UITableView else { return }
+
+        UIView.performWithoutAnimation {
+            tableView.beginUpdates()
+            tableView.endUpdates()
+            tableView.layoutIfNeeded()
+        }
+    }
+
+    
+    /// Updates tableRowCount from current cellItem and reloads the inner table. Call from didSet and from segmentValueChangedAt so the current view is in sync before the parent reloads the row (avoids UI hiding when segment value changes, especially first time in landscape).
+    private func refreshTableRowCountAndReload() {
+        if self.fieldItem?.openDeficencySelectedOption(value: cellItem?.value ?? "") == true {
+            let count = self.cellItem?.rows?.count ?? 0
+            if isEnableReasonAICell {
+                tableRowCount = count + 2
+            } else {
+                tableRowCount = count + 3
+                if let files = FPFormDataHolder.shared.getFiledFilesArray()[collectionIndex], files.count > 0 {
+                    tableRowCount += 1
+                }
+            }
+        } else {
+            tableRowCount = 1
+        }
+
+        UIView.performWithoutAnimation {
+            reasonsTableView.reloadData()
+            reasonsTableView.layoutIfNeeded()
+        }
+
+        reasonsTableView.invalidateIntrinsicContentSize()
+        invalidateIntrinsicContentSize()
     }
     
     override init(frame: CGRect) {
@@ -299,11 +326,23 @@ extension FPSegmentView: SegmentControlDelegate {
         setValueFromSelectedIndex(withSelectedIndex)
         self.cellItem?.value = self.valueString
         updateSelectedValue()
-        if self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true || self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true {
-            DispatchQueue.main.asyncAfter(deadline:.now() + 0.3) {
-                self.stopRecorder()
-                self.delegate.reloadCollectionAt(index: self.collectionIndex)
-            }
+
+        let shouldChangeLayout =
+        self.fieldItem?.openDeficencySelectedOption(value: oldValue) == true ||
+        self.fieldItem?.openDeficencySelectedOption(value: self.valueString) == true
+
+        guard shouldChangeLayout else { return }
+
+        stopRecorder()
+
+        UIView.performWithoutAnimation {
+            refreshTableRowCountAndReload()
+            notifyTableToUpdateHeight()
+        }
+
+        // reload collection AFTER layout settled
+        DispatchQueue.main.async {
+            self.delegate.reloadCollectionAt(index: self.collectionIndex)
         }
     }
 }
@@ -320,7 +359,7 @@ extension FPSegmentView: CustomReasonTextFieldTableViewCellDelegate {
     }
     
     func updateCustomAiSuggestionWith() {
-        self.delegate.reloadCollectionAt(index: self.collectionIndex)
+        //self.delegate.reloadCollectionAt(index: self.collectionIndex)
     }
 }
 

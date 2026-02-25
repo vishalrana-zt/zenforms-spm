@@ -29,7 +29,6 @@ public protocol ZenFormsDelegate: NSObject {
     func newFormCancelClicked()
     func addQuickNoteClicked()
     func mixpanelEvent(eventName: String, properties:[String:Any]?)
-    func safelyEvaluteExpression(strExpression: String) -> Double?
 }
 
 public protocol ZenFormsAssetLinkingDelegate: NSObject {
@@ -278,6 +277,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         
         formTableView.delegate = self
         formTableView.dataSource = self
+        formTableView.rowHeight = UITableView.automaticDimension
+        formTableView.estimatedRowHeight = 200
     }
     
     override func viewDidLoad() {
@@ -1784,7 +1785,11 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
         let validPaths = indexPaths.filter { $0.row >= 0 && $0.row < maxRows }
         guard !validPaths.isEmpty else { return }
         
-        formTableView.reloadRows(at: validPaths, with: .automatic)
+        DispatchQueue.main.async {
+            self.formTableView.beginUpdates()
+            self.formTableView.reloadRows(at: validPaths, with: .automatic)
+            self.formTableView.endUpdates()
+        }
     }
     
     //MARK: get Input Cell

@@ -188,7 +188,7 @@ struct FPFieldDetailsDatabaseManager: FPDataBaseQueries {
             insertQuery += "'\(value)',"
         }
         if let value = item.reasons {
-            insertQuery += "'\(value)',"
+            insertQuery += "'\(value.processApostrophe())',"
         }
         insertQuery += """
         '\(sectionLocalId)',

@@ -411,7 +411,7 @@ class FPReasonAiCell : UITableViewCell {
             }
             FPFormsServiceManager.getRecommendationSuggestions(reason: reason,completion: { result , error in
                 if let error = error{
-                    FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: error.localizedDescription)
+                  //  FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: error.localizedDescription)
                 }
                 self.aiSuggestionData = result
                 self.collectionViewSuggestion.reloadData()
@@ -439,7 +439,7 @@ class FPReasonAiCell : UITableViewCell {
             let checkListArray = self.checkListData.map({$0.key})
             FPFormsServiceManager.getRecommendationCheckList(recommendation: self.recommendationTextField.text ?? "",checkListData: checkListArray, completion: { result , error in
                 if let error = error{
-                    FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: error.localizedDescription)
+//                    FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: error.localizedDescription)
                     self.checkListView.isHidden = true
                     return
                 }
