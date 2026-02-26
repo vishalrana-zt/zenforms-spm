@@ -313,14 +313,14 @@ public class FPForms : NSObject{
         for section in sections {
             // Check if section is NOT hidden
             if section.isHidden  == false {
-                let fields = section.fields
-                let totalFieldCount = fields.count
-                for field in fields {
+                let sortedFields = section.fields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""})
+                let sortPosition = sortedFields.last?.sortPosition ?? "\(sortedFields.count - 1)"
+                for field in section.fields {
                     if field.name == "assetId",
                        field.uiType == "HIDDEN",
                        field.sortPosition == "000" {
                         
-                        field.sortPosition = "\(totalFieldCount)1"
+                        field.sortPosition = "\(sortPosition)1"
                         break
                     }
                 }
