@@ -301,7 +301,31 @@ public class FPForms : NSObject{
         copy.isSigned = self.isSigned
         copy.notes = self.notes
         copy.sectionMappingValue = self.sectionMappingValue
+        
+        fixAssetIdSortPosition(in: copy)
+
         return copy
+    }
+    
+    
+    func fixAssetIdSortPosition(in form: FPForms) {
+        guard let sections = form.sections else { return }
+        for section in sections {
+            // Check if section is NOT hidden
+            if section.isHidden  == false {
+                let sortedFields = section.fields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""})
+                let sortPosition = sortedFields.last?.sortPosition ?? "\(sortedFields.count - 1)"
+                for field in section.fields {
+                    if field.name == "assetId",
+                       field.uiType == "HIDDEN",
+                       field.sortPosition == "000" {
+                        
+                        field.sortPosition = "\(sortPosition)1"
+                        break
+                    }
+                }
+            }
+        }
     }
     
     public func getCopyOfCustomPreviousForm() -> FPForms {

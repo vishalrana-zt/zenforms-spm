@@ -2847,18 +2847,17 @@ extension FPUtility{
         if !sectionTemplateId.isEmpty,  let localSectionId = linkingData.sectionLocalId {
             if let secIndex = FPFormDataHolder.shared.customForm?.sections?.firstIndex(where: {$0.templateId == sectionTemplateId && $0.sqliteId == localSectionId}){
                 if let sectionToUpdate = FPFormDataHolder.shared.customForm?.sections?[safe:secIndex], let assetId = linkingData.assetId, let sortPosition = sectionToUpdate.fields.last?.sortPosition{
-                    let hiddenAssetField = FPFormDataHolder.shared.getHiddenAssetField(assetId: assetId, sortPostion: sortPosition)
+                    let hiddenAssetField = FPFormDataHolder.shared.getHiddenAssetField(assetId: assetId, sortPostion: "\(sortPosition)1")
                     FPFormDataHolder.shared.customForm?.sections?[secIndex].fields.append(hiddenAssetField)
                     return
                 }
             }
         }
-        
         if let secIndex = FPFormDataHolder.shared.customForm?.sections?.firstIndex(where: { section in
             return sectionTemplateId.isEmpty ? section.sqliteId == linkingData.sectionLocalId :  (section.sqliteId == linkingData.sectionLocalId || section.templateId == linkingData.sectionTemplateId)
         }){
             if let sectionToUpdate = FPFormDataHolder.shared.customForm?.sections?[safe:secIndex], let assetId = linkingData.assetId, let sortPosition = sectionToUpdate.fields.last?.sortPosition{
-                let hiddenAssetField = FPFormDataHolder.shared.getHiddenAssetField(assetId: assetId, sortPostion: sortPosition)
+                let hiddenAssetField = FPFormDataHolder.shared.getHiddenAssetField(assetId: assetId, sortPostion: "\(sortPosition)1")
                 FPFormDataHolder.shared.customForm?.sections?[secIndex].fields.append(hiddenAssetField)
             }
         }
