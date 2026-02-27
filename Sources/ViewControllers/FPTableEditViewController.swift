@@ -491,6 +491,7 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
 
         var shouldShowAssetLink = false
         var shouldShowDuplicate = true
+        var shouldShowEditRow = arrSelectedRows.count == 1
 
         if isAssetEnabled,
            let isAssetTable = tableComponent?.tableOptions?.isAssetTable,
@@ -503,6 +504,12 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         updateVisibility(
             view: stkOptions,
             hidden: !hasSelection,
+            animated: animated
+        )
+        
+        updateVisibility(
+            view: btnEditRow,
+            hidden: !shouldShowEditRow,
             animated: animated
         )
 
