@@ -23,8 +23,8 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     @IBOutlet weak var tblRows: UITableView!
     @IBOutlet weak var btnPrevious: ZTLIBLoaderButton!
     @IBOutlet weak var btnNext: ZTLIBLoaderButton!
-    @IBOutlet weak var lblCurrentSectionName: UILabel!
-    @IBOutlet weak var rowStepper: NumericStepperView!
+    @IBOutlet weak var txtRow: UITextField!
+    @IBOutlet weak var lblCurrentRow: UILabel!
    
     var tableComponent:TableComponent?
 
@@ -48,7 +48,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         view.backgroundColor = .systemBackground
         btnPrevious.currentView = self.navigationController?.view ?? self.view
         btnNext.currentView = self.navigationController?.view ?? self.view
-        rowStepper.value = currentRowNo
+        lblCurrentRow.text = "\(currentRowNo)"
         viewBottom.dropShadow()
         initializeView()
         
@@ -72,6 +72,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     
     func initializeView() {
+        txtRow.delegate = self
         setUpTableView()
         handleSectionControlUI()
     }
@@ -166,7 +167,6 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
             self.btnNext.isLoading = false
             self.btnPrevious.isLoading = false
             self.handleSectionButtonsInteraction()
-            
         }
     }
         
@@ -212,7 +212,22 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
     }
 }
 
+extension FPEditRowViewController:UITextFieldDelegate{
+    
+    func textField(_ textField: UITextField,
+                   shouldChangeCharactersIn range: NSRange,
+                   replacementString string: String) -> Bool {
 
+        if textField == txtRow {
+            let allowedCharacters = CharacterSet(charactersIn: "0123456789")
+            let characterSet = CharacterSet(charactersIn: string)
+            return allowedCharacters.isSuperset(of: characterSet)
+        }
+
+        // Allow normal typing for other textfields
+        return true
+    }
+}
 
 
 //MARK: FPEditRowCellDelegate

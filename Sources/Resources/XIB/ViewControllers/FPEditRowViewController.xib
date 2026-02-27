@@ -15,9 +15,9 @@
             <connections>
                 <outlet property="btnNext" destination="5Wl-Ua-quw" id="jnO-rS-hGX"/>
                 <outlet property="btnPrevious" destination="odh-Ih-M5C" id="OVY-Xw-JRo"/>
-                <outlet property="lblCurrentSectionName" destination="gcY-L2-OGl" id="0Gt-2u-54V"/>
-                <outlet property="rowStepper" destination="OzA-jy-X7u" id="k4S-cp-T6A"/>
+                <outlet property="lblCurrentRow" destination="gcY-L2-OGl" id="Fhv-fu-HGD"/>
                 <outlet property="tblRows" destination="Ehb-JK-Sqi" id="zCq-hu-eZV"/>
+                <outlet property="txtRow" destination="YNE-vd-DGe" id="Rez-tX-HTc"/>
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
                 <outlet property="viewBottom" destination="H66-Ta-4Mw" id="Jcf-9x-lyV"/>
             </connections>
@@ -142,10 +142,11 @@
                                                 <action selector="previousButtonAction:" destination="-1" eventType="touchUpInside" id="9LF-Ow-XIl"/>
                                             </connections>
                                         </button>
-                                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="OzA-jy-X7u" customClass="NumericStepperView" customModule="ZenForms">
+                                        <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" text="1" borderStyle="roundedRect" textAlignment="center" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="YNE-vd-DGe">
                                             <rect key="frame" x="80" y="0.0" width="223" height="50"/>
-                                            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                        </view>
+                                            <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="18"/>
+                                            <textInputTraits key="textInputTraits" keyboardType="numberPad"/>
+                                        </textField>
                                         <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5Wl-Ua-quw" customClass="ZTLIBLoaderButton">
                                             <rect key="frame" x="303" y="0.0" width="80" height="50"/>
                                             <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="18"/>
