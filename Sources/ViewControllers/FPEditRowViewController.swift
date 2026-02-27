@@ -328,15 +328,15 @@ final class CardPresentationController: UIPresentationController {
             )
         } else {
 
-            // iPhone bottom card
-            let height = bounds.height * 0.8
+            let width = bounds.width * 0.9
+            let height = bounds.height * 0.75
 
             return CGRect(
-                x: 0,
-                y: bounds.height - height - safe.bottom,
-                width: bounds.width,
-                height: height
-            )
+                       x: (bounds.width - width) / 2,
+                       y: (bounds.height - height) / 2,
+                       width: width,
+                       height: height
+                   )
         }
     }
 
