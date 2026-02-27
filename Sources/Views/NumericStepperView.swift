@@ -56,8 +56,8 @@ final class NumericStepperView: UIView {
 private extension NumericStepperView {
 
     func commonInit() {
-
-        Bundle.main.loadNibNamed(
+        let bundle = ZenFormsBundle.bundle
+        bundle.loadNibNamed(
             "NumericStepperView",
             owner: self,
             options: nil
