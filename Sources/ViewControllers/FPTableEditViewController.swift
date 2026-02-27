@@ -37,6 +37,8 @@ class FPTableEditViewController: UIViewController {
     private let headerCellReuseIdentifier = "TableHeaderCollectionViewCell"
     private let contentCellReuseIdentifier = "TableContentCollectionViewCell"
     
+    private let cardTransitionDelegate = CardTransitioningDelegate()
+    
     @IBOutlet weak var txtRowCount: UITextField!
     @IBOutlet weak var collectionView: UICollectionView!
     @IBOutlet weak var viewAddRow: UIView!
@@ -339,8 +341,18 @@ class FPTableEditViewController: UIViewController {
         }
     }
     @IBAction func btnEditRowDidTap(_ sender: UIButton) {
-        if let childTableIndex = self.arrSelectedIndexes.first{
+        if let selIndex = self.arrSelectedIndexes.first{
             debugPrint("btnEditRowDidTap")
+            let vc = FPEditRowViewController(
+                nibName: "FPEditRowViewController",
+                bundle: nil
+            )
+            vc.tableIndexPath = tableIndexPath
+            vc.currentRowNo = selIndex.section
+            vc.tableComponent = tableComponent
+            vc.modalPresentationStyle = .custom
+            vc.transitioningDelegate = cardTransitionDelegate
+            present(vc, animated: true)
         }
     }
     
