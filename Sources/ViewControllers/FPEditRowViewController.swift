@@ -185,8 +185,8 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
             for: indexPath
         ) as! FPEditRowTableViewCell
         
-        cell.indexPath = indexPath
-        cell.parentIndexPath = tableIndexPath
+        cell.childTableIndex = indexPath
+        cell.parentTableIndex = tableIndexPath
         cell.data = self.tableComponent?.rows?[safe:currentRowNo]?.columns[safe: indexPath.row]
         cell.delegate = self
         
@@ -290,16 +290,28 @@ final class CardPresentationController: UIPresentationController {
 
         guard let container = containerView else { return .zero }
 
-        let width = min(container.bounds.width * 0.9, 420)
-        let height = container.bounds.height * 0.7
+        let bounds = container.bounds
+        let isPad = traitCollection.userInterfaceIdiom == .pad
 
-        let originX = (container.bounds.width - width) / 2
-        let originY = (container.bounds.height - height) / 2
+        let width: CGFloat
+        let height: CGFloat
 
-        return CGRect(x: originX,
-                      y: originY,
-                      width: width,
-                      height: height)
+        if isPad {
+            // ✅ iPad — use more space
+            width = min(bounds.width * 0.65, 720)
+            height = min(bounds.height * 0.80, 900)
+        } else {
+            // ✅ iPhone — compact card
+            width = bounds.width * 0.9
+            height = bounds.height * 0.75
+        }
+
+        return CGRect(
+            x: (bounds.width - width) / 2,
+            y: (bounds.height - height) / 2,
+            width: width,
+            height: height
+        )
     }
 
     override func presentationTransitionWillBegin() {
@@ -329,5 +341,14 @@ final class CardPresentationController: UIPresentationController {
         presentedView?.frame = frameOfPresentedViewInContainerView
         presentedView?.layer.cornerRadius = 20
         presentedView?.clipsToBounds = true
+        presentedView?.layer.shadowColor = UIColor.black.cgColor
+        presentedView?.layer.shadowOpacity = 0.15
+        presentedView?.layer.shadowRadius = 20
+        presentedView?.layer.shadowOffset = CGSize(width: 0, height: 10)
+    }
+    
+    override func containerViewWillLayoutSubviews() {
+        super.containerViewWillLayoutSubviews()
+        presentedView?.frame = frameOfPresentedViewInContainerView
     }
 }
