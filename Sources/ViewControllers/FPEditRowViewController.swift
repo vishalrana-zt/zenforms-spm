@@ -48,10 +48,9 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         view.backgroundColor = .systemBackground
         btnPrevious.currentView = self.navigationController?.view ?? self.view
         btnNext.currentView = self.navigationController?.view ?? self.view
-        lblCurrentRow.text = "\(currentRowNo)"
+        reflectCurrentRowOnUI()
         viewBottom.dropShadow()
         initializeView()
-        
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -151,7 +150,13 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         DispatchQueue.main.async {
             self.btnPrevious.updateInteraction(isEnabled: self.currentRowNo > 0)
             self.btnNext.updateInteraction(isEnabled: self.currentRowNo < rows.count - 1)
+            self.reflectCurrentRowOnUI()
         }
+    }
+    
+    func reflectCurrentRowOnUI(){
+        lblCurrentRow.text = "\(currentRowNo + 1)"
+        txtRow.text = "\(currentRowNo + 1)"
     }
     
     
