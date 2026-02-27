@@ -20,12 +20,12 @@ final class NumericStepperView: UIView {
 
     // MARK: - Public Properties
 
-    @IBInspectable var stepValue: Double = 1
-    @IBInspectable var minimumValue: Double = 0
-    @IBInspectable var maximumValue: Double = 999999
+    @IBInspectable var stepValue: Int = 1
+    @IBInspectable var minimumValue: Int = 0
+    @IBInspectable var maximumValue: Int = 999999
     @IBInspectable var allowsDecimal: Bool = false
 
-    var value: Double = 0 {
+    var value: Int = 0 {
         didSet {
             updateText()
             onValueChanged?(value)
@@ -33,8 +33,8 @@ final class NumericStepperView: UIView {
     }
 
     /// Callback
-    var onValueChanged: ((Double) -> Void)?
-    var onEditingFinished: ((Double) -> Void)?
+    var onValueChanged: ((Int) -> Void)?
+    var onEditingFinished: ((Int) -> Void)?
     // MARK: - Haptic
 
     private let impactFeedback =
@@ -170,7 +170,7 @@ extension NumericStepperView: UITextFieldDelegate {
     func textFieldDidEndEditing(_ textField: UITextField) {
 
         guard let text = textField.text,
-              let number = Double(text) else {
+              let number = Int(text) else {
             updateText()
             return
         }

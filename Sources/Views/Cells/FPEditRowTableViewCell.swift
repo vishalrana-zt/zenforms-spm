@@ -99,6 +99,12 @@ protocol FPEditRowCellDelegate: AnyObject {
         imgBarcode.setImageColor(
             color: UIColor(named: "BT-Primary") ?? .black
         )
+        
+        tblTextView.layer.cornerRadius = 8
+        tblTextView.layer.borderWidth = 1
+        tblTextView.layer.borderColor = UIColor.systemGray4.cgColor
+        tblTextView.layer.masksToBounds = true
+        tblTextView.textContainerInset = UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5)
     }
 
     override func prepareForReuse() {

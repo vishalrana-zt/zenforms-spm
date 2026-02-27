@@ -28,7 +28,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
    
     var tableComponent:TableComponent?
 
-    var currentRowNo = 0
+    var currentRowNo:Int = 0
   
     var tableIndexPath:IndexPath?
 
@@ -48,6 +48,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         view.backgroundColor = .systemBackground
         btnPrevious.currentView = self.navigationController?.view ?? self.view
         btnNext.currentView = self.navigationController?.view ?? self.view
+        rowStepper.value = currentRowNo
         viewBottom.dropShadow()
         initializeView()
         
@@ -99,12 +100,14 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         self.view.endEditing(true)
         self.btnPrevious.isLoading = true
         self.btnNext.updateInteraction(isEnabled: false)
+        self.showPreviousSection()
     }
     
     @IBAction func nextButtonAction(_ sender: UIButton) {
         self.view.endEditing(true)
         self.btnNext.isLoading = true
         self.btnPrevious.updateInteraction(isEnabled: false)
+        self.showNextSection()
     }
     
     func showNextSection(){
@@ -138,6 +141,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
                 self.btnNext.isHidden = false
             }
             self.handleSectionButtonsInteraction()
+            self.tblRows.reloadData()
         }
     }
     
@@ -291,27 +295,34 @@ final class CardPresentationController: UIPresentationController {
         guard let container = containerView else { return .zero }
 
         let bounds = container.bounds
+        let safe = container.safeAreaInsets
+
         let isPad = traitCollection.userInterfaceIdiom == .pad
 
-        let width: CGFloat
-        let height: CGFloat
-
         if isPad {
-            // ✅ iPad — use more space
-            width = min(bounds.width * 0.65, 720)
-            height = min(bounds.height * 0.80, 900)
-        } else {
-            // ✅ iPhone — compact card
-            width = bounds.width * 0.9
-            height = bounds.height * 0.75
-        }
 
-        return CGRect(
-            x: (bounds.width - width) / 2,
-            y: (bounds.height - height) / 2,
-            width: width,
-            height: height
-        )
+            // ⭐ Large editor style
+            let width = bounds.width * 0.8
+            let height = bounds.height * 0.8
+
+            return CGRect(
+                x: (bounds.width - width) / 2,
+                y: (bounds.height - height) / 2,
+                width: width,
+                height: height
+            )
+        } else {
+
+            // iPhone bottom card
+            let height = bounds.height * 0.8
+
+            return CGRect(
+                x: 0,
+                y: bounds.height - height - safe.bottom,
+                width: bounds.width,
+                height: height
+            )
+        }
     }
 
     override func presentationTransitionWillBegin() {

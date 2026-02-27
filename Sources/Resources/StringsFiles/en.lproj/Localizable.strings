@@ -16,6 +16,7 @@
 "lbl_Next" = "Next";
 "lbl_Select_Section" = "Select Section";
 "lbl_Section" = "Section:";
+"lbl_Row" = "Current Row:";
 "lbl_Clear" = "Clear";
 "lbl_Selet_color" = "Selet a color";
 "lbl_Black" = "Black";
