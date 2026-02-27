@@ -345,7 +345,7 @@ class FPTableEditViewController: UIViewController {
             debugPrint("btnEditRowDidTap")
             let vc = FPEditRowViewController(
                 nibName: "FPEditRowViewController",
-                bundle: nil
+                bundle: ZenFormsBundle.bundle
             )
             vc.tableIndexPath = tableIndexPath
             vc.currentRowNo = selIndex.section
