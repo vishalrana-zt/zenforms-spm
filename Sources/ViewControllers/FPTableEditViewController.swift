@@ -44,6 +44,7 @@ class FPTableEditViewController: UIViewController {
     @IBOutlet weak var mainBottomStk: UIStackView!
     @IBOutlet weak var stkOptions: UIStackView!
     
+    @IBOutlet weak var btnEditRow: UIButton!
     @IBOutlet weak var btnAssetLink: UIButton!
     @IBOutlet weak var btnDuplicate: UIButton!
     @IBOutlet weak var btnMultipleDeleteRows: UIButton!
@@ -337,6 +338,12 @@ class FPTableEditViewController: UIViewController {
             self.linkAsset(at: childTableIndex, parentTableIndex: tableIndexPath)
         }
     }
+    @IBAction func btnEditRowDidTap(_ sender: UIButton) {
+        if let childTableIndex = self.arrSelectedIndexes.first{
+            debugPrint("btnEditRowDidTap")
+        }
+    }
+    
 }
 
 extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource {
@@ -467,13 +474,77 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         }
     }
     
-    func refreshActionButtons(){
+    func xrefreshActionButtons(){
         stkOptions.isHidden = self.arrSelectedRows.count == 0
         btnAssetLink.isHidden = true
+        btnEditRow.isHidden = self.arrSelectedRows.count > 1
         btnDuplicate.isHidden = false
         if isAssetEnabled, let isAssetTable = self.tableComponent?.tableOptions?.isAssetTable, isAssetTable{
             btnAssetLink.isHidden  = self.arrSelectedRows.count > 1
             btnDuplicate.isHidden = true
+        }
+    }
+    
+    func refreshActionButtons(animated: Bool = true) {
+
+        let hasSelection = arrSelectedRows.count > 0
+
+        var shouldShowAssetLink = false
+        var shouldShowDuplicate = true
+
+        if isAssetEnabled,
+           let isAssetTable = tableComponent?.tableOptions?.isAssetTable,
+           isAssetTable {
+
+            shouldShowAssetLink = arrSelectedRows.count == 1
+            shouldShowDuplicate = false
+        }
+
+        updateVisibility(
+            view: stkOptions,
+            hidden: !hasSelection,
+            animated: animated
+        )
+
+        updateVisibility(
+            view: btnAssetLink,
+            hidden: !shouldShowAssetLink,
+            animated: animated
+        )
+
+        updateVisibility(
+            view: btnDuplicate,
+            hidden: !shouldShowDuplicate,
+            animated: animated
+        )
+    }
+    
+    private func updateVisibility(view: UIView, hidden: Bool, animated: Bool) {
+        guard view.isHidden != hidden else { return }
+
+        if animated {
+
+            if !hidden {
+                view.alpha = 0
+                view.isHidden = false
+            }
+
+            UIView.animate(
+                withDuration: 0.25,
+                delay: 0,
+                options: [.curveEaseInOut, .beginFromCurrentState],
+                animations: {
+                    view.alpha = hidden ? 0 : 1
+                    self.view.layoutIfNeeded()
+                },
+                completion: { _ in
+                    view.isHidden = hidden
+                }
+            )
+
+        } else {
+            view.isHidden = hidden
+            view.alpha = hidden ? 0 : 1
         }
     }
     
