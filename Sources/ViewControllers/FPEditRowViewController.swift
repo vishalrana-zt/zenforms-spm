@@ -49,6 +49,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         btnPrevious.currentView = self.navigationController?.view ?? self.view
         btnNext.currentView = self.navigationController?.view ?? self.view
         viewBottom.dropShadow()
+        initializeView()
         
     }
     override func viewWillAppear(_ animated: Bool) {

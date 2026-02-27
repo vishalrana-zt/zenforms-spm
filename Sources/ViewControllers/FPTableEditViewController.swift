@@ -347,12 +347,16 @@ class FPTableEditViewController: UIViewController {
                 nibName: "FPEditRowViewController",
                 bundle: ZenFormsBundle.bundle
             )
+            vc.title = "Edit Row"
             vc.tableIndexPath = tableIndexPath
-            vc.currentRowNo = selIndex.section
+            vc.currentRowNo = selIndex.section - 1
             vc.tableComponent = tableComponent
-            vc.modalPresentationStyle = .custom
-            vc.transitioningDelegate = cardTransitionDelegate
-            present(vc, animated: true)
+           
+            let nav = UINavigationController(rootViewController: vc)
+            nav.modalPresentationStyle = .custom
+            nav.transitioningDelegate = cardTransitionDelegate
+            nav.navigationBar.prefersLargeTitles = false
+            present(nav, animated: true)
         }
     }
     
