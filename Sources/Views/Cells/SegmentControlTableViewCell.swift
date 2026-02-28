@@ -32,7 +32,8 @@ class SegmentControlTableViewCell: UITableViewCell {
         super.prepareForReuse()
         self.segmentControl.isSelected = false
         self.segmentControl.tintColor = .black
-        self.segmentControl.selectedSegmentIndex = -1
+        self.segmentControl.selectedSegmentIndex = UISegmentedControl.noSegment
+//        self.segmentControl.isMomentary = true
     }
     
     private func setSegmentControl() {
