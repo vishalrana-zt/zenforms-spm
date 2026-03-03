@@ -515,7 +515,7 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
 
         var shouldShowAssetLink = false
         var shouldShowDuplicate = true
-        var shouldShowEditRow = arrSelectedRows.count == 1
+        let shouldShowEditRow = arrSelectedRows.count == 1 && isSortFilterApplied == false
 
         if isAssetEnabled,
            let isAssetTable = tableComponent?.tableOptions?.isAssetTable,
