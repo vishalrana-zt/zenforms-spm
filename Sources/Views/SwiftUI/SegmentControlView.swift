@@ -45,12 +45,15 @@ struct SegmentControlView: View {
             }
             .padding(stackInset)
             .contentShape(Rectangle())
+            .animation(.easeInOut(duration: 0.25), value: displayedIndex)
             .onTapGesture(coordinateSpace: .local) { location in
                 guard isEnabled, !titles.isEmpty, width > 0 else { return }
                 let segmentWidth = width / CGFloat(titles.count)
                 let rawIndex = Int(location.x / segmentWidth)
                 let index = min(max(rawIndex, 0), titles.count - 1)
-                displayedIndex = index
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    displayedIndex = index
+                }
                 onSelect(index)
             }
         }
@@ -61,7 +64,8 @@ struct SegmentControlView: View {
         )
         .allowsHitTesting(isEnabled)
         .onChange(of: selectedIndex) { newValue in
-            if newValue >= 0 && newValue < titles.count {
+            guard newValue >= 0 && newValue < titles.count else { return }
+            withAnimation(.easeInOut(duration: 0.25)) {
                 displayedIndex = newValue
             }
         }
