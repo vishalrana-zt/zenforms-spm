@@ -14,6 +14,7 @@ import Photos
 import PhotosUI
 internal import IQKeyboardManagerSwift
 import SwiftUI
+internal import ZTExpressionEngine
 
 
 
@@ -27,11 +28,16 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     @IBOutlet weak var lblCurrentRow: UILabel!
    
     var tableComponent:TableComponent?
-
     var currentRowNo:Int = 0
-  
     var tableIndexPath:IndexPath?
 
+    var attachmentIndex:IndexPath?
+    var attachmentColumnData: ColumnData?
+
+    var arrTblFormulas = [ColumnFormula]()
+    var isAutoCalculateEnabled: Bool = false
+
+    var didEditedRows:((_ tableComponent:TableComponent?)->())?
 
     fileprivate let fileManager = FileManager.default
         
@@ -88,8 +94,8 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
    
     
     func setupNavBar() {
-        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title:FPLocalizationHelper.localize("SAVE"), style:.plain, target: self, action: #selector(saveButtonAction))
-        self.navigationItem.leftBarButtonItem =  UIBarButtonItem(title: FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelButtonAction))
+        self.navigationItem.rightBarButtonItem = UIBarButtonItem(title:FPLocalizationHelper.localize("Done"), style:.plain, target: self, action: #selector(saveButtonAction))
+//        self.navigationItem.leftBarButtonItem =  UIBarButtonItem(title: FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelButtonAction))
        
     }
     
@@ -164,7 +170,9 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     @objc func saveButtonAction() {
         self.view.endEditing(true)
-        
+        self.navigationController?.dismiss(animated: true) {
+            self.didEditedRows?(self.tableComponent)
+        }
     }
     
     func stopLoadings(){
@@ -184,7 +192,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
 
 extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.tableComponent?.rows?[safe:currentRowNo]?.columns.count ?? 0
+        return self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN}).count ?? 0
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -196,9 +204,8 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
         
         cell.childTableIndex = indexPath
         cell.parentTableIndex = tableIndexPath
-        cell.data = self.tableComponent?.rows?[safe:currentRowNo]?.columns[safe: indexPath.row]
+        cell.data = self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN})[safe: indexPath.row]
         cell.delegate = self
-        
         return cell
     }
     
@@ -240,7 +247,23 @@ extension FPEditRowViewController:UITextFieldDelegate{
 extension FPEditRowViewController: FPEditRowCellDelegate{
    
     func updateData(at index:IndexPath, with data:ColumnData, filedData filed:FPFieldDetails?){
-        
+        if let tblCompnt = tableComponent, let _ = tableIndexPath{
+            if var row = tblCompnt.rows?[safe:index.section-1]{
+                if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
+                    row.columns[columnIndex] = data
+                    tblCompnt.rows?[index.section-1] = row
+                    tableComponent = tblCompnt
+                    if isAutoCalculateEnabled, data.isPartOfFormula == true, let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == row.sortUuid }){
+                        let autoCalRow = self.processAutoCalculationFor(row: row, with: data)
+                        self.tableComponent?.rows?.remove(at: indexOfRow)
+                        self.tableComponent?.rows?.insert(autoCalRow, at: indexOfRow)
+                    }
+                }
+            }
+            if isAutoCalculateEnabled, data.isPartOfFormula == true{
+                self.tblRows.reloadData()
+            }
+        }
     }
     
     func inferValue(_ value: String) -> Any {
@@ -255,21 +278,76 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     
     func showAddAttachment(at index:IndexPath,with data:ColumnData){
         self.view.endEditing(true)
-//        self.attachmentIndex = index
-//        self.attachmentColumnData = data
+        self.attachmentIndex = index
+        self.attachmentColumnData = data
         let attachmentView =  TableAttachementView.instance
         attachmentView.parentViewController = self
-        //attachmentView.delegate = self
+        attachmentView.delegate = self
         attachmentView.attachmentValue = data.value
         attachmentView.showAttachmentPicker()
     }
     
-    func showBarcodeScanner(at index:IndexPath,with data:ColumnData){
-        
+    func showBarcodeScanner(at index:IndexPath,with data:ColumnData){}
+    
+    func processAutoCalculationFor(row: Rows, with data:ColumnData) -> Rows{
+        var updatedRow = row
+        for formula in arrTblFormulas {
+            var orginalExpression = formula.expression ?? ""
+            var rawVars: [String: Any] = [:]
+            for column in updatedRow.columns {
+                if orginalExpression.range(of: "\\b\(column.key)\\b", options: .regularExpression) != nil {
+                    rawVars[column.key] = self.inferValue(column.value)
+                }
+            }
+            if let columnIndex = row.columns.firstIndex(where: {$0.key == formula.name}){
+                debugPrint("formula: \(orginalExpression)")
+                debugPrint("variables: \(rawVars)")
+                do {
+                    let value = try ZTExpressionEngine.evaluate(orginalExpression, variables: rawVars)
+                    debugPrint("result: \(value)")
+                    if let dbvalue = value as? Double{
+                        updatedRow.columns[columnIndex].value = dbvalue.formattedMax2Decimal()
+//                        updatedRow.columns[columnIndex].value = String(format: "%.2f", dbvalue)
+                    }else if let strVal = value as? String{
+                        updatedRow.columns[columnIndex].value = strVal
+                    }else{
+                        updatedRow.columns[columnIndex].value = "-"
+                    }
+                } catch {
+                    debugPrint(error)
+                }
+            }
+        }
+        return updatedRow
     }
     
 }
 
+//MARK: Attachment picker delegate
+extension FPEditRowViewController: AttachmentPickerDelegate{
+    func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
+        if let index = attachmentIndex,let data = attachmentColumnData{
+            let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: index, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
+            FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
+            let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
+            if let component  = tableComponent{
+                component.values = result?.valueArray ?? []
+                var row = component.rows![tableMedia.childTableIndex!.section-1]
+                if let columnIndex = row.columns.firstIndex(where: {$0.key == tableMedia.key}){
+                    var column  = row.columns[columnIndex]
+                    column.value = result?.columnValue ?? ""
+                    row.columns[columnIndex] = column
+                }
+                component.rows![tableMedia.childTableIndex!.section-1] = row
+                self.tableComponent = component
+                DispatchQueue.main.async {
+                    self.tblRows.reloadData()
+                }
+            }
+        }
+    }
+    
+}
 
 
 final class CardTransitioningDelegate: NSObject,
@@ -300,6 +378,7 @@ final class CardPresentationController: UIPresentationController {
 
         dimmingView.backgroundColor = UIColor.black.withAlphaComponent(0.4)
         dimmingView.alpha = 0
+        dimmingView.isUserInteractionEnabled = true
         dimmingView.addGestureRecognizer(
             UITapGestureRecognizer(target: self,
                                    action: #selector(dismissController))
@@ -307,7 +386,7 @@ final class CardPresentationController: UIPresentationController {
     }
 
     @objc private func dismissController() {
-        presentedViewController.dismiss(animated: true)
+        //presentedViewController.dismiss(animated: true)
     }
 
     override var frameOfPresentedViewInContainerView: CGRect {

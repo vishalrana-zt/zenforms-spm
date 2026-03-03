@@ -342,7 +342,6 @@ class FPTableEditViewController: UIViewController {
     }
     @IBAction func btnEditRowDidTap(_ sender: UIButton) {
         if let selIndex = self.arrSelectedIndexes.first{
-            debugPrint("btnEditRowDidTap")
             let vc = FPEditRowViewController(
                 nibName: "FPEditRowViewController",
                 bundle: ZenFormsBundle.bundle
@@ -351,7 +350,14 @@ class FPTableEditViewController: UIViewController {
             vc.tableIndexPath = tableIndexPath
             vc.currentRowNo = selIndex.section - 1
             vc.tableComponent = tableComponent
-           
+            vc.arrTblFormulas = arrTblFormulas
+            vc.isAutoCalculateEnabled = isAutoCalculateEnabled
+            vc.didEditedRows = { [weak self]  tableComponent in
+                DispatchQueue.main.async {
+                    self?.tableComponent = tableComponent
+                    self?.collectionView.reloadData()
+                }
+            }
             let nav = UINavigationController(rootViewController: vc)
             nav.modalPresentationStyle = .custom
             nav.transitioningDelegate = cardTransitionDelegate
@@ -636,7 +642,7 @@ extension FPTableEditViewController{
         }
         let rightBarButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(rightBarButtonTapped))
         menu.navigationItem.rightBarButtonItem = rightBarButton
-//        menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
+        menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
         if isSortFilterApplied == true, let index = arrAppliedFilters.firstIndex(where: { $0.indPath == sortFilterColumnIndexPath}), let appliedFilter  = arrAppliedFilters[safe: index]{
             let strSort = appliedFilter.option == .ascending ? FPLocalizationHelper.localize("lbl_Ascending"): FPLocalizationHelper.localize("lbl_Descending")
             menu.setSelectedItems(items: [strSort]) {  (_, _, _, _) in }
@@ -720,7 +726,7 @@ extension FPTableEditViewController{
             }
             let rightBarButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(rightBarButtonTapped))
             menu.navigationItem.rightBarButtonItem = rightBarButton
-//            menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
+            menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
             menu.tableView?.configureRSSelectionMenuTable()
             menu.setNavigationBar(title: FPLocalizationHelper.localize("lbl_Sort_Filter"), attributes: [NSAttributedString.Key.foregroundColor: isFromCoPILOT ? UIColor.white : UIColor.black], barTintColor: UIColor(named: "BT-Primary"), tintColor: isFromCoPILOT ? UIColor.white : UIColor.black)
             menu.onDismiss = { selectedItems in
