@@ -17,8 +17,20 @@ protocol FPEditRowCellDelegate: AnyObject {
     func showAddAttachment(at index:IndexPath,with data:ColumnData)
 }
 
+private enum CellInputMode {
+    case text
+    case number
+    case dropdown
+    case deficiency
+    case date
+    case time
+    case dateTime
+    case year
+    case attachment
+}
 
- class FPEditRowTableViewCell: UITableViewCell {
+
+class FPEditRowTableViewCell: UITableViewCell {
 
     // MARK: - IBOutlets
 
@@ -38,12 +50,14 @@ protocol FPEditRowCellDelegate: AnyObject {
     
     weak var delegate: FPEditRowCellDelegate?
      
-     var defaultDeficeincyOptions:[DropdownOptions]{
+    var defaultDeficeincyOptions:[DropdownOptions]{
          let yesOption = DropdownOptions(key:FPStringBoolIntValue.string(FPLocalizationHelper.localize("Yes")) , value: FPStringBoolIntValue.string(FPLocalizationHelper.localize("Yes")), label: FPStringBoolIntValue.string(FPLocalizationHelper.localize("Yes")))
          let noOption = DropdownOptions(key:FPStringBoolIntValue.string(FPLocalizationHelper.localize("No")) , value: FPStringBoolIntValue.string(FPLocalizationHelper.localize("No")), label: FPStringBoolIntValue.string(FPLocalizationHelper.localize("No")))
          let naOption = DropdownOptions(key:FPStringBoolIntValue.string("NA") , value: FPStringBoolIntValue.string("NA"), label: FPStringBoolIntValue.string("NA"))
          return [yesOption, noOption, naOption]
      }
+    
+    private var inputMode: CellInputMode = .text
 
     var data: ColumnData? {
         didSet {
@@ -119,6 +133,33 @@ protocol FPEditRowCellDelegate: AnyObject {
         tblTextView.isHidden = true
         tblDropdownField.isHidden = true
     }
+    
+    private func resolveMode(_ column: ColumnData) -> CellInputMode {
+
+        switch column.uiType {
+
+        case "ATTACHMENT":
+            return .attachment
+
+        case "DROPDOWN":
+            return .dropdown
+
+        case "DEFICIENCY":
+            return .deficiency
+
+        default:
+            break
+        }
+
+        switch column.dataType {
+        case "NUMBER": return .number
+        case "DATE": return .date
+        case "TIME": return .time
+        case "DATE_TIME": return .dateTime
+        case "YEAR": return .year
+        default: return .text
+        }
+    }
 
     // MARK: - Actions
 
@@ -139,96 +180,110 @@ private extension FPEditRowTableViewCell {
         self.tblTextView.isUserInteractionEnabled = !(column.readonly ?? false)
         self.tblTextField.isUserInteractionEnabled = !(column.readonly ?? false)
         self.tblDropdownField.isUserInteractionEnabled = !(column.readonly ?? false)
-        self.lblColumnName.text = column.key.handleAndDisplayApostrophe() ?? ""
-
+        self.lblColumnName.text = column.key.handleAndDisplayApostrophe()
         self.tblDropdownField.isHidden = true
-        if column.uiType == "DEFICIENCY" || column.uiType == "DROPDOWN"{
-            self.generateDynamically = column.generateDynamically ?? false
-            self.isUITypeDeficiency = column.uiType == "DEFICIENCY"
-            self.btnAddAttachment.isHidden = true
-            self.tblTextView.isHidden = true
-            self.tblTextField.isHidden = true
-            self.tblDropdownField.isHidden = false
-            let displayValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: column.value, isForLocal: false) ?? column.value
-            self.tblDropdownField.text = displayValue
-            self.tblDropdownField.checkMarkEnabled = false
-            self.tblDropdownField.isSearchEnable = (column.uiType == "DROPDOWN")
-            self.tblDropdownField.itemsColor = .black
-            self.tblDropdownField.rowHeight = 40
-            self.tblDropdownField.selectedRowColor = #colorLiteral(red: 0.9411764706, green: 0.937254902, blue: 0.9647058824, alpha: 1)
-            self.tblDropdownField.arrowSize = 15
-            self.setTextFieldByType(column)
-        }else if(column.uiType == "ATTACHMENT"){
-            self.btnAddAttachment.isHidden = false
-            self.tblTextView.isHidden = true
-            self.tblTextField.isHidden = true
-            let dataObject = column.value.getDictonary()
-            if(!dataObject.isEmpty){
-                if let files =  dataObject["files"] as? [[String:Any]],!files.isEmpty{
+        
+        inputMode = resolveMode(column)
+
+        switch inputMode {
+
+        case .dropdown, .deficiency:
+            configureDropdown(column)
+
+        case .attachment:
+            configureAttachment(column)
+
+        default:
+            configureTextInput(column)
+        }
+    }
+    
+    private func configureDropdown(_ column: ColumnData) {
+        self.generateDynamically = column.generateDynamically ?? false
+        self.isUITypeDeficiency = column.uiType == "DEFICIENCY"
+        self.btnAddAttachment.isHidden = true
+        self.tblTextView.isHidden = true
+        self.tblTextField.isHidden = true
+        self.tblDropdownField.isHidden = false
+        let displayValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: column.value, isForLocal: false) ?? column.value
+        self.tblDropdownField.text = displayValue
+        self.tblDropdownField.checkMarkEnabled = false
+        self.tblDropdownField.isSearchEnable = (column.uiType == "DROPDOWN")
+        self.tblDropdownField.itemsColor = .black
+        self.tblDropdownField.rowHeight = 40
+        self.tblDropdownField.selectedRowColor = #colorLiteral(red: 0.9411764706, green: 0.937254902, blue: 0.9647058824, alpha: 1)
+        self.tblDropdownField.arrowSize = 15
+        self.setTextFieldByType(column)
+    }
+    
+    
+    private func configureAttachment(_ column: ColumnData) {
+        self.btnAddAttachment.isHidden = false
+        self.tblTextView.isHidden = true
+        self.tblTextField.isHidden = true
+        let dataObject = column.value.getDictonary()
+        if(!dataObject.isEmpty){
+            if let files =  dataObject["files"] as? [[String:Any]],!files.isEmpty{
+                self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_View"), for: .normal)
+            }else{
+                if let files =  dataObject["filesToUpload"] as? [[String:Any]],!files.isEmpty{
+                    var mediasAdded:[SSMedia] = []
+                    files.forEach { file in
+                        if((FPFormDataHolder.shared.tableMediaCache.first(where: {$0.mediaAdded.contains(where: {$0.name == file["altText"] as? String ?? "" })})) == nil){
+                            
+                            let mediaAdded = SSMedia(name:file["altText"] as? String ?? "",mimeType:file["type"] as? String ?? "",filePath: file["localPath"] as? String ?? "", moduleType: .forms)
+                            mediasAdded.append(mediaAdded)
+                        }
+                    }
+                    if mediasAdded.count>0{
+                        if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: {$0.parentTableIndex == parentTableIndex && $0.childTableIndex == childTableIndex}){
+                            var tableMedia = FPFormDataHolder.shared.tableMediaCache[mediaIndex]
+                            tableMedia.mediaAdded = mediasAdded
+                            FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
+                            
+                        }else{
+                            let tableMedia = TableMedia(columnIndex:childTableIndex!.row-2,key:column.key,parentTableIndex: parentTableIndex,childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [])
+                            FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
+                        }
+                    }
+                    
                     self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_View"), for: .normal)
                 }else{
-                    if let files =  dataObject["filesToUpload"] as? [[String:Any]],!files.isEmpty{
-                        var mediasAdded:[SSMedia] = []
-                        files.forEach { file in
-                            if((FPFormDataHolder.shared.tableMediaCache.first(where: {$0.mediaAdded.contains(where: {$0.name == file["altText"] as? String ?? "" })})) == nil){
-                                
-                                let mediaAdded = SSMedia(name:file["altText"] as? String ?? "",mimeType:file["type"] as? String ?? "",filePath: file["localPath"] as? String ?? "", moduleType: .forms)
-                                mediasAdded.append(mediaAdded)
-                            }
-                        }
-                        if mediasAdded.count>0{
-                            if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: {$0.parentTableIndex == parentTableIndex && $0.childTableIndex == childTableIndex}){
-                                var tableMedia = FPFormDataHolder.shared.tableMediaCache[mediaIndex]
-                                tableMedia.mediaAdded = mediasAdded
-                                FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
-                                
-                            }else{
-                                let tableMedia = TableMedia(columnIndex:childTableIndex!.row-2,key:column.key,parentTableIndex: parentTableIndex,childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [])
-                                FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
-                            }
-                        }
-                        
-                        self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_View"), for: .normal)
-                    }else{
-                        self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_Add"), for: .normal)
-                    }
+                    self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_Add"), for: .normal)
                 }
-            }else{
-                self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_Add"), for: .normal)
             }
-            
         }else{
-            self.btnAddAttachment.isHidden = true
-            self.tblTextView.isHidden = true
-            self.tblTextField.isHidden = true
-            self.tblDropdownField.isHidden = true
-            self.tblTextField.delegate = self
-            self.tblTextView.delegate = self
-            self.tblTextField.clearDropdownView()
-            if column.dataType == "DATE" || column.dataType == "TIME" || column.dataType == "DATE_TIME" || column.dataType == "YEAR"{
-                self.tblTextField.isHidden = false
-                self.tblTextField.text = ""
-                if !column.value.trim.isEmpty{
-                    if let date = FPUtility.getOPDateFrom(column.value) {
-                        self.tblTextField.text = self.formateDateAccordingToMode(date: date)
-                    }else if let fixedDate = fixDateFormat(column.value) {
-                        self.tblTextField.text = self.formateDateAccordingToMode(date: fixedDate)
-                    }else{}
-                }
-            }else{
-                self.tblTextView.isHidden = false
-                let displayValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: column.value, isForLocal: false) ?? column.value
-                self.tblTextView.text = displayValue
-            }
+            self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_Add"), for: .normal)
         }
-        self.tblTextView.tag = childTableIndex!.row-2
-        self.tblTextField.tag = childTableIndex!.row-2
-        self.btnAddAttachment.tag = childTableIndex!.row-2
     }
+    
+    private func configureTextInput(_ column: ColumnData) {
+        self.btnAddAttachment.isHidden = true
+        self.tblTextView.isHidden = true
+        self.tblTextField.isHidden = true
+        self.tblDropdownField.isHidden = true
+        self.tblTextField.delegate = self
+        self.tblTextView.delegate = self
+        self.tblTextField.clearDropdownView()
+        if column.dataType == "DATE" || column.dataType == "TIME" || column.dataType == "DATE_TIME" || column.dataType == "YEAR"{
+            self.tblTextField.isHidden = false
+            self.tblTextField.text = ""
+            if !column.value.trim.isEmpty{
+                if let date = FPUtility.getOPDateFrom(column.value) {
+                    self.tblTextField.text = self.formateDateAccordingToMode(date: date)
+                }else if let fixedDate = fixDateFormat(column.value) {
+                    self.tblTextField.text = self.formateDateAccordingToMode(date: fixedDate)
+                }else{}
+            }
+        }else{
+            self.tblTextView.isHidden = false
+            let displayValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: column.value, isForLocal: false) ?? column.value
+            self.tblTextView.text = displayValue
+        }
+    }
+    
     func setTextFieldByType(_ rowData: ColumnData) {
-        //        self.tblTextView.disablePaste()
         self.tblTextView.tintColor = UIColor.blue
-        
         switch rowData.uiType {
         case "DROPDOWN","DEFICIENCY":
             self.tblTextField.isHidden = true
@@ -415,15 +470,21 @@ private extension FPEditRowTableViewCell {
 
 
 extension FPEditRowTableViewCell: UITextFieldDelegate {
+    
     func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
-        self.setTextFieldByType(self.data!)
-        if self.data?.dataType == "DATE" || self.data?.dataType == "TIME" || self.data?.dataType == "DATE_TIME" || self.data?.dataType == "YEAR"{
-            if let value = textField.text, value.trim.isEmpty{
-                self.data?.value =  FPUtility.getStringWithTZFormat(Date())
+        if self.data?.dataType == "DATE" ||
+           self.data?.dataType == "TIME" ||
+           self.data?.dataType == "DATE_TIME" ||
+           self.data?.dataType == "YEAR" {
+
+            if textField.text?.trim.isEmpty ?? true {
+                self.data?.value = FPUtility.getStringWithTZFormat(Date())
             }
         }
         return true
     }
+    
+
     func textFieldDidEndEditing(_ textField: UITextField) {
         if textField.text?.trim.isEmpty ?? false, self.data?.dataType == "DATE" || self.data?.dataType == "TIME" || self.data?.dataType == "DATE_TIME" || self.data?.dataType == "YEAR"{
             self.data?.value = ""
@@ -436,8 +497,8 @@ extension FPEditRowTableViewCell: UITextViewDelegate {
     func textViewDidEndEditing(_ textView: UITextView) {
         self.saveText(text: textView.text ?? "")
     }
+    
     func textViewShouldBeginEditing(_ textView: UITextView) -> Bool {
-        self.setTextFieldByType(self.data!)
         return true
     }
     

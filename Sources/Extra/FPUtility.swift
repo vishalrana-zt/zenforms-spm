@@ -18,7 +18,7 @@ let invalidJson = "Not a valid JSON"
 class FPUtility : NSObject{
     
     class func getSupportedDocumentTypesForFileUpload() -> [String]{
-       // return SSMediaManager.shared.getSupportedDocumentTypesForFileUpload()
+        // return SSMediaManager.shared.getSupportedDocumentTypesForFileUpload()
         return ["org.openxmlformats.wordprocessingml.document",
                 "com.microsoft.powerpoint.​ppt",
                 "com.microsoft.powerpoint.​pptx",
@@ -38,22 +38,22 @@ class FPUtility : NSObject{
                 "org.oasis-open.opendocument.text",
                 "org.oasis-open.opendocument.presentation",
                 "org.oasis-open.opendocument.spreadsheet",
-                 "public.movie",
-                 "public.video",
-                 "com.apple.quicktime-movie",
-                 "public.avi",
-                 "public.mpeg",
-                 "public.mpeg-4",
-                 "public.3gpp",
-                 "public.3gpp2"]
-
+                "public.movie",
+                "public.video",
+                "com.apple.quicktime-movie",
+                "public.avi",
+                "public.mpeg",
+                "public.mpeg-4",
+                "public.3gpp",
+                "public.3gpp2"]
+        
     }
-
+    
     static func getAppVersion() -> String {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
     
-     static func getDateStringWithBySubtractingTimeInterval(sec:Int, from stringUTCDate: String) -> String {
+    static func getDateStringWithBySubtractingTimeInterval(sec:Int, from stringUTCDate: String) -> String {
         let date = FPUtility.getDateFrom(stringUTCDate)
         let calendar = Calendar.current
         let newdate = calendar.date(byAdding: .second, value: -5, to: date) ?? Date()
@@ -348,11 +348,11 @@ extension FPUtility {
     
     class func errorAlertController(title:String?, message:String?) -> UIAlertController {
         let alert = FPUtility.createAlertController(title: title,
-                                                  andMessage:message,
-                                                  withPositiveAction:FPLocalizationHelper.localize("OK"),
-                                                  andHandler:nil,
-                                                  withNegativeAction:nil,
-                                                  andHandler:nil)
+                                                    andMessage:message,
+                                                    withPositiveAction:FPLocalizationHelper.localize("OK"),
+                                                    andHandler:nil,
+                                                    withNegativeAction:nil,
+                                                    andHandler:nil)
         return alert
     }
     
@@ -392,10 +392,10 @@ extension FPUtility {
     class func showAlertController(title:String?, message:String?, parentVC:UIViewController?, completion: (()->Void)?) -> UIAlertController {
         
         let alert = FPUtility.createAlertController(title: title,
-                                                  andMessage:message, withPositiveAction:FPLocalizationHelper.localize("OK"),
-                                                  andHandler:nil,
-                                                  withNegativeAction:nil,
-                                                  andHandler:nil)
+                                                    andMessage:message, withPositiveAction:FPLocalizationHelper.localize("OK"),
+                                                    andHandler:nil,
+                                                    withNegativeAction:nil,
+                                                    andHandler:nil)
         if (parentVC != nil) {
             DispatchQueue.main.async {
                 parentVC?.present(alert, animated:true, completion:completion)
@@ -411,11 +411,11 @@ extension FPUtility {
     
     class func showAlertControllerWithoutActionWithTitle(title:String?, message:String?, completion: (()->Void)?) -> UIAlertController {
         let alert = FPUtility.createAlertController(title: title,
-                                                  andMessage:message,
-                                                  withPositiveAction:nil,
-                                                  andHandler:nil,
-                                                  withNegativeAction:nil,
-                                                  andHandler:nil)
+                                                    andMessage:message,
+                                                    withPositiveAction:nil,
+                                                    andHandler:nil,
+                                                    withNegativeAction:nil,
+                                                    andHandler:nil)
         self.topViewController()?.present(alert, animated:true, completion:completion)
         return alert
     }
@@ -476,7 +476,7 @@ extension FPUtility {
         hud.removeFromSuperViewOnHide = true
         return hud
     }
-   
+    
     
     class func hideHUD() {
         DispatchQueue.main.async {
@@ -515,7 +515,7 @@ extension FPUtility {
     class func getJsonFromData(data: Data) -> ([String:Any]?, Error?) {
         do {
             let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String : Any]
-           return (json, nil)
+            return (json, nil)
         } catch {
             return (nil, error)
         }
@@ -619,12 +619,12 @@ extension String {
     func handleAndDisplayApostrophe() -> String {
         if self.contains("''") {
             return self.replacingOccurrences(of: "''", with:"'")
-
+            
         }else {
             return self
         }
     }
-
+    
     var trim: String {
         return self.trimmingCharacters(in: NSCharacterSet.whitespaces)
     }
@@ -882,7 +882,7 @@ extension Date {
 }
 
 
- extension UITextField {
+extension UITextField {
     
     private struct Holder {
         static var _myComputedProperty = [String:Bool]()
@@ -905,17 +905,24 @@ extension Date {
             Holder._cutComputedProperty[Unmanaged<AnyObject>.passUnretained(self as AnyObject).toOpaque().debugDescription] = newValue
         }
     }
+    
     override open func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        if  action == #selector(copy(_:)) ||
-                action == #selector(select(_:)) ||
-                action == #selector(selectAll(_:)) {
-            return super.canPerformAction(action, withSender: sender)
+        
+        // Always ask UIKit first
+        let allowedBySystem = super.canPerformAction(action, withSender: sender)
+        
+        // Control paste
+        if action == #selector(paste(_:)) {
+            return doesPastingAllowed && allowedBySystem
         }
-        if self.doesPastingAllowed && action == #selector(paste(_:)) ||
-            (self.doesCutAllowed && action == #selector(cut(_:))) {
-            return super.canPerformAction(action, withSender: sender)
+        
+        // Control cut
+        if action == #selector(cut(_:)) {
+            return doesCutAllowed && allowedBySystem
         }
-        return false
+        
+        // IMPORTANT: allow all other system actions
+        return allowedBySystem
     }
     
     func disablePaste() {
@@ -945,28 +952,28 @@ extension Date {
         self.rightViewMode = .never
     }
     
-     func addCalendarIconRightView() {
-         let rightView = UIView(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
-         let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 20, height: 20))
-         imageView.image = UIImage(systemName: "calendar")
-         imageView.tintColor = .black
-         imageView.center.y  =  rightView.frame.size.height / 2.0
-         rightView.addSubview(imageView)
-         self.rightView = rightView
-         self.rightViewMode = .always
-     }
-     
+    func addCalendarIconRightView() {
+        let rightView = UIView(frame: CGRect(x: 0, y: 0, width: 30, height: 30))
+        let imageView = UIImageView(frame: CGRect(x: 0, y: 0, width: 20, height: 20))
+        imageView.image = UIImage(systemName: "calendar")
+        imageView.tintColor = .black
+        imageView.center.y  =  rightView.frame.size.height / 2.0
+        rightView.addSubview(imageView)
+        self.rightView = rightView
+        self.rightViewMode = .always
+    }
+    
 }
 
 
 extension UITextView {
-
+    
     private struct Holder {
         static var _myComputedProperty = [String:Bool]()
         static var _cutComputedProperty = [String:Bool]()
-
+        
     }
-
+    
     private var doesPastingAllowed: Bool {
         get {
             return Holder._myComputedProperty[Unmanaged<AnyObject>.passUnretained(self as AnyObject).toOpaque().debugDescription] ?? true
@@ -975,7 +982,7 @@ extension UITextView {
             Holder._myComputedProperty[Unmanaged<AnyObject>.passUnretained(self as AnyObject).toOpaque().debugDescription] = newValue
         }
     }
-
+    
     private var doesCutAllowed: Bool {
         get {
             return Holder._cutComputedProperty[Unmanaged<AnyObject>.passUnretained(self as AnyObject).toOpaque().debugDescription] ?? true
@@ -984,20 +991,26 @@ extension UITextView {
             Holder._cutComputedProperty[Unmanaged<AnyObject>.passUnretained(self as AnyObject).toOpaque().debugDescription] = newValue
         }
     }
-
+    
     override open func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        if action == #selector(copy(_:)) ||
-            action == #selector(select(_:)) ||
-            action == #selector(selectAll(_:)) {
-                return super.canPerformAction(action, withSender: sender)
-        }
-        if (self.doesPastingAllowed && action == #selector(paste(_:))) ||
-            (self.doesCutAllowed && action == #selector(cut(_:))) {
-            return super.canPerformAction(action, withSender: sender)
-        }
-        return false
-    }
 
+        // Ask UIKit first
+        let allowedBySystem = super.canPerformAction(action, withSender: sender)
+
+        // Control paste
+        if action == #selector(paste(_:)) {
+            return doesPastingAllowed && allowedBySystem
+        }
+
+        // Control cut
+        if action == #selector(cut(_:)) {
+            return doesCutAllowed && allowedBySystem
+        }
+
+        // Allow all other system actions
+        return allowedBySystem
+    }
+    
     @objc func disablePaste() {
         self.doesPastingAllowed = false
     }
@@ -1028,7 +1041,7 @@ extension UITextView {
         self.disableCut()
         self.disablePaste()
     }
-   
+    
 }
 
 
@@ -1074,7 +1087,7 @@ extension UserDefaults{
             self.standard.synchronize()
         }
     }
-                
+    
     class var libCurrentLanguage : String {
         get{
             return self.standard.value(forKey: "selected-language") as? String ?? Bundle.main.preferredLocalizations.first ?? "en"
@@ -1100,7 +1113,7 @@ extension UserDefaults{
 
 extension DispatchQueue {
     
-   static func background(delay: Double = 0.0, background: (()->Void)? = nil, completion: (() -> Void)? = nil) {
+    static func background(delay: Double = 0.0, background: (()->Void)? = nil, completion: (() -> Void)? = nil) {
         DispatchQueue.global(qos: .background).async {
             background?()
             if let completion = completion {
@@ -1114,7 +1127,7 @@ extension DispatchQueue {
 }
 
 extension UIView {
-
+    
     func dropShadow() {
         layer.shadowOpacity = 0.5
         layer.shadowOffset = CGSize(width: 1.0, height: 1.0)
@@ -1179,7 +1192,7 @@ extension TimeZone {
         localTimeZoneFormatter.dateFormat = "Z"
         return localTimeZoneFormatter.string(from: Date())
     }
-
+    
 }
 
 extension Dictionary where Key == String  {
@@ -1194,7 +1207,7 @@ extension Dictionary where Key == String  {
             return ((self["exception"] as? [String: Any])?["error"] as? [String: Any])?["description"] as? String
         }
     }
-
+    
 }
 
 private var datePickerKey: UInt8 = 0
@@ -1228,7 +1241,7 @@ extension UITextField {
         
         self.inputView = datePicker
         self.datePicker = datePicker
-
+        
         //Add Tool Bar as input AccessoryView
         let toolBar = UIToolbar(frame: CGRect(x: 0, y: 0, width: screenWidth, height: 44))
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
