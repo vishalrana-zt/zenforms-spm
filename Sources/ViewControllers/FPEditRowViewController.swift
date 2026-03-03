@@ -245,7 +245,7 @@ extension FPEditRowViewController:UITextFieldDelegate{
         let number = Int(textField.text ?? "") ?? 0
         if number <= (self.tableComponent?.rows?.count ?? 0){
             DispatchQueue.main.async{
-                _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: "Do you want to move to row no: \(number)", completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
+                _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: "Do you want to move to row no: \(number) ?", completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
                     self.currentRowNo = number - 1
                     self.handleSectionControlUI()
                 }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
