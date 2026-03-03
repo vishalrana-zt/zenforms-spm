@@ -446,7 +446,7 @@ extension FPEditRowTableViewCell: UITextViewDelegate {
             if let indexPath = childTableIndex,
                let collectionView = self.superview as? UICollectionView {
                 let nextIndexPath = IndexPath(item: indexPath.item + 1, section: indexPath.section)
-                if let nextCell = collectionView.cellForItem(at: nextIndexPath) as? TableContentCollectionViewCell {
+                if let nextCell = collectionView.cellForItem(at: nextIndexPath) as? FPEditRowTableViewCell {
                     nextCell.tblTextView.becomeFirstResponder()
                     return false
                 }

@@ -248,10 +248,10 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
    
     func updateData(at index:IndexPath, with data:ColumnData, filedData filed:FPFieldDetails?){
         if let tblCompnt = tableComponent, let _ = tableIndexPath{
-            if var row = tblCompnt.rows?[safe:index.section-1]{
+            if var row = tblCompnt.rows?[safe:index.row]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
                     row.columns[columnIndex] = data
-                    tblCompnt.rows?[index.section-1] = row
+                    tblCompnt.rows?[index.row] = row
                     tableComponent = tblCompnt
                     if isAutoCalculateEnabled, data.isPartOfFormula == true, let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == row.sortUuid }){
                         let autoCalRow = self.processAutoCalculationFor(row: row, with: data)
@@ -307,7 +307,6 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
                     debugPrint("result: \(value)")
                     if let dbvalue = value as? Double{
                         updatedRow.columns[columnIndex].value = dbvalue.formattedMax2Decimal()
-//                        updatedRow.columns[columnIndex].value = String(format: "%.2f", dbvalue)
                     }else if let strVal = value as? String{
                         updatedRow.columns[columnIndex].value = strVal
                     }else{
@@ -332,13 +331,13 @@ extension FPEditRowViewController: AttachmentPickerDelegate{
             let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
             if let component  = tableComponent{
                 component.values = result?.valueArray ?? []
-                var row = component.rows![tableMedia.childTableIndex!.section-1]
+                var row = component.rows![tableMedia.childTableIndex!.row]
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == tableMedia.key}){
                     var column  = row.columns[columnIndex]
                     column.value = result?.columnValue ?? ""
                     row.columns[columnIndex] = column
                 }
-                component.rows![tableMedia.childTableIndex!.section-1] = row
+                component.rows![tableMedia.childTableIndex!.row] = row
                 self.tableComponent = component
                 DispatchQueue.main.async {
                     self.tblRows.reloadData()
