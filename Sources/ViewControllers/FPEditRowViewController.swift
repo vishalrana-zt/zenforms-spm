@@ -51,11 +51,6 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
-        btnPrevious.currentView = self.navigationController?.view ?? self.view
-        btnNext.currentView = self.navigationController?.view ?? self.view
-        reflectCurrentRowOnUI()
-        viewBottom.dropShadow()
         initializeView()
     }
     override func viewWillAppear(_ animated: Bool) {
@@ -77,7 +72,15 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     
     func initializeView() {
+        view.backgroundColor = .systemBackground
+        txtRow.keyboardType = .numberPad
         txtRow.delegate = self
+        
+        btnPrevious.currentView = self.navigationController?.view ?? self.view
+        btnNext.currentView = self.navigationController?.view ?? self.view
+        
+        reflectCurrentRowOnUI()
+        viewBottom.dropShadow()
         setUpTableView()
         handleSectionControlUI()
     }
@@ -235,9 +238,23 @@ extension FPEditRowViewController:UITextFieldDelegate{
             let characterSet = CharacterSet(charactersIn: string)
             return allowedCharacters.isSuperset(of: characterSet)
         }
-
-        // Allow normal typing for other textfields
         return true
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        let number = Int(textField.text ?? "") ?? 0
+        if number <= (self.tableComponent?.rows?.count ?? 0) - 1{
+            DispatchQueue.main.async{
+                _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: "Do you want to move to row no: \(number)", completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
+                    self.currentRowNo = number - 1
+                    self.handleSectionControlUI()
+                    
+                }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
+            }
+        }else{
+            _  = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: "The Row number \(number) is not present in the table.", completion: nil)
+        }
+       
     }
 }
 
