@@ -497,17 +497,7 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             self.linkAsset(at: index, parentTableIndex: tableIndexPath)
         }
     }
-    
-    func xrefreshActionButtons(){
-        stkOptions.isHidden = self.arrSelectedRows.count == 0
-        btnAssetLink.isHidden = true
-        btnEditRow.isHidden = self.arrSelectedRows.count > 1
-        btnDuplicate.isHidden = false
-        if isAssetEnabled, let isAssetTable = self.tableComponent?.tableOptions?.isAssetTable, isAssetTable{
-            btnAssetLink.isHidden  = self.arrSelectedRows.count > 1
-            btnDuplicate.isHidden = true
-        }
-    }
+
     
     func refreshActionButtons(animated: Bool = true) {
 
