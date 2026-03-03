@@ -243,15 +243,15 @@ extension FPEditRowViewController:UITextFieldDelegate{
     
     func textFieldDidEndEditing(_ textField: UITextField) {
         let number = Int(textField.text ?? "") ?? 0
-        if number <= (self.tableComponent?.rows?.count ?? 0) - 1{
+        if number <= (self.tableComponent?.rows?.count ?? 0){
             DispatchQueue.main.async{
                 _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: "Do you want to move to row no: \(number)", completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
                     self.currentRowNo = number - 1
                     self.handleSectionControlUI()
-                    
                 }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
             }
         }else{
+            self.reflectCurrentRowOnUI()
             _  = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: "The Row number \(number) is not present in the table.", completion: nil)
         }
        
