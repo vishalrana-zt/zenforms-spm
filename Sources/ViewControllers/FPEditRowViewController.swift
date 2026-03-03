@@ -245,13 +245,12 @@ extension FPEditRowViewController:UITextFieldDelegate{
 //MARK: FPEditRowCellDelegate
 
 extension FPEditRowViewController: FPEditRowCellDelegate{
-   
-    func updateData(at index:IndexPath, with data:ColumnData, filedData filed:FPFieldDetails?){
+    func updateRow(at rowIndex: Int, with data: ColumnData) {
         if let tblCompnt = tableComponent, let _ = tableIndexPath{
-            if var row = tblCompnt.rows?[safe:index.row]{
+            if var row = tblCompnt.rows?[safe:rowIndex]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
                     row.columns[columnIndex] = data
-                    tblCompnt.rows?[index.row] = row
+                    tblCompnt.rows?[rowIndex] = row
                     tableComponent = tblCompnt
                     if isAutoCalculateEnabled, data.isPartOfFormula == true, let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == row.sortUuid }){
                         let autoCalRow = self.processAutoCalculationFor(row: row, with: data)
@@ -276,7 +275,7 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     }
     
     
-    func showAddAttachment(at index:IndexPath,with data:ColumnData){
+    func showRowAttachment(at index:IndexPath,with data:ColumnData){
         self.view.endEditing(true)
         self.attachmentIndex = index
         self.attachmentColumnData = data

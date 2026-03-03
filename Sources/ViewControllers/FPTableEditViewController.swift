@@ -362,7 +362,9 @@ class FPTableEditViewController: UIViewController {
             nav.modalPresentationStyle = .custom
             nav.transitioningDelegate = cardTransitionDelegate
             nav.navigationBar.prefersLargeTitles = false
-            present(nav, animated: true)
+            present(nav, animated: true){
+                self.resetMultipleSeletion()
+            }
         }
     }
     

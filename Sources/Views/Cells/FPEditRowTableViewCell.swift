@@ -13,8 +13,8 @@ internal import IQKeyboardManagerSwift
 // MARK: - Cell
 
 protocol FPEditRowCellDelegate: AnyObject {
-    func updateData(at index:IndexPath, with data:ColumnData, filedData filed:FPFieldDetails?)
-    func showAddAttachment(at index:IndexPath,with data:ColumnData)
+    func updateRow(at rowIndex:Int, with data:ColumnData)
+    func showRowAttachment(at index:IndexPath,with data:ColumnData)
 }
 
 private enum CellInputMode {
@@ -169,7 +169,7 @@ class FPEditRowTableViewCell: UITableViewCell {
 
     @IBAction func didTapAddAttachments(_ sender: Any) {
         guard let childTableIndex, let data else { return }
-        delegate?.showAddAttachment(at: childTableIndex, with: data)
+        delegate?.showRowAttachment(at: childTableIndex, with: data)
     }
 }
 
@@ -212,7 +212,7 @@ private extension FPEditRowTableViewCell {
         self.tblDropdownField.itemsColor = .black
         self.tblDropdownField.rowHeight = 40
         self.tblDropdownField.selectedRowColor = #colorLiteral(red: 0.9411764706, green: 0.937254902, blue: 0.9647058824, alpha: 1)
-        self.tblDropdownField.arrowSize = 15
+        self.tblDropdownField.arrowSize = 16
         self.setTextFieldByType(column)
     }
     
@@ -280,6 +280,7 @@ private extension FPEditRowTableViewCell {
             let displayValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: column.value, isForLocal: false) ?? column.value
             self.tblTextView.text = displayValue
         }
+        self.setTextFieldByType(column)
     }
     
     func setTextFieldByType(_ rowData: ColumnData) {
@@ -320,10 +321,10 @@ private extension FPEditRowTableViewCell {
                 DispatchQueue.main.async {
                     self.tblDropdownField.hideList()
                 }
-                if var columnData = self.data{
+                if var columnData = self.data, let rowIndex = self.childTableIndex?.row{
                     let dbValue = selectedText.handleAndDisplayApostrophe()
                     columnData.value = dbValue
-                    self.delegate?.updateData(at: self.childTableIndex!, with: columnData, filedData: nil)
+                    self.delegate?.updateRow(at: rowIndex, with: columnData)
                 }
             }
         default:
@@ -360,9 +361,7 @@ private extension FPEditRowTableViewCell {
             }else if rowData.dataType == "DATE_TIME"{
                 datePicker.datePickerMode = .dateAndTime
             }else{}
-            if #available(iOS 13.4, *) {
-                datePicker.preferredDatePickerStyle = .wheels
-            }
+            datePicker.preferredDatePickerStyle = .wheels
             if !rowData.value.trim.isEmpty, let date = FPUtility.getOPDateFrom(rowData.value) {
                 self.tblTextField.text = self.formateDateAccordingToMode(date: date)
             }else if let fixedDate = fixDateFormat(rowData.value) {
@@ -433,14 +432,14 @@ private extension FPEditRowTableViewCell {
     }
     
     func saveText(text:String){
-        if var columnData = data{
+        if var columnData = self.data, let rowIndex = self.childTableIndex?.row{
             var tblValue = text
             if !text.trim.isEmpty, data?.dataType == "DATE" || data?.dataType == "TIME" || data?.dataType == "DATE_TIME" || data?.dataType == "YEAR"{
                 tblValue = columnData.value
             }
             let dbValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: tblValue, isForLocal: true) ?? text
             columnData.value = dbValue
-            delegate?.updateData(at: childTableIndex!, with: columnData, filedData: nil)
+            delegate?.updateRow(at: rowIndex, with: columnData)
         }
     }
     
@@ -501,19 +500,4 @@ extension FPEditRowTableViewCell: UITextViewDelegate {
     func textViewShouldBeginEditing(_ textView: UITextView) -> Bool {
         return true
     }
-    
-    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
-        if text == "\t" {
-            if let indexPath = childTableIndex,
-               let collectionView = self.superview as? UICollectionView {
-                let nextIndexPath = IndexPath(item: indexPath.item + 1, section: indexPath.section)
-                if let nextCell = collectionView.cellForItem(at: nextIndexPath) as? FPEditRowTableViewCell {
-                    nextCell.tblTextView.becomeFirstResponder()
-                    return false
-                }
-            }
-        }
-        return true
-    }
-
 }
