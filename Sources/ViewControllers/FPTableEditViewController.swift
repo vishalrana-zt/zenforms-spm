@@ -490,6 +490,9 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             if let selectedRow = selectedRow{
                 self.arrSelectedRows.append(selectedRow)
             }
+            
+            let indexPath = IndexPath(item: 1, section: sectionIndex-1)
+            self.arrSelectedIndexes.append(indexPath)
         }
         if self.arrSelectedRows.count == 1{
             (0..<collectionView.numberOfItems(inSection: 1)).indices.forEach { rowIndex in
