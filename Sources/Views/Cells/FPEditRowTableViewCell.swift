@@ -13,7 +13,7 @@ internal import IQKeyboardManagerSwift
 // MARK: - Cell
 
 protocol FPEditRowCellDelegate: AnyObject {
-    func updateRow(at rowIndex:Int, with data:ColumnData)
+    func updateRow(with data:ColumnData)
     func showRowAttachment(at index:IndexPath,with data:ColumnData)
 }
 
@@ -242,7 +242,7 @@ private extension FPEditRowTableViewCell {
                             FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                             
                         }else{
-                            let tableMedia = TableMedia(columnIndex:childTableIndex!.row-2,key:column.key,parentTableIndex: parentTableIndex,childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [])
+                            let tableMedia = TableMedia(columnIndex:childTableIndex!.row,key:column.key,parentTableIndex: parentTableIndex,childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [])
                             FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                         }
                     }
@@ -321,10 +321,10 @@ private extension FPEditRowTableViewCell {
                 DispatchQueue.main.async {
                     self.tblDropdownField.hideList()
                 }
-                if var columnData = self.data, let rowIndex = self.childTableIndex?.row{
+                if var columnData = self.data{
                     let dbValue = selectedText.handleAndDisplayApostrophe()
                     columnData.value = dbValue
-                    self.delegate?.updateRow(at: rowIndex, with: columnData)
+                    self.delegate?.updateRow(with: columnData)
                 }
             }
         default:
@@ -432,14 +432,14 @@ private extension FPEditRowTableViewCell {
     }
     
     func saveText(text:String){
-        if var columnData = self.data, let rowIndex = self.childTableIndex?.row{
+        if var columnData = self.data{
             var tblValue = text
             if !text.trim.isEmpty, data?.dataType == "DATE" || data?.dataType == "TIME" || data?.dataType == "DATE_TIME" || data?.dataType == "YEAR"{
                 tblValue = columnData.value
             }
             let dbValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: tblValue, isForLocal: true) ?? text
             columnData.value = dbValue
-            delegate?.updateRow(at: rowIndex, with: columnData)
+            delegate?.updateRow(with: columnData)
         }
     }
     
@@ -455,14 +455,12 @@ private extension FPEditRowTableViewCell {
             self.saveText(text: "")
             return
         }
-        if(self.childTableIndex!.row != 1 ){
-            self.tblTextField.text = value
-            self.tblDropdownField.text = value
-            if isUITypeDeficiency{
-                self.tblDropdownField.text = displayvalue
-            }
-            self.saveText(text: value)
+        self.tblTextField.text = value
+        self.tblDropdownField.text = value
+        if isUITypeDeficiency{
+            self.tblDropdownField.text = displayvalue
         }
+        self.saveText(text: value)
     }
     
 }

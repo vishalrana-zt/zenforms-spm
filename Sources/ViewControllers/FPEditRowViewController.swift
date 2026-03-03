@@ -202,7 +202,7 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
             for: indexPath
         ) as! FPEditRowTableViewCell
         
-        cell.childTableIndex = indexPath
+        cell.childTableIndex = IndexPath(row: indexPath.row, section: currentRowNo)
         cell.parentTableIndex = tableIndexPath
         cell.data = self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN})[safe: indexPath.row]
         cell.delegate = self
@@ -245,12 +245,12 @@ extension FPEditRowViewController:UITextFieldDelegate{
 //MARK: FPEditRowCellDelegate
 
 extension FPEditRowViewController: FPEditRowCellDelegate{
-    func updateRow(at rowIndex: Int, with data: ColumnData) {
+    func updateRow(with data: ColumnData) {
         if let tblCompnt = tableComponent, let _ = tableIndexPath{
-            if var row = tblCompnt.rows?[safe:rowIndex]{
+            if var row = tblCompnt.rows?[safe:currentRowNo - 1]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
                     row.columns[columnIndex] = data
-                    tblCompnt.rows?[rowIndex] = row
+                    tblCompnt.rows?[currentRowNo - 1] = row
                     tableComponent = tblCompnt
                     if isAutoCalculateEnabled, data.isPartOfFormula == true, let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == row.sortUuid }){
                         let autoCalRow = self.processAutoCalculationFor(row: row, with: data)
@@ -291,7 +291,7 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     func processAutoCalculationFor(row: Rows, with data:ColumnData) -> Rows{
         var updatedRow = row
         for formula in arrTblFormulas {
-            var orginalExpression = formula.expression ?? ""
+            let orginalExpression = formula.expression ?? ""
             var rawVars: [String: Any] = [:]
             for column in updatedRow.columns {
                 if orginalExpression.range(of: "\\b\(column.key)\\b", options: .regularExpression) != nil {
@@ -392,7 +392,7 @@ final class CardPresentationController: UIPresentationController {
         guard let container = containerView else { return .zero }
 
         let bounds = container.bounds
-        let safe = container.safeAreaInsets
+        _ = container.safeAreaInsets
 
         let isPad = traitCollection.userInterfaceIdiom == .pad
 
