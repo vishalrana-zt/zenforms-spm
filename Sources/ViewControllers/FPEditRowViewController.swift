@@ -247,10 +247,10 @@ extension FPEditRowViewController:UITextFieldDelegate{
 extension FPEditRowViewController: FPEditRowCellDelegate{
     func updateRow(with data: ColumnData) {
         if let tblCompnt = tableComponent, let _ = tableIndexPath{
-            if var row = tblCompnt.rows?[safe:currentRowNo - 1]{
+            if var row = tblCompnt.rows?[safe:currentRowNo]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
                     row.columns[columnIndex] = data
-                    tblCompnt.rows?[currentRowNo - 1] = row
+                    tblCompnt.rows?[currentRowNo] = row
                     tableComponent = tblCompnt
                     if isAutoCalculateEnabled, data.isPartOfFormula == true, let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == row.sortUuid }){
                         let autoCalRow = self.processAutoCalculationFor(row: row, with: data)
