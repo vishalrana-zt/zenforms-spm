@@ -194,6 +194,8 @@ extension FPSegmentView: UITableViewDelegate,UITableViewDataSource {
         let count = cellItem?.rows?.count ?? 0
         switch(indexPath.row){
         case FPSegmentView.INDEX_SEGMENT:
+            
+            //fixed https://smartserv.atlassian.net/browse/BB-13678
             let selectedSegmentIndex = getSelectedIndex(self.cellItem?.value ?? "")
             setValueFromSelectedIndex(selectedSegmentIndex)
             let segmentTitles: [String] = {
