@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import SwiftUI
 internal import SSMediaManager
 struct FPConstansts {
     struct NibName {
@@ -110,7 +111,7 @@ class FPSegmentView: UIView {
     
     func setUpTableView() {
         self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FPListSelectionCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FPListSelectionCell)
-        self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.SegmentControlTableViewCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.SegmentControlTableViewCell)
+        self.reasonsTableView.register(UITableViewCell.self, forCellReuseIdentifier: FPConstansts.NibName.SegmentControlTableViewCell)
         self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.CustomReasonTextFieldTableViewCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.CustomReasonTextFieldTableViewCell)
         self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileReasonCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FileReasonCell)
         self.reasonsTableView.register(UINib(nibName: FPConstansts.NibName.FileTagListCell, bundle: ZenFormsBundle.bundle), forCellReuseIdentifier: FPConstansts.NibName.FileTagListCell)
@@ -193,16 +194,37 @@ extension FPSegmentView: UITableViewDelegate,UITableViewDataSource {
         let count = cellItem?.rows?.count ?? 0
         switch(indexPath.row){
         case FPSegmentView.INDEX_SEGMENT:
-            if let cell = tableView.dequeueReusableCell(withIdentifier: FPConstansts.NibName.SegmentControlTableViewCell) as? SegmentControlTableViewCell{
-                cell.collectionIndexPath = self.collectionIndex
-                cell.fieldItem = self.fieldItem
-                let selectedSegmentIndex = getSelectedIndex(self.cellItem?.value ?? "")
-                setValueFromSelectedIndex(selectedSegmentIndex)
-                cell.segmentControl.selectedSegmentIndex = selectedSegmentIndex
-                cell.segmentControl.isUserInteractionEnabled = !self.isAnalysed
-                cell.delegate = self
-                return cell
+            
+            //fixed https://smartserv.atlassian.net/browse/BB-13678
+            let selectedSegmentIndex = getSelectedIndex(self.cellItem?.value ?? "")
+            setValueFromSelectedIndex(selectedSegmentIndex)
+            let segmentTitles: [String] = {
+                let radioOptions = fieldItem?.getRadioOptions() ?? []
+                if !radioOptions.isEmpty {
+                    return radioOptions.indices.map { radioOptions[safe: $0]?["label"] as? String ?? "" }
+                }
+                return [
+                    FPLocalizationHelper.localize("Yes"),
+                    FPLocalizationHelper.localize("NO"),
+                    "N/A"
+                ]
+            }()
+            let cell = tableView.dequeueReusableCell(withIdentifier: FPConstansts.NibName.SegmentControlTableViewCell, for: indexPath)
+            cell.backgroundColor = .clear
+            cell.selectionStyle = .none
+            cell.contentConfiguration = UIHostingConfiguration {
+                SegmentControlView(
+                    titles: segmentTitles,
+                    selectedIndex: selectedSegmentIndex >= 0 && selectedSegmentIndex < segmentTitles.count ? selectedSegmentIndex : -1,
+                    onSelect: { [weak self] index in
+                        self?.segmentValueChangedAt(indexPath: self?.collectionIndex, withSelectedIndex: index)
+                    },
+                    isEnabled: !self.isAnalysed
+                )
             }
+            .margins(.all, 0)
+            cell.isUserInteractionEnabled = !self.isAnalysed
+            return cell
         case FPSegmentView.INDEX_REASON_LABEL:
             if isEnableReasonAICell{
                 if let cell = tableView.dequeueReusableCell(withIdentifier: FPConstansts.NibName.FPReasonAiCell) as? FPReasonAiCell{
