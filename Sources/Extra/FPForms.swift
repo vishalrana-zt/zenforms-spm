@@ -55,6 +55,13 @@ public class FPForms : NSObject{
         case FAILED
     }
     
+    
+    private static let createdDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+        return formatter
+    }()
+    
     public override init() { }
     
     public init(dict:[String: Any], isForLocal:Bool) {
@@ -76,17 +83,11 @@ public class FPForms : NSObject{
         }
         self.name = FPUtility.getSQLiteCompatibleStringValue(dict["name"], isForLocal:isForLocal)
         
-        if let _ = dict["fpFormCreatedAt"] {
-            self.createdAt = FPUtility.getStringValue(dict["fpFormCreatedAt"])
-        } else {
-            self.createdAt = FPUtility.getStringValue(dict["createdAt"])
-        }
+        let createdKey = dict["fpFormCreatedAt"] != nil ? "fpFormCreatedAt" : "createdAt"
+        self.createdAt = FPUtility.getStringValue(dict[createdKey])
         
-        if let _ = dict["fpFormUpdatedAt"] {
-            self.updatedAt = FPUtility.getStringValue(dict["fpFormUpdatedAt"])
-        } else {
-            self.updatedAt = FPUtility.getStringValue(dict["updatedAt"])
-        }
+        let updatedKey = dict["fpFormUpdatedAt"] != nil ? "fpFormUpdatedAt" : "updatedAt"
+        self.updatedAt = FPUtility.getStringValue(dict[updatedKey])
         
         if let localLastUpdatedAt = dict["localLastUpdatedAt"] as? String {
             self.locallyUpdatedAt = localLastUpdatedAt
@@ -120,26 +121,22 @@ public class FPForms : NSObject{
         self.customFormLocalId = FPUtility.getNumberValue(dict["customFormLocalId"])
         
         if let sectionsArray = dict["sections"] as? [[String: Any]] {
-            self.sections = [FPSectionDetails]()
+            var parsedSections: [FPSectionDetails] = []
+            parsedSections.reserveCapacity(sectionsArray.count)
             for sectionDictionary in sectionsArray {
-                let section = FPSectionDetails(json: sectionDictionary, isForLocal: isForLocal)
-                self.sections?.append(section)
+                parsedSections.append(
+                    FPSectionDetails(json: sectionDictionary, isForLocal: isForLocal)
+                )
             }
+            self.sections = parsedSections
         }
+        
         if let _ = dict["fpFormDisplayName"] {
             self.displayName = FPUtility.getSQLiteCompatibleStringValue(dict["fpFormDisplayName"], isForLocal:isForLocal)
         } else {
             self.displayName = FPUtility.getSQLiteCompatibleStringValue(dict["displayName"], isForLocal:isForLocal)
         }
         self.shortDescription = FPUtility.getSQLiteCompatibleStringValue(dict["shortDescription"], isForLocal:isForLocal)
-        
-        if let isActiveValue = dict["isActive"] as? Bool {
-            self.isActive = isActiveValue
-        }
-        
-        if let isDeletedValue = dict["isDeleted"] as? Bool {
-            self.isDeleted = isDeletedValue
-        }
         
         if let isDynamicValue = dict["isDynamic"] as? Bool {
             self.isDynamic = isDynamicValue
@@ -183,7 +180,7 @@ public class FPForms : NSObject{
             self.sectionOption = sectionOption
         }
         if let notes = dict["notes"] as? [NSNumber] {
-            self.notes = notes.map { $0.stringValue}.joined(separator: ",")
+            self.notes = notes.map(\.stringValue).joined(separator: ",")
         }else if let notes = dict["notes"] as? String {
             self.notes = notes
         }
@@ -201,8 +198,7 @@ public class FPForms : NSObject{
     
     func getJSONForUpdate() -> [String: Any] {
         var dict: [String: Any] = [:]
-        let formatter = NumberFormatter()
-        if let objectID = formatter.number(from: self.objectId ?? "") {
+        if let objectID = Int(self.objectId ?? "") {
             dict["id"] = objectID
         }
         dict["name"] = self.name
@@ -214,23 +210,21 @@ public class FPForms : NSObject{
             dict["templateId"] = ""
         }
         
-        if let sections = self.sections, !sections.isEmpty{
-            let updatedSections = getSectionsArray(isUpdate: true)
-            if !sections.isEmpty {
-                dict["sections"] = updatedSections
-            }
+        let updatedSections = getSectionsArray(isUpdate: true)
+        if !updatedSections.isEmpty {
+            dict["sections"] = updatedSections
         }
         return dict
     }
     
-    func getSectionsArray(isUpdate:Bool = false) -> [[String:Any]] {
+    func getSectionsArray(isUpdate: Bool = false) -> [[String:Any]] {
+        guard let sections = sections else { return [] }
         var array = [[String:Any]]()
-        for section in sections ?? [] {
-            if isUpdate, section.isSyncedToServer == true{
-                continue
-            }
-            let sectionJSON = section.getJSON()
-            array.append(sectionJSON)
+        array.reserveCapacity(sections.count)
+
+        for section in sections {
+            if isUpdate, section.isSyncedToServer == true { continue }
+            array.append(section.getJSON())
         }
         return array
     }
@@ -241,8 +235,7 @@ public class FPForms : NSObject{
         
         dict["name"] = self.name
         
-        let formatter = NumberFormatter()
-        if let objectId = formatter.number(from: self.objectId ?? "") {
+        if let objectId = Int(self.objectId ?? "") {
             dict["id"] = objectId
         } else {
             dict["createdAt"] = self.createdAt ?? ""
@@ -251,7 +244,7 @@ public class FPForms : NSObject{
         
         dict["updatedAt"] = self.updatedAt ?? ""
         
-        if let sections = self.sections, sections.count > 0 {
+        if let sections = self.sections, !sections.isEmpty {
             dict["sections"] = getSectionsArray()
         }
         
@@ -284,12 +277,13 @@ public class FPForms : NSObject{
             copy.sqliteId = self.sqliteId
         }
 
-        if let sections = self.sections, sections.count > 0 {
-            copy.sections = []
+        if let sections = self.sections, !sections.isEmpty {
+            var copiedSections: [FPSectionDetails] = []
+            copiedSections.reserveCapacity(sections.count)
             for section in sections {
-                let sectionDetails = section.copyFPSectionDetails(isTemplate)
-                copy.sections?.append(sectionDetails)
+                copiedSections.append(section.copyFPSectionDetails(isTemplate))
             }
+            copy.sections = copiedSections
         }
 
         copy.isAnalysed = self.isAnalysed
@@ -310,20 +304,31 @@ public class FPForms : NSObject{
     
     func fixAssetIdSortPosition(in form: FPForms) {
         guard let sections = form.sections else { return }
+
         for section in sections {
-            // Check if section is NOT hidden
-            if section.isHidden  == false {
-                let sortedFields = section.fields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""})
-                let sortPosition = sortedFields.last?.sortPosition ?? "\(sortedFields.count - 1)"
-                for field in section.fields {
-                    if field.name == "assetId",
-                       field.uiType == "HIDDEN",
-                       field.sortPosition == "000" {
-                        
-                        field.sortPosition = "\(sortPosition)1"
-                        break
+            guard section.isHidden == false else { continue }
+
+            var maxSortPosition: String?
+            var assetField: FPFieldDetails?
+
+            for field in section.fields {
+                if let sort = field.sortPosition {
+                    if let max = maxSortPosition {
+                        if sort > max { maxSortPosition = sort }
+                    } else {
+                        maxSortPosition = sort
                     }
                 }
+                if field.name == "assetId",
+                   field.uiType == "HIDDEN",
+                   field.sortPosition == "000" {
+                    assetField = field
+                }
+            }
+
+            let finalSortPosition = maxSortPosition ?? "\(section.fields.count - 1)"
+            if let assetField = assetField {
+                assetField.sortPosition = "\(finalSortPosition)1"
             }
         }
     }
@@ -339,21 +344,21 @@ public class FPForms : NSObject{
         copy.ticketNumber = self.ticketNumber
         copy.ticketId = self.ticketId
         copy.templateId = self.templateId
-        if let sections = self.sections, sections.count > 0 {
-            copy.sections = []
+        if let sections = self.sections, !sections.isEmpty {
+            var copiedSections: [FPSectionDetails] = []
+            copiedSections.reserveCapacity(sections.count)
+
             for section in sections {
-                let sectionDetails = section.copyPreviousFPFormSectionDetails()
-                copy.sections?.append(sectionDetails)
+                copiedSections.append(section.copyPreviousFPFormSectionDetails())
             }
+            copy.sections = copiedSections
         }
         return copy
     }
     
-    public  func stringToNumber(_ stringValue: String?) -> NSNumber? {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        let myNumber = formatter.number(from: stringValue ?? "")
-        return myNumber
+    public func stringToNumber(_ stringValue: String?) -> NSNumber? {
+        guard let value = Int(stringValue ?? "") else { return nil }
+        return NSNumber(value: value)
     }
     
     public func getFormattedCreatedDate() -> String {
@@ -361,10 +366,7 @@ public class FPForms : NSObject{
             return ""
         }
         
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
-        
-        if let date = dateFormatter.date(from: createdAt) {
+        if let date = FPForms.createdDateFormatter.date(from: createdAt){
             let formattedTime = FPUtility.dateString(date, withCustomFormat: "MMM dd, yyyy")
             return formattedTime
         } else {
