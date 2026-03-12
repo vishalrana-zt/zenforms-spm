@@ -68,7 +68,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     public var delegate: ZenFormsDelegate?
     public var linkingDelegate: ZenFormsAssetLinkingDelegate?
 
-
+    private let util = FPUtility()
+    
     var shownAlertForPull = 0
     var section = 0
     var previousSection = -1
@@ -345,7 +346,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 self.title =  FPFormDataHolder.shared.customForm?.displayName
                 self.imgEditSectionName.isHidden = true
             }else{
-                self.viewTitle.backgroundColor = .clear
+                self.viewTitle.backgroundColor = .red
                 self.navigationItem.titleView = self.viewTitle
                 self.lblTitle.text = FPFormDataHolder.shared.customForm?.displayName
                 if isFromCoPILOT{
@@ -356,7 +357,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         setupDropDownView()
         setUpTableView()
         handleSectionControlUI()
-        FPUtility().feedAssetLinkingIfAny(form: FPFormDataHolder.shared.customForm)
+        util.feedAssetLinkingIfAny(form: FPFormDataHolder.shared.customForm)
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -1817,9 +1818,9 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
             datePmode = .dateAndTime
         }
         
-        var fieldValue = FPUtility().fetchCompataibleSpecialCharsStringFromDB(strInput: sectionItem.value ?? "")
+        var fieldValue = util.fetchCompataibleSpecialCharsStringFromDB(strInput: sectionItem.value ?? "")
         if self.isNew, let defaultVal = sectionItem.defaultValue, !defaultVal.trim.isEmpty, let val = sectionItem.value, val.trim.isEmpty{
-            fieldValue = FPUtility().fetchCompataibleSpecialCharsStringFromDB(strInput: defaultVal)
+            fieldValue = util.fetchCompataibleSpecialCharsStringFromDB(strInput: defaultVal)
         }
         let cell = tableView.dequeueReusableCell(withIdentifier: "FPInputFieldCell")
         cell?.backgroundColor = .clear
@@ -1899,7 +1900,7 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
             if arrDatasets.isEmpty{
                 isNoChartData = true
             }
-            linChartView =  FPUtility().renderSwiftChart(dictValue: dictValue, xLbls: arrXLablels)
+            linChartView =  util.renderSwiftChart(dictValue: dictValue, xLbls: arrXLablels)
         }else{
             isNoChartData = true
         }
@@ -2656,7 +2657,7 @@ extension FPUtility{
         let group = DispatchGroup()
         group.enter()
         if arrLinkings.count > 0 {
-            FPUtility().uploadAssetSectionRecurively(linkingDelegate:linkingDelegate, synclinkingDelegate: synclinkingDelegate, customform: form, arrLinkings: arrLinkings, currentindex: 0) {
+            util.uploadAssetSectionRecurively(linkingDelegate:linkingDelegate, synclinkingDelegate: synclinkingDelegate, customform: form, arrLinkings: arrLinkings, currentindex: 0) {
                 group.leave()
             }
         }else{
@@ -2706,7 +2707,7 @@ extension FPUtility{
         let group = DispatchGroup()
         group.enter()
         if addLinkings.count > 0 {
-            FPUtility().uploadAssetRecurively(linkingDelegate:linkingDelegate, synclinkingDelegate: synclinkingDelegate, customform: form, arrLinkings: addLinkings, arrAddDict: arrAddDict, currentindex: 0) { result in
+            util.uploadAssetRecurively(linkingDelegate:linkingDelegate, synclinkingDelegate: synclinkingDelegate, customform: form, arrLinkings: addLinkings, arrAddDict: arrAddDict, currentindex: 0) { result in
                 if !result.isEmpty{
                     assetLinkJson["add"] = result
                 }

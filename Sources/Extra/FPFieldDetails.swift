@@ -424,7 +424,7 @@ public class FPFieldDetails: NSObject {
             deletedFiles.forEach { id in
                 if let array = self.attachments?.getArray()  {
                     let arr = array.filter {$0["id"] as? String != id}
-                    attachmentJson["file"] = array //need to test this one
+                    attachmentJson["file"] = arr //need to test this one
                 }
             }
             json["attachments"] = attachmentJson
