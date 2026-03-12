@@ -128,7 +128,7 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
         actionOptions.addAction(documentAction)
         actionOptions.addAction(sketchAction)
         actionOptions.addAction(cancelAction)
-        
+        actionOptions.applyLegacyActionSheetStyle()
         actionOptions.popoverPresentationController?.sourceView = sender ;
         self.parentViewController?.navigationController?.present(actionOptions, animated: true, completion: nil)
     }

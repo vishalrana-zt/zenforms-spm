@@ -346,7 +346,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 self.title =  FPFormDataHolder.shared.customForm?.displayName
                 self.imgEditSectionName.isHidden = true
             }else{
-                self.viewTitle.backgroundColor = .red
                 self.navigationItem.titleView = self.viewTitle
                 self.lblTitle.text = FPFormDataHolder.shared.customForm?.displayName
                 if isFromCoPILOT{
@@ -1351,6 +1350,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         invalidNameAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                             self.showRenameCurrentSection()
                         })
+                        invalidNameAlert.applyLegacyActionSheetStyle()
                         self.present(invalidNameAlert, animated: true, completion: nil)
                     }else if textCount > 256{
                         let fileNameTooLongAlert = UIAlertController(title: FPLocalizationHelper.localize("error_dialog_title"),
@@ -1359,6 +1359,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         fileNameTooLongAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                             self.showRenameCurrentSection()
                         })
+                        fileNameTooLongAlert.applyLegacyActionSheetStyle()
                         self.present(fileNameTooLongAlert, animated: true, completion: nil)
                     }else{
                         FPFormDataHolder.shared.getFormSections()[safe:self.section]?.displayName = strName
@@ -1372,6 +1373,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     invalidNameAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                         self.showRenameCurrentSection()
                     })
+                    invalidNameAlert.applyLegacyActionSheetStyle()
                     self.present(invalidNameAlert, animated: true, completion: nil)
                 }
             }
@@ -1379,6 +1381,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         alertController.addAction(.init(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: { action in
             alertController.dismiss(animated: true)
         }))
+        alertController.applyLegacyActionSheetStyle()
         self.present(alertController, animated: true)
     }
     
@@ -1406,6 +1409,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         invalidNameAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                             self.showRenamePopup()
                         })
+                        invalidNameAlert.applyLegacyActionSheetStyle()
                         self.present(invalidNameAlert, animated: true, completion: nil)
                     }else if textCount > 256{
                         let fileNameTooLongAlert = UIAlertController(title: FPLocalizationHelper.localize("error_dialog_title"),
@@ -1414,6 +1418,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         fileNameTooLongAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                             self.showRenamePopup()
                         })
+                        fileNameTooLongAlert.applyLegacyActionSheetStyle()
                         self.present(fileNameTooLongAlert, animated: true, completion: nil)
                     }else{
                         self.customForm.name = strName
@@ -1435,6 +1440,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     invalidNameAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                         self.showRenamePopup()
                     })
+                    invalidNameAlert.applyLegacyActionSheetStyle()
                     self.present(invalidNameAlert, animated: true, completion: nil)
                 }
             }
@@ -1443,6 +1449,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         alertController.addAction(.init(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: { action in
             alertController.dismiss(animated: true)
         }))
+        alertController.applyLegacyActionSheetStyle()
         self.present(alertController, animated: true)
     }
     
@@ -2108,7 +2115,7 @@ extension FPFormViewController  {
         }
         actionOptions.addAction(sketchAction)
         actionOptions.addAction(cancelAction)
-        
+        actionOptions.applyLegacyActionSheetStyle()
         actionOptions.popoverPresentationController?.sourceView = sender
         self.navigationController?.present(actionOptions, animated: true, completion: nil)
     }

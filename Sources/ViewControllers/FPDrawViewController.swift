@@ -176,7 +176,7 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("Cancel"), style: .cancel , handler:{_ in }))
-                
+        alert.applyLegacyActionSheetStyle()
         if UIDevice.current.userInterfaceIdiom == .phone {
             self.present(alert, animated: true) {
             }
@@ -258,7 +258,7 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("Cancel"), style: .cancel , handler:{_ in }))
-                
+        alert.applyLegacyActionSheetStyle()
         if UIDevice.current.userInterfaceIdiom == .phone {
             self.present(alert, animated: true) {
             }
@@ -324,7 +324,7 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
         let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style:.cancel, handler:{ (action:UIAlertAction!) in
         })
         alert.addAction(cancelAction)
-        
+        alert.applyLegacyActionSheetStyle()
         self.present(alert, animated:true, completion:nil)
     }
     

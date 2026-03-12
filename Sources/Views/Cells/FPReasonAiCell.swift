@@ -139,6 +139,7 @@ class FPReasonAiCell : UITableViewCell {
         }
         let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: nil)
         optionMenu.addAction(cancelAction)
+        optionMenu.applyLegacyActionSheetStyle()
         if UIDevice.current.userInterfaceIdiom == .phone {
             FPUtility.topViewController()?.present(optionMenu, animated: true) {}
         } else {
