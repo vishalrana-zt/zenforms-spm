@@ -346,6 +346,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 self.title =  FPFormDataHolder.shared.customForm?.displayName
                 self.imgEditSectionName.isHidden = true
             }else{
+                self.viewTitle.backgroundColor = .clear
                 self.navigationItem.titleView = self.viewTitle
                 self.lblTitle.text = FPFormDataHolder.shared.customForm?.displayName
                 if isFromCoPILOT{
