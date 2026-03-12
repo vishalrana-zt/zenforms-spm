@@ -2657,7 +2657,7 @@ extension FPUtility{
         let group = DispatchGroup()
         group.enter()
         if arrLinkings.count > 0 {
-            util.uploadAssetSectionRecurively(linkingDelegate:linkingDelegate, synclinkingDelegate: synclinkingDelegate, customform: form, arrLinkings: arrLinkings, currentindex: 0) {
+            FPUtility().uploadAssetSectionRecurively(linkingDelegate:linkingDelegate, synclinkingDelegate: synclinkingDelegate, customform: form, arrLinkings: arrLinkings, currentindex: 0) {
                 group.leave()
             }
         }else{
@@ -2707,7 +2707,7 @@ extension FPUtility{
         let group = DispatchGroup()
         group.enter()
         if addLinkings.count > 0 {
-            util.uploadAssetRecurively(linkingDelegate:linkingDelegate, synclinkingDelegate: synclinkingDelegate, customform: form, arrLinkings: addLinkings, arrAddDict: arrAddDict, currentindex: 0) { result in
+            FPUtility().uploadAssetRecurively(linkingDelegate:linkingDelegate, synclinkingDelegate: synclinkingDelegate, customform: form, arrLinkings: addLinkings, arrAddDict: arrAddDict, currentindex: 0) { result in
                 if !result.isEmpty{
                     assetLinkJson["add"] = result
                 }
