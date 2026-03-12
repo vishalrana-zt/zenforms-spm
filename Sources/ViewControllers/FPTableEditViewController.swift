@@ -349,22 +349,40 @@ class FPTableEditViewController: UIViewController {
     }
 
     /// Opens FPEditRowViewController for the given collection view section (section 1 = first data row).
+    /// When sort/filter is applied, maps the visible section to the correct row index in the full table.
     func openEditRow(forSection section: Int, completion: (() -> Void)? = nil) {
         guard section >= 1 else { return }
+        let rowCount = tableComponent?.rows?.count ?? 0
+        let rowNo: Int
+        if isSortFilterApplied {
+            guard let filteredRow = sortFilteredTableComponent?.rows?[section - 1],
+                  let indexInFull = tableComponent?.rows?.firstIndex(where: { $0.sortUuid == filteredRow.sortUuid }),
+                  indexInFull >= 0, indexInFull < rowCount else {
+                return
+            }
+            rowNo = indexInFull
+        } else {
+            rowNo = section - 1
+            guard rowNo < rowCount else { return }
+        }
         let vc = FPEditRowViewController(
             nibName: "FPEditRowViewController",
             bundle: ZenFormsBundle.bundle
         )
         vc.title = "Edit Row"
         vc.tableIndexPath = tableIndexPath
-        vc.currentRowNo = section - 1
+        vc.currentRowNo = rowNo
         vc.tableComponent = tableComponent
         vc.arrTblFormulas = arrTblFormulas
         vc.isAutoCalculateEnabled = isAutoCalculateEnabled
         vc.didEditedRows = { [weak self] tableComponent in
             DispatchQueue.main.async {
                 self?.tableComponent = tableComponent
-                self?.collectionView.reloadData()
+                if self?.isSortFilterApplied == true {
+                    self?.reapplySortFilterAfterEdit()
+                } else {
+                    self?.collectionView.reloadData()
+                }
             }
         }
         let nav = UINavigationController(rootViewController: vc)
@@ -380,6 +398,43 @@ class FPTableEditViewController: UIViewController {
             }
         }
         present(nav, animated: true, completion: completion)
+    }
+
+    /// Re-applies current sort/filter to the updated tableComponent and refreshes the collection view. Call after edit when isSortFilterApplied.
+    private func reapplySortFilterAfterEdit() {
+        guard !arrAppliedFilters.isEmpty, tableComponent != nil else {
+            DispatchQueue.main.async { [weak self] in
+                self?.collectionView.reloadData()
+            }
+            return
+        }
+        let sortFilter = arrAppliedFilters.first(where: { $0.option != .filter })
+        let filterFilter = arrAppliedFilters.first(where: { $0.option == .filter })
+        if let sortFilter = sortFilter, sortFilterColumn != nil {
+            sortFilteredTableComponent = nil
+            applySortingToTable(option: sortFilter.option) { [weak self] sortedtbl in
+                guard let self = self else { return }
+                self.sortFilteredTableComponent = sortedtbl
+                if let filterFilter = filterFilter, let items = filterFilter.filterItems, !items.isEmpty, let col = self.sortFilterColumn {
+                    sortedtbl.filterData(component: sortedtbl, arrSelected: items, filterColumn: col) { filteredComponent in
+                        self.sortFilteredTableComponent = filteredComponent
+                        DispatchQueue.main.async { self.collectionView.reloadData() }
+                    }
+                } else {
+                    DispatchQueue.main.async { self.collectionView.reloadData() }
+                }
+            }
+        } else if let filterFilter = filterFilter, let items = filterFilter.filterItems, !items.isEmpty, let column = sortFilterColumn, let tbl = tableComponent {
+            tbl.filterData(component: tbl, arrSelected: items, filterColumn: column) { [weak self] filteredComponent in
+                self?.sortFilteredTableComponent = filteredComponent
+                DispatchQueue.main.async { self?.collectionView.reloadData() }
+            }
+        } else {
+            sortFilteredTableComponent = nil
+            DispatchQueue.main.async { [weak self] in
+                self?.collectionView.reloadData()
+            }
+        }
     }
 }
 
@@ -409,7 +464,7 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             headerCell.btnMore.addTarget(self, action: #selector(btnMoreClicked(sender:)), for: .touchUpInside)
             headerCell.btnActions.addTarget(self, action: #selector(btnHeaderActionClicked(sender:)), for: .touchUpInside)
             let isSerialNumberRow = indexPath.row == 0 && indexPath.section > 0
-            let showExpandForRow = isSerialNumberRow && !isSortFilterApplied
+            let showExpandForRow = isSerialNumberRow
             headerCell.viewExpand.isHidden = !showExpandForRow
             if showExpandForRow {
                 headerCell.btnExpand.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
@@ -531,7 +586,7 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
 
         var shouldShowAssetLink = false
         var shouldShowDuplicate = true
-        let shouldShowEditRow = arrSelectedRows.count == 1 && isSortFilterApplied == false
+        let shouldShowEditRow = arrSelectedRows.count == 1
 
         if isAssetEnabled,
            let isAssetTable = tableComponent?.tableOptions?.isAssetTable,

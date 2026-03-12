@@ -8,6 +8,7 @@
 
 import UIKit
 internal import SSMediaManager
+internal import TagListView
 internal import IQKeyboardManagerSwift
 
 // MARK: - Cell
@@ -15,6 +16,7 @@ internal import IQKeyboardManagerSwift
 protocol FPEditRowCellDelegate: AnyObject {
     func updateRow(with data:ColumnData)
     func showRowAttachment(at index:IndexPath,with data:ColumnData)
+    func didRemoveAttachment(at index: IndexPath, columnData: ColumnData, fileName: String)
 }
 
 private enum CellInputMode {
@@ -42,6 +44,8 @@ class FPEditRowTableViewCell: UITableViewCell {
     @IBOutlet weak var viewBarcode: UIView!
     @IBOutlet weak var imgBarcode: UIImageView!
     @IBOutlet weak var btnBarcode: UIButton!
+    @IBOutlet weak var tagListView: TagListView!
+    @IBOutlet weak var stackViewInput: UIStackView!
 
     // MARK: - Properties
 
@@ -119,6 +123,7 @@ class FPEditRowTableViewCell: UITableViewCell {
         tblTextView.layer.borderColor = UIColor.systemGray4.cgColor
         tblTextView.layer.masksToBounds = true
         tblTextView.textContainerInset = UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5)
+        tagListView?.delegate = self
     }
 
     override func prepareForReuse() {
@@ -132,6 +137,9 @@ class FPEditRowTableViewCell: UITableViewCell {
         tblTextField.isHidden = true
         tblTextView.isHidden = true
         tblDropdownField.isHidden = true
+        tagListView?.removeAllTags()
+        tagListView?.isHidden = true
+        stackViewInput?.isHidden = false
     }
     
     private func resolveMode(_ column: ColumnData) -> CellInputMode {
@@ -173,6 +181,15 @@ class FPEditRowTableViewCell: UITableViewCell {
     }
 }
 
+// MARK: - TagListViewDelegate
+
+extension FPEditRowTableViewCell: TagListViewDelegate {
+    func tagRemoveButtonPressed(_ title: String, tagView: TagView, sender: TagListView) {
+        guard let childTableIndex, let data else { return }
+        delegate?.didRemoveAttachment(at: childTableIndex, columnData: data, fileName: title)
+    }
+}
+
 // MARK: - Configuration
 
 private extension FPEditRowTableViewCell {
@@ -182,6 +199,8 @@ private extension FPEditRowTableViewCell {
         self.tblDropdownField.isUserInteractionEnabled = !(column.readonly ?? false)
         self.lblColumnName.text = column.key.handleAndDisplayApostrophe()
         self.tblDropdownField.isHidden = true
+        self.tagListView?.isHidden = true
+        self.stackViewInput?.isHidden = false
         
         inputMode = resolveMode(column)
 
@@ -202,6 +221,8 @@ private extension FPEditRowTableViewCell {
         self.generateDynamically = column.generateDynamically ?? false
         self.isUITypeDeficiency = column.uiType == "DEFICIENCY"
         self.btnAddAttachment.isHidden = true
+        self.tagListView?.isHidden = true
+        self.stackViewInput?.isHidden = false
         self.tblTextView.isHidden = true
         self.tblTextField.isHidden = true
         self.tblDropdownField.isHidden = false
@@ -219,46 +240,57 @@ private extension FPEditRowTableViewCell {
     
     private func configureAttachment(_ column: ColumnData) {
         self.btnAddAttachment.isHidden = false
+        self.stackViewInput?.isHidden = true
         self.tblTextView.isHidden = true
         self.tblTextField.isHidden = true
+        self.tagListView?.isHidden = false
+        self.tagListView?.removeAllTags()
+        self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_Attach_file"), for: .normal)
+        var fileNames: [String] = []
         let dataObject = column.value.getDictonary()
-        if(!dataObject.isEmpty){
-            if let files =  dataObject["files"] as? [[String:Any]],!files.isEmpty{
-                self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_View"), for: .normal)
-            }else{
-                if let files =  dataObject["filesToUpload"] as? [[String:Any]],!files.isEmpty{
-                    var mediasAdded:[SSMedia] = []
-                    files.forEach { file in
-                        if((FPFormDataHolder.shared.tableMediaCache.first(where: {$0.mediaAdded.contains(where: {$0.name == file["altText"] as? String ?? "" })})) == nil){
-                            
-                            let mediaAdded = SSMedia(name:file["altText"] as? String ?? "",mimeType:file["type"] as? String ?? "",filePath: file["localPath"] as? String ?? "", moduleType: .forms)
-                            mediasAdded.append(mediaAdded)
-                        }
+        if !dataObject.isEmpty {
+            if let files = dataObject["files"] as? [[String: Any]] {
+                fileNames.append(contentsOf: files.compactMap { $0["altText"] as? String }.filter { !$0.isEmpty })
+            }
+            if let filesToUpload = dataObject["filesToUpload"] as? [[String: Any]] {
+                fileNames.append(contentsOf: filesToUpload.compactMap { $0["altText"] as? String }.filter { !$0.isEmpty })
+            }
+        }
+        if let parentTableIndex = parentTableIndex, let childTableIndex = childTableIndex,
+           let cached = FPFormDataHolder.shared.tableMediaCache.first(where: { $0.parentTableIndex == parentTableIndex && $0.childTableIndex == childTableIndex }) {
+            let cachedNames = cached.mediaAdded.map(\.name).filter { !$0.isEmpty }
+            fileNames.append(contentsOf: cachedNames.filter { name in !fileNames.contains(name) })
+        }
+        fileNames.forEach { name in
+            self.tagListView?.addTag(name)
+        }
+        if !dataObject.isEmpty, let parentTableIndex = parentTableIndex, let childTableIndex = childTableIndex {
+            if let files = dataObject["filesToUpload"] as? [[String:Any]], !files.isEmpty {
+                var mediasAdded: [SSMedia] = []
+                files.forEach { file in
+                    if FPFormDataHolder.shared.tableMediaCache.first(where: { $0.mediaAdded.contains(where: { $0.name == file["altText"] as? String ?? "" }) }) == nil {
+                        let mediaAdded = SSMedia(name: file["altText"] as? String ?? "", mimeType: file["type"] as? String ?? "", filePath: file["localPath"] as? String ?? "", moduleType: .forms)
+                        mediasAdded.append(mediaAdded)
                     }
-                    if mediasAdded.count>0{
-                        if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: {$0.parentTableIndex == parentTableIndex && $0.childTableIndex == childTableIndex}){
-                            var tableMedia = FPFormDataHolder.shared.tableMediaCache[mediaIndex]
-                            tableMedia.mediaAdded = mediasAdded
-                            FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
-                            
-                        }else{
-                            let tableMedia = TableMedia(columnIndex:childTableIndex!.row,key:column.key,parentTableIndex: parentTableIndex,childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [])
-                            FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
-                        }
+                }
+                if mediasAdded.count > 0 {
+                    if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: { $0.parentTableIndex == parentTableIndex && $0.childTableIndex == childTableIndex }) {
+                        var tableMedia = FPFormDataHolder.shared.tableMediaCache[mediaIndex]
+                        tableMedia.mediaAdded = mediasAdded
+                        FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
+                    } else {
+                        let tableMedia = TableMedia(columnIndex: childTableIndex.row, key: column.key, parentTableIndex: parentTableIndex, childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [])
+                        FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                     }
-                    
-                    self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_View"), for: .normal)
-                }else{
-                    self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_Add"), for: .normal)
                 }
             }
-        }else{
-            self.btnAddAttachment.setTitle(FPLocalizationHelper.localize("lbl_Add"), for: .normal)
         }
     }
     
     private func configureTextInput(_ column: ColumnData) {
         self.btnAddAttachment.isHidden = true
+        self.tagListView?.isHidden = true
+        self.stackViewInput?.isHidden = false
         self.tblTextView.isHidden = true
         self.tblTextField.isHidden = true
         self.tblDropdownField.isHidden = true

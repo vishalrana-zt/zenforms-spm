@@ -204,7 +204,8 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
             for: indexPath
         ) as! FPEditRowTableViewCell
         
-        cell.childTableIndex = IndexPath(row: indexPath.row, section: currentRowNo)
+        // Use 1-based section so TableMedia matches FPFormDataHolder convention (valueArray[section - 1])
+        cell.childTableIndex = IndexPath(row: indexPath.row, section: currentRowNo + 1)
         cell.parentTableIndex = tableIndexPath
         cell.data = self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN})[safe: indexPath.row]
         cell.delegate = self
@@ -222,6 +223,20 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
             self.tblRows.beginUpdates()
             self.tblRows.reloadRows(at: validPaths, with: .automatic)
             self.tblRows.endUpdates()
+        }
+    }
+    
+    /// Reloads only the attachment column row so the table does not scroll to top.
+    fileprivate func reloadAttachmentRowOnly(columnKey: String) {
+        let filtered = tableComponent?.rows?[safe: currentRowNo]?.columns.filter { $0.getUIType() != .HIDDEN } ?? []
+        guard let rowIndex = filtered.firstIndex(where: { $0.key == columnKey }) else { return }
+        let indexPath = IndexPath(row: rowIndex, section: 0)
+        let maxRows = tblRows.numberOfRows(inSection: 0)
+        guard rowIndex >= 0, rowIndex < maxRows else { return }
+        DispatchQueue.main.async {
+            let offset = self.tblRows.contentOffset
+            self.tblRows.reloadRows(at: [indexPath], with: .none)
+            self.tblRows.contentOffset = offset
         }
     }
 }
@@ -242,18 +257,18 @@ extension FPEditRowViewController:UITextFieldDelegate{
     
     func textFieldDidEndEditing(_ textField: UITextField) {
         let number = Int(textField.text ?? "") ?? 0
-        if number <= (self.tableComponent?.rows?.count ?? 0){
-            DispatchQueue.main.async{
+        let rowCount = self.tableComponent?.rows?.count ?? 0
+        if number >= 1, number <= rowCount {
+            DispatchQueue.main.async {
                 _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: "Do you want to move to row no: \(number) ?", completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
                     self.currentRowNo = number - 1
                     self.handleSectionControlUI()
                 }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
             }
-        }else{
+        } else {
             self.reflectCurrentRowOnUI()
-            _  = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: "The Row number \(number) is not present in the table.", completion: nil)
+            _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: "The Row number \(number) is not present in the table.", completion: nil)
         }
-       
     }
 }
 
@@ -295,11 +310,47 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
         self.view.endEditing(true)
         self.attachmentIndex = index
         self.attachmentColumnData = data
-        let attachmentView =  TableAttachementView.instance
+        let attachmentView = TableAttachementView.instance
         attachmentView.parentViewController = self
         attachmentView.delegate = self
         attachmentView.attachmentValue = data.value
-        attachmentView.showAttachmentPicker()
+        attachmentView.showAttachmentSourcePickerOnly(sourceView: view)
+    }
+    
+    func didRemoveAttachment(at index: IndexPath, columnData: ColumnData, fileName: String) {
+        guard let tableIndexPath = tableIndexPath,
+              let component = tableComponent,
+              let rows = component.rows,
+              index.section >= 1,
+              index.section - 1 < rows.count else { return }
+        let row = rows[index.section - 1]
+        guard let columnIndex = row.columns.firstIndex(where: { $0.key == columnData.key }) else { return }
+        let column = row.columns[columnIndex]
+        let dataObject = column.value.getDictonary()
+        var mediaAdded: [SSMedia] = []
+        var mediaDeleted: [SSMedia] = []
+        let cached = FPFormDataHolder.shared.tableMediaCache.first(where: { $0.parentTableIndex == tableIndexPath && $0.childTableIndex == index })
+        mediaAdded = (cached?.mediaAdded ?? []).filter { $0.name != fileName }
+        mediaDeleted = cached?.mediaDeleted ?? []
+        let wasInMediaAdded = (cached?.mediaAdded.contains(where: { $0.name == fileName })) ?? false
+        if !wasInMediaAdded, let files = dataObject["files"] as? [[String: Any]],
+           let file = files.first(where: { ($0["altText"] as? String) == fileName }),
+           let id = file["id"] as? String, !id.isEmpty {
+            mediaDeleted.append(SSMedia(name: fileName, id: id, mimeType: file["type"] as? String, filePath: file["localPath"] as? String, serverUrl: file["file"] as? String, moduleType: .forms))
+        }
+        let tableMedia = TableMedia(columnIndex: index.row, key: columnData.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded, mediaDeleted: mediaDeleted)
+        FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
+        guard let result = FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: component.values) else { return }
+        component.values = result.valueArray
+        var updatedRow = rows[index.section - 1]
+        if let colIdx = updatedRow.columns.firstIndex(where: { $0.key == columnData.key }) {
+            var col = updatedRow.columns[colIdx]
+            col.value = result.columnValue ?? ""
+            updatedRow.columns[colIdx] = col
+        }
+        component.rows?[index.section - 1] = updatedRow
+        tableComponent = component
+        reloadAttachmentRowOnly(columnKey: columnData.key)
     }
     
     func showBarcodeScanner(at index:IndexPath,with data:ColumnData){}
@@ -340,25 +391,25 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
 //MARK: Attachment picker delegate
 extension FPEditRowViewController: AttachmentPickerDelegate{
     func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
-        if let index = attachmentIndex,let data = attachmentColumnData{
-            let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: index, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
-            FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
-            let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
-            if let component  = tableComponent{
-                component.values = result?.valueArray ?? []
-                var row = component.rows![tableMedia.childTableIndex!.row]
-                if let columnIndex = row.columns.firstIndex(where: {$0.key == tableMedia.key}){
-                    var column  = row.columns[columnIndex]
-                    column.value = result?.columnValue ?? ""
-                    row.columns[columnIndex] = column
-                }
-                component.rows![tableMedia.childTableIndex!.row] = row
-                self.tableComponent = component
-                DispatchQueue.main.async {
-                    self.tblRows.reloadData()
-                }
-            }
+        guard let index = attachmentIndex, let data = attachmentColumnData, let tableIndexPath = tableIndexPath else { return }
+        let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded.filter({ $0.id?.isEmpty ?? true }), mediaDeleted: mediaDeleted)
+        FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
+        guard let result = FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values),
+              let component = tableComponent,
+              let childIndex = tableMedia.childTableIndex,
+              childIndex.section >= 1,
+              let rows = component.rows,
+              childIndex.section - 1 < rows.count else { return }
+        component.values = result.valueArray
+        var row = rows[childIndex.section - 1]
+        if let columnIndex = row.columns.firstIndex(where: { $0.key == tableMedia.key }) {
+            var column = row.columns[columnIndex]
+            column.value = result.columnValue ?? ""
+            row.columns[columnIndex] = column
         }
+        component.rows?[childIndex.section - 1] = row
+        self.tableComponent = component
+        reloadAttachmentRowOnly(columnKey: data.key)
     }
     
 }
