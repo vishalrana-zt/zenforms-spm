@@ -33,6 +33,25 @@
                                 <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="expand-view-sr">
+                                <rect key="frame" x="0.0" y="0.0" width="36" height="77"/>
+                                <subviews>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="btn-expand-sr">
+                                        <rect key="frame" x="0.0" y="0.0" width="36" height="77"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="36" id="expand-w"/>
+                                        </constraints>
+                                    </button>
+                                </subviews>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="36" id="expand-vw"/>
+                                    <constraint firstItem="btn-expand-sr" firstAttribute="leading" secondItem="expand-view-sr" secondAttribute="leading" id="ex1"/>
+                                    <constraint firstAttribute="trailing" secondItem="btn-expand-sr" secondAttribute="trailing" id="ex2"/>
+                                    <constraint firstItem="btn-expand-sr" firstAttribute="top" secondItem="expand-view-sr" secondAttribute="top" id="ex3"/>
+                                    <constraint firstAttribute="bottom" secondItem="btn-expand-sr" secondAttribute="bottom" id="ex4"/>
+                                </constraints>
+                            </view>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yDm-gD-uqz">
                                 <rect key="frame" x="346" y="0.0" width="40" height="77"/>
                                 <constraints>
@@ -109,10 +128,12 @@
             <size key="customSize" width="376" height="77"/>
             <connections>
                 <outlet property="btnActions" destination="yDm-gD-uqz" id="68c-dl-Kb1"/>
+                <outlet property="btnExpand" destination="btn-expand-sr" id="btn-expand-outlet"/>
                 <outlet property="btnMore" destination="Yt2-qa-73j" id="2lT-2X-d9m"/>
                 <outlet property="imgMore" destination="RcT-Fp-pX1" id="jt2-Rf-bit"/>
                 <outlet property="title" destination="xTM-Aw-KYF" id="NLm-gk-A5k"/>
                 <outlet property="viewBtn" destination="WNZ-0K-hga" id="DYn-uL-FwT"/>
+                <outlet property="viewExpand" destination="expand-view-sr" id="view-expand-outlet"/>
             </connections>
             <point key="canvasLocation" x="378.62595419847327" y="-1.7605633802816902"/>
         </collectionViewCell>

@@ -341,33 +341,46 @@ class FPTableEditViewController: UIViewController {
         }
     }
     @IBAction func btnEditRowDidTap(_ sender: UIButton) {
-        if let selIndex = self.arrSelectedIndexes.first{
-            let vc = FPEditRowViewController(
-                nibName: "FPEditRowViewController",
-                bundle: ZenFormsBundle.bundle
-            )
-            vc.title = "Edit Row"
-            vc.tableIndexPath = tableIndexPath
-            vc.currentRowNo = selIndex.section - 1
-            vc.tableComponent = tableComponent
-            vc.arrTblFormulas = arrTblFormulas
-            vc.isAutoCalculateEnabled = isAutoCalculateEnabled
-            vc.didEditedRows = { [weak self]  tableComponent in
-                DispatchQueue.main.async {
-                    self?.tableComponent = tableComponent
-                    self?.collectionView.reloadData()
-                }
-            }
-            let nav = UINavigationController(rootViewController: vc)
-            nav.modalPresentationStyle = .custom
-            nav.transitioningDelegate = cardTransitionDelegate
-            nav.navigationBar.prefersLargeTitles = false
-            present(nav, animated: true){
+        if let selIndex = self.arrSelectedIndexes.first {
+            openEditRow(forSection: selIndex.section) {
                 self.resetMultipleSeletion()
             }
         }
     }
-    
+
+    /// Opens FPEditRowViewController for the given collection view section (section 1 = first data row).
+    func openEditRow(forSection section: Int, completion: (() -> Void)? = nil) {
+        guard section >= 1 else { return }
+        let vc = FPEditRowViewController(
+            nibName: "FPEditRowViewController",
+            bundle: ZenFormsBundle.bundle
+        )
+        vc.title = "Edit Row"
+        vc.tableIndexPath = tableIndexPath
+        vc.currentRowNo = section - 1
+        vc.tableComponent = tableComponent
+        vc.arrTblFormulas = arrTblFormulas
+        vc.isAutoCalculateEnabled = isAutoCalculateEnabled
+        vc.didEditedRows = { [weak self] tableComponent in
+            DispatchQueue.main.async {
+                self?.tableComponent = tableComponent
+                self?.collectionView.reloadData()
+            }
+        }
+        let nav = UINavigationController(rootViewController: vc)
+        nav.navigationBar.prefersLargeTitles = false
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            nav.modalPresentationStyle = .custom
+            nav.transitioningDelegate = cardTransitionDelegate
+        } else {
+            nav.modalPresentationStyle = .pageSheet
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+            }
+        }
+        present(nav, animated: true, completion: completion)
+    }
 }
 
 extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource {
@@ -395,6 +408,19 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             headerCell.title.isHidden = !isHideCHeckBoxHeader
             headerCell.btnMore.addTarget(self, action: #selector(btnMoreClicked(sender:)), for: .touchUpInside)
             headerCell.btnActions.addTarget(self, action: #selector(btnHeaderActionClicked(sender:)), for: .touchUpInside)
+            let isSerialNumberRow = indexPath.row == 0 && indexPath.section > 0
+            let showExpandForRow = isSerialNumberRow && !isSortFilterApplied
+            headerCell.viewExpand.isHidden = !showExpandForRow
+            if showExpandForRow {
+                headerCell.btnExpand.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+                headerCell.currentIndexPath = indexPath
+                headerCell.onExpandTapped = { [weak self] ip in
+                    self?.openEditRow(forSection: ip.section)
+                }
+            } else {
+                headerCell.currentIndexPath = nil
+                headerCell.onExpandTapped = nil
+            }
             if isSortFilterApplied == true, let index = arrAppliedFilters.firstIndex(where: { $0.indPath == indexPath}), let appliedFilter = arrAppliedFilters[safe: index]  {
                 if appliedFilter.option == .filter {
                     headerCell.imgMore.image = UIImage(named: "icn_filter", in: ZenFormsBundle.bundle, compatibleWith: nil)
