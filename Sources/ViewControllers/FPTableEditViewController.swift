@@ -457,6 +457,12 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             headerCell.imgMore.image =  UIImage(named: "icn_more", in: ZenFormsBundle.bundle, compatibleWith: nil)
             headerCell.imgMore.setImageColor(color: .black)
             headerCell.text = content
+            if indexPath.row == 0 {
+                headerCell.title.numberOfLines = 1
+                headerCell.title.adjustsFontSizeToFitWidth = true
+                headerCell.title.minimumScaleFactor = 0.5
+                headerCell.title.lineBreakMode = .byTruncatingTail
+            }
             headerCell.viewBtn.isHidden = isHideMore
             headerCell.btnActions.isHidden = isHideCHeckBoxHeader
             headerCell.btnActions.isSelected =  self.isSelectedAll
@@ -586,7 +592,7 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
 
         var shouldShowAssetLink = false
         var shouldShowDuplicate = true
-        let shouldShowEditRow = arrSelectedRows.count == 1
+        let shouldShowEditRow = false // Edit icon removed when checkbox/toolbar appears at bottom
 
         if isAssetEnabled,
            let isAssetTable = tableComponent?.tableOptions?.isAssetTable,
