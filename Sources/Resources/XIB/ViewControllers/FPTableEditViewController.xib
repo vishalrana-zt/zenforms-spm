@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24127" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina6_7" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
@@ -15,6 +15,7 @@
                 <outlet property="btnAddMultipleRows" destination="1QL-P1-3Rz" id="4Z3-GM-3E6"/>
                 <outlet property="btnAssetLink" destination="RBp-da-QRR" id="rcp-Km-KeA"/>
                 <outlet property="btnDuplicate" destination="Qky-yD-S6s" id="CcM-Eo-9k5"/>
+                <outlet property="btnEditRow" destination="Bxg-e2-jC0" id="38L-99-L5s"/>
                 <outlet property="btnMultipleDeleteRows" destination="mmW-zz-ubg" id="z3E-B8-fvL"/>
                 <outlet property="btnOpenClose" destination="yeI-Tb-qAe" id="ac4-6r-lTO"/>
                 <outlet property="collectionView" destination="R5Z-QQ-ckQ" id="2ne-Gp-5mc"/>
@@ -92,6 +93,24 @@
                                                                         <action selector="btnLinkAssetDidTap:" destination="-1" eventType="touchUpInside" id="oFS-V7-rDw"/>
                                                                     </connections>
                                                                 </button>
+                                                                <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Bxg-e2-jC0">
+                                                                    <rect key="frame" x="-48" y="0.0" width="48" height="48"/>
+                                                                    <color key="backgroundColor" name="BT-Primary"/>
+                                                                    <constraints>
+                                                                        <constraint firstAttribute="width" secondItem="Bxg-e2-jC0" secondAttribute="height" multiplier="1:1" id="6Nl-Lx-R92"/>
+                                                                    </constraints>
+                                                                    <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                    <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                                                    <state key="normal" image="ic_edit_tint"/>
+                                                                    <userDefinedRuntimeAttributes>
+                                                                        <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
+                                                                            <real key="value" value="5"/>
+                                                                        </userDefinedRuntimeAttribute>
+                                                                    </userDefinedRuntimeAttributes>
+                                                                    <connections>
+                                                                        <action selector="btnEditRowDidTap:" destination="-1" eventType="touchUpInside" id="dFN-k2-VY9"/>
+                                                                    </connections>
+                                                                </button>
                                                                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Qky-yD-S6s">
                                                                     <rect key="frame" x="0.0" y="0.0" width="48" height="48"/>
                                                                     <color key="backgroundColor" name="BT-Primary"/>
@@ -128,6 +147,7 @@
                                                                 </button>
                                                             </subviews>
                                                             <constraints>
+                                                                <constraint firstItem="Bxg-e2-jC0" firstAttribute="width" secondItem="Bxg-e2-jC0" secondAttribute="height" multiplier="1:1" id="F8w-JG-3XG"/>
                                                                 <constraint firstAttribute="height" constant="48" id="S5X-Ru-mu5"/>
                                                             </constraints>
                                                         </stackView>
@@ -262,6 +282,7 @@
         </view>
     </objects>
     <resources>
+        <image name="ic_edit_tint" width="24" height="24"/>
         <image name="icn_add_row" width="31.333333969116211" height="31.666666030883789"/>
         <image name="icn_asset_link" width="39.333332061767578" height="39.333332061767578"/>
         <image name="icn_close" width="30" height="30"/>

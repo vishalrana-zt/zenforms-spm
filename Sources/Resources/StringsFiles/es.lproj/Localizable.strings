@@ -16,6 +16,7 @@
 "lbl_Next" = "Próxima";
 "lbl_Select_Section" = "Seleccionar sección";
 "lbl_Section" = "Sección:";
+"lbl_Row" = "Fila actual:";
 "lbl_Clear" = "Clara";
 "lbl_Selet_color" = "Selecciona un color";
 "lbl_Black" = "Negra";
