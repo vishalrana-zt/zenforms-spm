@@ -129,10 +129,18 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
+       
+        let appearance = UIToolbarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .white
+        toolbar.standardAppearance = appearance
+        toolbar.scrollEdgeAppearance = appearance
+        toolbar.compactAppearance = appearance
+        
         let doneButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style:.plain, target: self, action: #selector(onDoneButtonTapped(sender:)))
+        
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         toolbar.setItems([flexibleSpace,doneButton], animated: false)
-        toolbar.barTintColor = UIColor.white
         
         let imgViewForDropDown = UIImageView()
         imgViewForDropDown.frame = CGRect(x: 0, y: 0, width: 30, height: 48)

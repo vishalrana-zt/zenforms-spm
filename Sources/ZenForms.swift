@@ -146,15 +146,6 @@ public final class ZenForms {
     }
     
     @MainActor  private class func setupKeyboard(){
-        let appearance = UIToolbarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .systemBackground
-        
-        UIToolbar.appearance().standardAppearance = appearance
-        UIToolbar.appearance().scrollEdgeAppearance = appearance
-        UIToolbar.appearance().compactAppearance = appearance
-        
-        
         IQKeyboardToolbarManager.shared.toolbarConfiguration.barTintColor = .systemBackground
         IQKeyboardManager.shared.keyboardDistance = 20
         IQKeyboardToolbarManager.shared.toolbarConfiguration.previousNextDisplayMode = .alwaysShow
