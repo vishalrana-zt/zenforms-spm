@@ -389,10 +389,12 @@ struct AssetFormLinkingDatabaseManager: FPDataBaseQueries {
         FPLocalDatabaseManager.shared.executeQuery(self.getFetchAssetLinkingForForm(customForm?.objectId, formLocalId: customForm?.sqliteId?.stringValue, formTemplateId: customForm?.templateId, isNotConfirmed: true) , dbManager: self, completionHandler: { results in
             for result in results {
                 debugPrint(result["sectionId"])
-                debugPrint(result["sectionLocalId"])
                 debugPrint( result["sectionLinking"])
+                debugPrint(result["sectionLocalId"])
+                debugPrint(result["sectionLocalId"] as? NSNumber)
+                debugPrint(result["sectionLocalId"] as? Int)
                 if result["sectionId"] == nil, result["sectionLinking"] as? Bool == true,  let sectionLocalId = result["sectionLocalId"] as? NSNumber{
-                    //delete locally created section  for not confirmed
+                    //delete locally created section for not confirmed
                     FPSectionDetailsDatabaseManager().deleteSectionDetails(for: sectionLocalId)
                 }
                 FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([self.getDeleteQuery(sqliteId: FPUtility.getNumberValue(result["sqliteId"]) ?? 0 )], dbManager: self) { success in }
