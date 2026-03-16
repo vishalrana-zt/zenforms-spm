@@ -410,7 +410,7 @@ class FPFormsServiceManager: NSObject {
      This function is used to save partial function api where we pass forms id, template Id and section object
      */
     
-    class func routeToPartialSaveCustomFormSection(ticketId: NSNumber, section: FPSectionDetails, form: FPForms, sectionIndex: Int, setSynced: Bool, assetLinkDetail:[String:Any]? = nil, completion: @escaping GetFormWithError) {
+    class func routeToPartialSaveCustomFormSection(ticketId: NSNumber, section: FPSectionDetails, justScannedSection:Bool = false, form: FPForms, sectionIndex: Int, setSynced: Bool, assetLinkDetail:[String:Any]? = nil, completion: @escaping GetFormWithError) {
         
         let assetdbMnger = AssetFormLinkingDatabaseManager()
         guard FPUtility.isConnectedToNetwork() else {
@@ -418,10 +418,12 @@ class FPFormsServiceManager: NSObject {
                 form.isSyncedToServer = false
                 section.isSyncedToServer = false
                 self.markFormUnsync(form: form, ticketId: ticketId, moduleId: FPFormMduleId) { _ in
-                    let results = assetdbMnger.fetchAssetLinkigDataFor(customForm: form)
-                    for linkdata in results {
-                        linkdata.isNotConfirmed = false
-                        assetdbMnger.upsert(item: linkdata) { _ in }
+                    if !justScannedSection{
+                        let results = assetdbMnger.fetchAssetLinkigDataFor(customForm: form)
+                        for linkdata in results {
+                            linkdata.isNotConfirmed = false
+                            assetdbMnger.upsert(item: linkdata) { _ in }
+                        }
                     }
                     section.moduleEntityLocalId = form.sqliteId
                     self.upsertDataForPartialSave(ticketId: ticketId, moduleId: FPFormMduleId, section: section) { form, error in
@@ -539,20 +541,24 @@ class FPFormsServiceManager: NSObject {
                     }
                 }
                 
-                let results = assetdbMnger.fetchAssetLinkigDataFor(customForm: form)
-                let formId = NSNumber(value: Int(formOnline.objectId ?? "") ?? 0)
-                
-                for linkdata in results {
-                    linkdata.customFormId = formId
-                    linkdata.isSyncedToServer = true
-                    linkdata.isNotConfirmed = false
+                if !justScannedSection{
+                    //after scanning a section, we should not update all linking
+                    let results = assetdbMnger.fetchAssetLinkigDataFor(customForm: form)
+                    let formId = NSNumber(value: Int(formOnline.objectId ?? "") ?? 0)
                     
-                    if linkdata.deleteLinking {
-                        assetdbMnger.deleteMappingData(linkdata) { _ in }
-                    } else {
-                        assetdbMnger.upsert(item: linkdata) { _ in }
+                    for linkdata in results {
+                        linkdata.customFormId = formId
+                        linkdata.isSyncedToServer = true
+                        linkdata.isNotConfirmed = false
+                        
+                        if linkdata.deleteLinking {
+                            assetdbMnger.deleteMappingData(linkdata) { _ in }
+                        } else {
+                            assetdbMnger.upsert(item: linkdata) { _ in }
+                        }
                     }
                 }
+                
                 updatedSection.moduleEntityLocalId = form.sqliteId
                 updatedSection.isSyncedToServer = true
                 self.upsertDataForPartialSave(ticketId: ticketId, moduleId: FPFormMduleId, section: updatedSection) { form, error in

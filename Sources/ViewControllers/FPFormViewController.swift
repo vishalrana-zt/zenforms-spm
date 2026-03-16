@@ -874,7 +874,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         self.continuePartialSave(
                                             form:  FPFormDataHolder.shared.customForm!,
                                             isDismiss: false,
-                                            sectionIndex: self.section+1) { success in
+                                            sectionIndex: self.section+1,
+                                            justScannedSection: true) { success in
                                                 
                                             }
                                     }else{
@@ -1109,7 +1110,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
     }
     
-    func continuePartialSave(form:FPForms, isDismiss:Bool, sectionIndex:Int , completion: @escaping FPFormsServiceManager.successCompletionHandler){
+    func continuePartialSave(form:FPForms, isDismiss:Bool, sectionIndex:Int, justScannedSection:Bool = false , completion: @escaping FPFormsServiceManager.successCompletionHandler){
         if FPUtility.isConnectedToNetwork(),  form.isSyncedToServer == false{
             self.saveForm(isDismiss: isDismiss, isRefreshForm: true) { status in
                 completion(status)
@@ -1126,7 +1127,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                             return
                         }
                         FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { assetLinkJson in
-                            FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { form, error in
+                            FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, justScannedSection: justScannedSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { form, error in
                                 if error == nil {
                                     DispatchQueue.main.async {
                                         self.stopLoadings()
