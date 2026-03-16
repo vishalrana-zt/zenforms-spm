@@ -129,13 +129,16 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
-       
+        toolbar.isTranslucent = false
+
         let appearance = UIToolbarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .white
         toolbar.standardAppearance = appearance
         toolbar.scrollEdgeAppearance = appearance
         toolbar.compactAppearance = appearance
+        
+        txtFieldSection.iq.toolbar.isHidden = true
         
         let doneButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style:.plain, target: self, action: #selector(onDoneButtonTapped(sender:)))
         
