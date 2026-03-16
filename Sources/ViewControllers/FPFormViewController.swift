@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
 import Photos
 import PhotosUI
 internal import IQKeyboardManagerSwift
+internal import IQKeyboardToolbarManager
 import SwiftUI
 
 protocol FPCollectionCellDelegate{
@@ -138,7 +139,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         toolbar.scrollEdgeAppearance = appearance
         toolbar.compactAppearance = appearance
         
-        txtFieldSection.iq.toolbar.isHidden = true
         
         let doneButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style:.plain, target: self, action: #selector(onDoneButtonTapped(sender:)))
         
@@ -150,7 +150,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         imgViewForDropDown.image = UIImage(named: "ic_down_arrow_black")
         txtFieldSection.text = FPUtility.getSQLiteCompatibleStringValue(FPFormDataHolder.shared.getFormSections().first?.displayName ?? "", isForLocal: false)
         lblCurrentSectionName.text = txtFieldSection.text
-        txtFieldSection.iq.toolbar.isHidden = true
         if(FPFormDataHolder.shared.getSectionCount()>1) {
             addSectionPicker()
         }else{
@@ -322,14 +321,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         super.viewWillAppear(animated)
         FPFormsServiceManager.getZenFormConstants()
         setupNavBar()
-        IQKeyboardManager.shared.isEnabled = true
-        IQKeyboardManager.shared.enableAutoToolbar = true
+        IQKeyboardManager.shared.isEnabled = false
+        IQKeyboardToolbarManager.shared.isEnabled = false
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         IQKeyboardManager.shared.isEnabled = false
-        IQKeyboardManager.shared.enableAutoToolbar = false
+        IQKeyboardToolbarManager.shared.isEnabled = false
     }
     
     deinit {
