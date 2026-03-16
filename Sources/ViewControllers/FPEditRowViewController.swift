@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
 import Photos
 import PhotosUI
 internal import IQKeyboardManagerSwift
+internal import IQKeyboardToolbarManager
 import SwiftUI
 internal import ZTExpressionEngine
 

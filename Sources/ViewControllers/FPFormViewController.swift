@@ -71,6 +71,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
 
     private let util = FPUtility()
     
+    private let sectionToolbar = UIToolbar()
+    
     var shownAlertForPull = 0
     var section = 0
     var previousSection = -1
@@ -126,24 +128,27 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         txtFieldSection.isUserInteractionEnabled = true
     }
     
+    
+   
+    
     fileprivate func setupDropDownView() {
         
-        let toolbar = UIToolbar()
-        toolbar.sizeToFit()
-        toolbar.isTranslucent = false
+        
+        sectionToolbar.sizeToFit()
+        sectionToolbar.isTranslucent = false
 
         let appearance = UIToolbarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = .white
-        toolbar.standardAppearance = appearance
-        toolbar.scrollEdgeAppearance = appearance
-        toolbar.compactAppearance = appearance
+        sectionToolbar.standardAppearance = appearance
+        sectionToolbar.scrollEdgeAppearance = appearance
+        sectionToolbar.compactAppearance = appearance
         
         
         let doneButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style:.plain, target: self, action: #selector(onDoneButtonTapped(sender:)))
         
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
-        toolbar.setItems([flexibleSpace,doneButton], animated: false)
+        sectionToolbar.setItems([flexibleSpace,doneButton], animated: false)
         
         let imgViewForDropDown = UIImageView()
         imgViewForDropDown.frame = CGRect(x: 0, y: 0, width: 30, height: 48)
@@ -155,7 +160,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }else{
             txtFieldSection.isUserInteractionEnabled = false
         }
-        self.txtFieldSection.inputAccessoryView = toolbar
+        self.txtFieldSection.inputAccessoryView = sectionToolbar
     }
     
     func registerKeyBoardNotification() {
@@ -321,8 +326,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         super.viewWillAppear(animated)
         FPFormsServiceManager.getZenFormConstants()
         setupNavBar()
-        IQKeyboardManager.shared.isEnabled = false
-        IQKeyboardToolbarManager.shared.isEnabled = false
+        IQKeyboardManager.shared.isEnabled = true
+        IQKeyboardToolbarManager.shared.isEnabled = true
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -1554,6 +1559,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
 extension FPFormViewController: UITextFieldDelegate{
     func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
         if textField == txtFieldSection{
+            textField.inputAccessoryView = sectionToolbar
+            textField.reloadInputViews()
             self.previousSection = self.section
             pickerView?.selectRow(self.section, inComponent: 0, animated: true)
             self.btnNext.updateInteraction(isEnabled: false)
