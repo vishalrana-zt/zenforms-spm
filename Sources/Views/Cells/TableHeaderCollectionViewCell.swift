@@ -29,8 +29,10 @@ class TableHeaderCollectionViewCell: UICollectionViewCell {
         super.awakeFromNib()
         title.adjustsFontSizeToFitWidth = true
         viewExpand.isHidden = true
-        let expandImage = UIImage(systemName: "chevron.up.chevron.down")
-        btnExpand.setImage(expandImage, for: .normal)
+        let expandImage = UIImage(systemName: "arrow.down.left.and.arrow.up.right")
+        let config = UIImage.SymbolConfiguration(pointSize: 10, weight: .medium) // ~70% of default size
+        let scaledImage = expandImage?.withConfiguration(config)
+        btnExpand.setImage(scaledImage, for: .normal)
         btnExpand.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
         btnExpand.addTarget(self, action: #selector(expandButtonTapped), for: .touchUpInside)
     }
