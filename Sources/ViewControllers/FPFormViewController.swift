@@ -2110,17 +2110,20 @@ extension FPFormViewController  {
                 self.checkPermissionAndShowCamera()
             }
         }
-        
+        cameraAction.setValue(FPUtility.make("camera"), forKey: "image")
+
         let documentAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Document"), style: .default) { action in
             self.showDocumentPicker()
         }
-        
+        documentAction.setValue(FPUtility.make("document.badge.plus"), forKey: "image")
+
         let sketchAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Sketch"), style: .default) { action in
             let viewController =  FPDrawViewController(nibName: "FPDrawViewController", bundle: ZenFormsBundle.bundle)
             viewController.delegate = self
             self.navigationController?.pushViewController(viewController, animated: true)
         }
-        
+        sketchAction.setValue(FPUtility.make("lasso"), forKey: "image")
+
         let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: nil)
         
         actionOptions.addAction(libraryAction)

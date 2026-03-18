@@ -49,6 +49,13 @@ class FPUtility : NSObject{
         
     }
     
+    class func make(_ systemName: String, color: UIColor = .systemBlue) -> UIImage? {
+        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+
+        return UIImage(systemName: systemName, withConfiguration: config)?
+            .withTintColor(color, renderingMode: .alwaysOriginal)
+    }
+    
     static func getAppVersion() -> String {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
