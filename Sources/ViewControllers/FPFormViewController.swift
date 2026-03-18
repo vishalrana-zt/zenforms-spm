@@ -2102,7 +2102,8 @@ extension FPFormViewController  {
         let libraryAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Library"), style: .default) { action in
             self.checkPermissionAndShowPhotoLibrary()
         }
-        
+        libraryAction.setValue(FPUtility.make("photo.stack"), forKey: "image")
+
         let cameraAction = UIAlertAction(title:  FPLocalizationHelper.localize("lbl_Camera"), style: .default) { action in
             if !UIImagePickerController.isSourceTypeAvailable(.camera) {
                 FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: FPLocalizationHelper.localize("No_Camera"))
