@@ -975,6 +975,7 @@ class FPFormsServiceManager: NSObject {
         params["ticketId"] = ticketId
         let formIds = forms.compactMap({$0.objectId})
         params["fpFormIds"] = formIds
+        params["deleteDeficiencies"] = true
         if showLoader{
             DispatchQueue.main.async {
                 FPUtility.showHUDWithDeleteMessage()
