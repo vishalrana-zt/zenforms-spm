@@ -333,8 +333,8 @@ public final class ZenForms {
         FPFormsServiceManager.upsertInspectionFormsFor(ticketId: ticketId, forms: inspectionForms, completion: completion)
     }
 
-    public class func deleteFPForms(ticketId: NSNumber, forms: [FPForms], showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
-        FPFormsServiceManager.deleteCustomForms(ticketId: ticketId, forms: forms, showLoader: showLoader, completion: completion)
+    public class func deleteFPForms(ticketId: NSNumber, forms: [FPForms], deleteDeficiencies:Bool, showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
+        FPFormsServiceManager.deleteCustomForms(ticketId: ticketId, forms: forms, deleteDeficiencies: deleteDeficiencies, showLoader: showLoader, completion: completion)
     }
     
     public class func downloadFPForm(ticketId: NSNumber, showLoader: Bool, params: [String:Any], completion: @escaping(_ strUrl: String?, Error?) -> ()) {

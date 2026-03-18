@@ -970,12 +970,12 @@ class FPFormsServiceManager: NSObject {
         return (fpformArray, deletedArray)
     }
     
-    class func deleteCustomForms(ticketId: NSNumber, forms: [FPForms], showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
+    class func deleteCustomForms(ticketId: NSNumber, forms: [FPForms], deleteDeficiencies:Bool, showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
         var params = [String: Any]()
         params["ticketId"] = ticketId
         let formIds = forms.compactMap({$0.objectId})
         params["fpFormIds"] = formIds
-        params["deleteDeficiencies"] = true
+        params["deleteDeficiencies"] = deleteDeficiencies
         if showLoader{
             DispatchQueue.main.async {
                 FPUtility.showHUDWithDeleteMessage()
