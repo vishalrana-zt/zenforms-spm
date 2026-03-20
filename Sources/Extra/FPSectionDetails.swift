@@ -51,10 +51,15 @@ public class FPSectionDetails: NSObject {
         self.moduleEntityStringId = FPUtility.getSQLiteCompatibleStringValue(json["moduleEntityId"], isForLocal: isForLocal)
         self.sortPosition = FPUtility.getSQLiteCompatibleStringValue(json["sortPosition"], isForLocal: isForLocal)
         if let array = FPUtility.getArrayValue(json["fields"]) as? [[String:Any]] {
+            var parsedFields: [FPFieldDetails] = []
+            parsedFields.reserveCapacity(array.count)
+
             for item in array {
-                let fieldItem = FPFieldDetails.init(json: item, isForLocal: isForLocal)
-                self.fields.append(fieldItem)
+                parsedFields.append(
+                    FPFieldDetails(json: item, isForLocal: isForLocal)
+                )
             }
+            self.fields = parsedFields
         }
         self.createdAt = FPUtility.getSQLiteCompatibleStringValue(json["createdAt"], isForLocal: isForLocal)
         self.updatedAt = FPUtility.getSQLiteCompatibleStringValue(json["updatedAt"], isForLocal: isForLocal)
@@ -93,7 +98,9 @@ public class FPSectionDetails: NSObject {
         json["moduleId"] = self.moduleId
         json["sortPosition"] = self.sortPosition
         var array = [[String:Any]]()
-        for item in self.fields {
+        array.reserveCapacity(fields.count)
+
+        for item in fields {
             array.append(item.getJSON())
         }
         json["fields"] = array
@@ -127,11 +134,15 @@ public class FPSectionDetails: NSObject {
         item.createdAt = FPUtility.getStringWithTZFormat(Date())
         item.updatedAt = item.createdAt
         item.locallyUpdatedAt = item.createdAt
-        var itemfields = [FPFieldDetails]()
-        for field in self.fields {
+        var itemfields: [FPFieldDetails] = []
+        itemfields.reserveCapacity(fields.count)
+
+        for field in fields {
             itemfields.append(field.copyFPFieldDetails(isTemplate))
         }
-        item.fields = itemfields.sorted(by:{$0.sortPosition ?? "" < $1.sortPosition ?? ""})
+        item.fields = itemfields.sorted {
+            ($0.sortPosition ?? "") < ($1.sortPosition ?? "")
+        }
         item.showSummary = self.showSummary
         item.sectionOptions = self.sectionOptions
         item.isHidden = self.isHidden

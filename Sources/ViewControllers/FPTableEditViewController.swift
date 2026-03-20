@@ -37,6 +37,8 @@ class FPTableEditViewController: UIViewController {
     private let headerCellReuseIdentifier = "TableHeaderCollectionViewCell"
     private let contentCellReuseIdentifier = "TableContentCollectionViewCell"
     
+    private let cardTransitionDelegate = CardTransitioningDelegate()
+    
     @IBOutlet weak var txtRowCount: UITextField!
     @IBOutlet weak var collectionView: UICollectionView!
     @IBOutlet weak var viewAddRow: UIView!
@@ -44,6 +46,7 @@ class FPTableEditViewController: UIViewController {
     @IBOutlet weak var mainBottomStk: UIStackView!
     @IBOutlet weak var stkOptions: UIStackView!
     
+    @IBOutlet weak var btnEditRow: UIButton!
     @IBOutlet weak var btnAssetLink: UIButton!
     @IBOutlet weak var btnDuplicate: UIButton!
     @IBOutlet weak var btnMultipleDeleteRows: UIButton!
@@ -180,18 +183,18 @@ class FPTableEditViewController: UIViewController {
         super.viewWillAppear(animated)
         self.registerAssetObservers()
         IQKeyboardManager.shared.isEnabled = true
-        IQKeyboardManager.shared.enableAutoToolbar = true
-        IQKeyboardManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_left_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
-        IQKeyboardManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_right_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
+        IQKeyboardToolbarManager.shared.isEnabled = true
+        IQKeyboardToolbarManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_left_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
+        IQKeyboardToolbarManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_right_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         NotificationCenter.default.removeObserver(self)
         IQKeyboardManager.shared.isEnabled = false
-        IQKeyboardManager.shared.enableAutoToolbar = false
-        IQKeyboardManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
-        IQKeyboardManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
+        IQKeyboardToolbarManager.shared.isEnabled = false
+        IQKeyboardToolbarManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
+        IQKeyboardToolbarManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
     }
     
     func registerAssetObservers(){
@@ -337,6 +340,102 @@ class FPTableEditViewController: UIViewController {
             self.linkAsset(at: childTableIndex, parentTableIndex: tableIndexPath)
         }
     }
+    @IBAction func btnEditRowDidTap(_ sender: UIButton) {
+        if let selIndex = self.arrSelectedIndexes.first {
+            openEditRow(forSection: selIndex.section) {
+                self.resetMultipleSeletion()
+            }
+        }
+    }
+
+    /// Opens FPEditRowViewController for the given collection view section (section 1 = first data row).
+    /// When sort/filter is applied, maps the visible section to the correct row index in the full table.
+    func openEditRow(forSection section: Int, completion: (() -> Void)? = nil) {
+        guard section >= 1 else { return }
+        let rowCount = tableComponent?.rows?.count ?? 0
+        let rowNo: Int
+        if isSortFilterApplied {
+            guard let filteredRow = sortFilteredTableComponent?.rows?[section - 1],
+                  let indexInFull = tableComponent?.rows?.firstIndex(where: { $0.sortUuid == filteredRow.sortUuid }),
+                  indexInFull >= 0, indexInFull < rowCount else {
+                return
+            }
+            rowNo = indexInFull
+        } else {
+            rowNo = section - 1
+            guard rowNo < rowCount else { return }
+        }
+        let vc = FPEditRowViewController(
+            nibName: "FPEditRowViewController",
+            bundle: ZenFormsBundle.bundle
+        )
+        vc.title = "Edit Row"
+        vc.tableIndexPath = tableIndexPath
+        vc.currentRowNo = rowNo
+        vc.tableComponent = tableComponent
+        vc.arrTblFormulas = arrTblFormulas
+        vc.isAutoCalculateEnabled = isAutoCalculateEnabled
+        vc.didEditedRows = { [weak self] tableComponent in
+            DispatchQueue.main.async {
+                self?.tableComponent = tableComponent
+                if self?.isSortFilterApplied == true {
+                    self?.reapplySortFilterAfterEdit()
+                } else {
+                    self?.collectionView.reloadData()
+                }
+            }
+        }
+        let nav = UINavigationController(rootViewController: vc)
+        nav.navigationBar.prefersLargeTitles = false
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            nav.modalPresentationStyle = .custom
+            nav.transitioningDelegate = cardTransitionDelegate
+        } else {
+            nav.modalPresentationStyle = .pageSheet
+            if let sheet = nav.sheetPresentationController {
+                sheet.detents = [.large()]
+                sheet.prefersGrabberVisible = true
+            }
+        }
+        present(nav, animated: true, completion: completion)
+    }
+
+    /// Re-applies current sort/filter to the updated tableComponent and refreshes the collection view. Call after edit when isSortFilterApplied.
+    private func reapplySortFilterAfterEdit() {
+        guard !arrAppliedFilters.isEmpty, tableComponent != nil else {
+            DispatchQueue.main.async { [weak self] in
+                self?.collectionView.reloadData()
+            }
+            return
+        }
+        let sortFilter = arrAppliedFilters.first(where: { $0.option != .filter })
+        let filterFilter = arrAppliedFilters.first(where: { $0.option == .filter })
+        if let sortFilter = sortFilter, sortFilterColumn != nil {
+            sortFilteredTableComponent = nil
+            applySortingToTable(option: sortFilter.option) { [weak self] sortedtbl in
+                guard let self = self else { return }
+                self.sortFilteredTableComponent = sortedtbl
+                if let filterFilter = filterFilter, let items = filterFilter.filterItems, !items.isEmpty, let col = self.sortFilterColumn {
+                    sortedtbl.filterData(component: sortedtbl, arrSelected: items, filterColumn: col) { filteredComponent in
+                        self.sortFilteredTableComponent = filteredComponent
+                        DispatchQueue.main.async { self.collectionView.reloadData() }
+                    }
+                } else {
+                    DispatchQueue.main.async { self.collectionView.reloadData() }
+                }
+            }
+        } else if let filterFilter = filterFilter, let items = filterFilter.filterItems, !items.isEmpty, let column = sortFilterColumn, let tbl = tableComponent {
+            tbl.filterData(component: tbl, arrSelected: items, filterColumn: column) { [weak self] filteredComponent in
+                self?.sortFilteredTableComponent = filteredComponent
+                DispatchQueue.main.async { self?.collectionView.reloadData() }
+            }
+        } else {
+            sortFilteredTableComponent = nil
+            DispatchQueue.main.async { [weak self] in
+                self?.collectionView.reloadData()
+            }
+        }
+    }
 }
 
 extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource {
@@ -358,12 +457,31 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             headerCell.imgMore.image =  UIImage(named: "icn_more", in: ZenFormsBundle.bundle, compatibleWith: nil)
             headerCell.imgMore.setImageColor(color: .black)
             headerCell.text = content
+            if indexPath.row == 0 {
+                headerCell.title.numberOfLines = 1
+                headerCell.title.adjustsFontSizeToFitWidth = true
+                headerCell.title.minimumScaleFactor = 0.5
+                headerCell.title.lineBreakMode = .byTruncatingTail
+            }
             headerCell.viewBtn.isHidden = isHideMore
             headerCell.btnActions.isHidden = isHideCHeckBoxHeader
             headerCell.btnActions.isSelected =  self.isSelectedAll
             headerCell.title.isHidden = !isHideCHeckBoxHeader
             headerCell.btnMore.addTarget(self, action: #selector(btnMoreClicked(sender:)), for: .touchUpInside)
             headerCell.btnActions.addTarget(self, action: #selector(btnHeaderActionClicked(sender:)), for: .touchUpInside)
+            let isSerialNumberRow = indexPath.row == 0 && indexPath.section > 0
+            let showExpandForRow = isSerialNumberRow
+            headerCell.viewExpand.isHidden = !showExpandForRow
+            if showExpandForRow {
+                headerCell.btnExpand.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+                headerCell.currentIndexPath = indexPath
+                headerCell.onExpandTapped = { [weak self] ip in
+                    self?.openEditRow(forSection: ip.section)
+                }
+            } else {
+                headerCell.currentIndexPath = nil
+                headerCell.onExpandTapped = nil
+            }
             if isSortFilterApplied == true, let index = arrAppliedFilters.firstIndex(where: { $0.indPath == indexPath}), let appliedFilter = arrAppliedFilters[safe: index]  {
                 if appliedFilter.option == .filter {
                     headerCell.imgMore.image = UIImage(named: "icn_filter", in: ZenFormsBundle.bundle, compatibleWith: nil)
@@ -466,14 +584,75 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             self.linkAsset(at: index, parentTableIndex: tableIndexPath)
         }
     }
+
     
-    func refreshActionButtons(){
-        stkOptions.isHidden = self.arrSelectedRows.count == 0
-        btnAssetLink.isHidden = true
-        btnDuplicate.isHidden = false
-        if isAssetEnabled, let isAssetTable = self.tableComponent?.tableOptions?.isAssetTable, isAssetTable{
-            btnAssetLink.isHidden  = self.arrSelectedRows.count > 1
-            btnDuplicate.isHidden = true
+    func refreshActionButtons(animated: Bool = true) {
+
+        let hasSelection = arrSelectedRows.count > 0
+
+        var shouldShowAssetLink = false
+        var shouldShowDuplicate = true
+        let shouldShowEditRow = false // Edit icon removed when checkbox/toolbar appears at bottom
+
+        if isAssetEnabled,
+           let isAssetTable = tableComponent?.tableOptions?.isAssetTable,
+           isAssetTable {
+
+            shouldShowAssetLink = arrSelectedRows.count == 1
+            shouldShowDuplicate = false
+        }
+
+        updateVisibility(
+            view: stkOptions,
+            hidden: !hasSelection,
+            animated: animated
+        )
+        
+        updateVisibility(
+            view: btnEditRow,
+            hidden: !shouldShowEditRow,
+            animated: animated
+        )
+
+        updateVisibility(
+            view: btnAssetLink,
+            hidden: !shouldShowAssetLink,
+            animated: animated
+        )
+
+        updateVisibility(
+            view: btnDuplicate,
+            hidden: !shouldShowDuplicate,
+            animated: animated
+        )
+    }
+    
+    private func updateVisibility(view: UIView, hidden: Bool, animated: Bool) {
+        guard view.isHidden != hidden else { return }
+
+        if animated {
+
+            if !hidden {
+                view.alpha = 0
+                view.isHidden = false
+            }
+
+            UIView.animate(
+                withDuration: 0.25,
+                delay: 0,
+                options: [.curveEaseInOut, .beginFromCurrentState],
+                animations: {
+                    view.alpha = hidden ? 0 : 1
+                    self.view.layoutIfNeeded()
+                },
+                completion: { _ in
+                    view.isHidden = hidden
+                }
+            )
+
+        } else {
+            view.isHidden = hidden
+            view.alpha = hidden ? 0 : 1
         }
     }
     
@@ -549,7 +728,7 @@ extension FPTableEditViewController{
         }
         let rightBarButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(rightBarButtonTapped))
         menu.navigationItem.rightBarButtonItem = rightBarButton
-//        menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
+        menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
         if isSortFilterApplied == true, let index = arrAppliedFilters.firstIndex(where: { $0.indPath == sortFilterColumnIndexPath}), let appliedFilter  = arrAppliedFilters[safe: index]{
             let strSort = appliedFilter.option == .ascending ? FPLocalizationHelper.localize("lbl_Ascending"): FPLocalizationHelper.localize("lbl_Descending")
             menu.setSelectedItems(items: [strSort]) {  (_, _, _, _) in }
@@ -633,7 +812,7 @@ extension FPTableEditViewController{
             }
             let rightBarButton = UIBarButtonItem(title:FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(rightBarButtonTapped))
             menu.navigationItem.rightBarButtonItem = rightBarButton
-//            menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
+            menu.navigationItem.rightBarButtonItem?.tintColor = UIColor(named: "BT-Primary")
             menu.tableView?.configureRSSelectionMenuTable()
             menu.setNavigationBar(title: FPLocalizationHelper.localize("lbl_Sort_Filter"), attributes: [NSAttributedString.Key.foregroundColor: isFromCoPILOT ? UIColor.white : UIColor.black], barTintColor: UIColor(named: "BT-Primary"), tintColor: isFromCoPILOT ? UIColor.white : UIColor.black)
             menu.onDismiss = { selectedItems in

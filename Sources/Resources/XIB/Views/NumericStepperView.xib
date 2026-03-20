@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0"
+ toolsVersion="21507" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none"
+ useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES"
+ colorMatched="YES">
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"
+            customClass="NumericStepperView">
+            <connections>
+                <outlet property="contentView" destination="contentView" id="contentViewOutlet"/>
+                <outlet property="minusButton" destination="minusButton" id="minusOutlet"/>
+                <outlet property="plusButton" destination="plusButton" id="plusOutlet"/>
+                <outlet property="textField" destination="textField" id="textFieldOutlet"/>
+            </connections>
+        </placeholder>
+
+        <view contentMode="scaleToFill" id="contentView">
+            <rect key="frame" x="0.0" y="0.0" width="240" height="44"/>
+            <subviews>
+
+                <stackView opaque="NO" contentMode="scaleToFill"
+                    axis="horizontal" distribution="fillEqually"
+                    alignment="fill" spacing="0" translatesAutoresizingMaskIntoConstraints="NO"
+                    id="stackView">
+
+                    <subviews>
+
+                        <button opaque="NO" contentMode="scaleToFill"
+                            horizontalHuggingPriority="251" verticalHuggingPriority="251"
+                            translatesAutoresizingMaskIntoConstraints="NO"
+                            id="minusButton">
+                            <state key="normal" title="−"/>
+                        </button>
+
+                        <textField opaque="NO" clipsSubviews="YES"
+                            contentMode="scaleToFill"
+                            horizontalHuggingPriority="250"
+                            verticalHuggingPriority="250"
+                            borderStyle="roundedRect"
+                            textAlignment="center"
+                            translatesAutoresizingMaskIntoConstraints="NO"
+                            id="textField">
+                            <rect key="frame" x="0.0" y="0.0" width="80" height="34"/>
+                        </textField>
+
+                        <button opaque="NO" contentMode="scaleToFill"
+                            horizontalHuggingPriority="251" verticalHuggingPriority="251"
+                            translatesAutoresizingMaskIntoConstraints="NO"
+                            id="plusButton">
+                            <state key="normal" title="+"/>
+                        </button>
+
+                    </subviews>
+                </stackView>
+
+            </subviews>
+
+            <constraints>
+                <constraint firstItem="stackView" firstAttribute="top"
+                    secondItem="contentView" secondAttribute="top" id="top"/>
+                <constraint firstItem="stackView" firstAttribute="bottom"
+                    secondItem="contentView" secondAttribute="bottom" id="bottom"/>
+                <constraint firstItem="stackView" firstAttribute="leading"
+                    secondItem="contentView" secondAttribute="leading" id="leading"/>
+                <constraint firstItem="stackView" firstAttribute="trailing"
+                    secondItem="contentView" secondAttribute="trailing" id="trailing"/>
+            </constraints>
+        </view>
+    </objects>
+</document>

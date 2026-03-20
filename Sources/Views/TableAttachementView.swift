@@ -26,7 +26,9 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
     var attachmentValue:String?
     private var mediaAdded:[SSMedia] = []
     private var mediaDeleted:[SSMedia] = []
-    var parentViewController:UIViewController?;
+    var parentViewController:UIViewController?
+    /// When true, no overlay is shown; action sheet is presented and onMediaSave is called once user picks a file (e.g. from Edit Row).
+    var directToSourceOnly: Bool = false
     static let instance = TableAttachementView()
     var previewMedia:SSMedia?
     
@@ -81,6 +83,65 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
             
         }
     }
+
+    /// Presents only the attachment source action sheet (Library/Camera/Document/Sketch). No Save/Cancel overlay. On selection, calls onMediaSave. Use from Edit Row.
+    func showAttachmentSourcePickerOnly(sourceView: UIView?) {
+        directToSourceOnly = true
+        tagListView.removeAllTags()
+        mediaAdded = []
+        mediaDeleted = []
+        if let data = attachmentValue?.getDictonary(), !data.isEmpty {
+            if let files = data["files"] as? [[String: Any]] {
+                files.forEach { file in
+                    let media = SSMedia(name: file["altText"] as? String ?? "", id: file["id"] as? String ?? "", mimeType: file["type"] as? String ?? "", serverUrl: file["file"] as? String ?? "", moduleType: .forms)
+                    mediaAdded.append(media)
+                }
+            }
+            if let files = data["filesToUpload"] as? [[String: Any]] {
+                files.forEach { file in
+                    let media = SSMedia(name: file["altText"] as? String ?? "", mimeType: file["type"] as? String ?? "", filePath: file["localPath"] as? String ?? "", moduleType: .forms)
+                    mediaAdded.append(media)
+                }
+            }
+        }
+        let actionOptions = UIAlertController(title: FPLocalizationHelper.localize("lbl_attachment"), message: nil, preferredStyle: .actionSheet)
+        let libraryAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Library"), style: .default) { _ in self.checkPermissionAndShowPhotoLibrary() }
+        libraryAction.setValue(FPUtility.make("photo.stack"), forKey: "image")
+
+        let cameraAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Camera"), style: .default) { _ in
+            if !UIImagePickerController.isSourceTypeAvailable(.camera) {
+                FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: FPLocalizationHelper.localize("No_Camera"))
+            } else { self.checkPermissionAndShowCamera() }
+        }
+        cameraAction.setValue(FPUtility.make("camera"), forKey: "image")
+
+        let documentAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Document"), style: .default) { _ in self.showDocumentPicker() }
+        documentAction.setValue(FPUtility.make("document.badge.plus"), forKey: "image")
+
+        let sketchAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Sketch"), style: .default) { _ in
+            let vc = FPDrawViewController(nibName: "FPDrawViewController", bundle: ZenFormsBundle.bundle)
+            vc.delegate = self
+            self.parentViewController?.navigationController?.pushViewController(vc, animated: true)
+        }
+        sketchAction.setValue(FPUtility.make("lasso"), forKey: "image")
+
+        actionOptions.addAction(libraryAction)
+        actionOptions.addAction(cameraAction)
+        actionOptions.addAction(documentAction)
+        actionOptions.addAction(sketchAction)
+        actionOptions.addAction(UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style: .cancel))
+        if let popover = actionOptions.popoverPresentationController {
+            popover.sourceView = sourceView ?? parentViewController?.view
+            popover.sourceRect = sourceView?.bounds ?? CGRect(x: 0, y: 0, width: 1, height: 1)
+        }
+        parentViewController?.present(actionOptions, animated: true)
+    }
+
+    private func flushDirectSaveIfNeeded() {
+        guard directToSourceOnly else { return }
+        directToSourceOnly = false
+        delegate?.onMediaSave(mediaAdded: mediaAdded, mediaDeleted: mediaDeleted)
+    }
     
     @IBAction func didTapCancel(_ sender: Any) {
         contentView.removeFromSuperview()
@@ -102,7 +163,8 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
         let libraryAction = UIAlertAction(title:FPLocalizationHelper.localize("lbl_Library"), style: .default) { action in
             self.checkPermissionAndShowPhotoLibrary()
         }
-        
+        libraryAction.setValue(FPUtility.make("photo.stack"), forKey: "image")
+
         let cameraAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Camera"), style: .default) { action in
             if !UIImagePickerController.isSourceTypeAvailable(.camera) {
                 FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: FPLocalizationHelper.localize("No_Camera"))
@@ -110,17 +172,20 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
                 self.checkPermissionAndShowCamera()
             }
         }
-        
+        cameraAction.setValue(FPUtility.make("camera"), forKey: "image")
+
         let documentAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Document"), style: .default) { action in
             self.showDocumentPicker()
         }
-        
+        documentAction.setValue(FPUtility.make("document.badge.plus"), forKey: "image")
+
         let sketchAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Sketch"), style: .default) { action in
             let viewController =  FPDrawViewController(nibName: "FPDrawViewController", bundle: ZenFormsBundle.bundle)
             viewController.delegate = self
             self.parentViewController?.navigationController?.pushViewController(viewController, animated: true)
         }
-        
+        sketchAction.setValue(FPUtility.make("lasso"), forKey: "image")
+
         let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: nil)
         
         actionOptions.addAction(libraryAction)
@@ -128,7 +193,7 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
         actionOptions.addAction(documentAction)
         actionOptions.addAction(sketchAction)
         actionOptions.addAction(cancelAction)
-        
+        actionOptions.applyLegacyActionSheetStyle()
         actionOptions.popoverPresentationController?.sourceView = sender ;
         self.parentViewController?.navigationController?.present(actionOptions, animated: true, completion: nil)
     }
@@ -253,6 +318,7 @@ extension TableAttachementView:  FPDrawHelper{
             self.mediaAdded.forEach { media in
                 tagListView.addTag(media.name)
             }
+            flushDirectSaveIfNeeded()
         } catch {
             print(error.localizedDescription)
         }
@@ -317,6 +383,7 @@ extension TableAttachementView: UIImagePickerControllerDelegate{
                 self.mediaAdded.forEach { media in
                     self.tagListView.addTag(media.name)
                 }
+                self.flushDirectSaveIfNeeded()
             }
         }
     }
@@ -385,6 +452,7 @@ extension TableAttachementView: PHPickerViewControllerDelegate{
                     self.mediaAdded.forEach { media in
                         self.tagListView.addTag(media.name)
                     }
+                    self.flushDirectSaveIfNeeded()
                 }
             }
         }
@@ -435,6 +503,7 @@ extension  TableAttachementView: UIDocumentPickerDelegate{
             self.mediaAdded.forEach { media in
                 self.tagListView.addTag(media.name)
             }
+            self.flushDirectSaveIfNeeded()
         }
     }
     
