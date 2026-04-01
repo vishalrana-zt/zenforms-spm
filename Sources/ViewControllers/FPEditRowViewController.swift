@@ -13,6 +13,7 @@ import UniformTypeIdentifiers
 import Photos
 import PhotosUI
 internal import IQKeyboardManagerSwift
+internal import IQKeyboardToolbarManager
 import SwiftUI
 internal import ZTExpressionEngine
 
@@ -68,13 +69,13 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         super.viewWillAppear(animated)
         setupNavBar()
         IQKeyboardManager.shared.isEnabled = true
-        IQKeyboardManager.shared.enableAutoToolbar = true
+        IQKeyboardToolbarManager.shared.isEnabled = true
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         IQKeyboardManager.shared.isEnabled = false
-        IQKeyboardManager.shared.enableAutoToolbar = false
+        IQKeyboardToolbarManager.shared.isEnabled = false
     }
     
     deinit {

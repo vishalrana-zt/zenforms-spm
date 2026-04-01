@@ -103,7 +103,7 @@ class FPQueAnsTableEditViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         IQKeyboardManager.shared.isEnabled = true
-        IQKeyboardManager.shared.enableAutoToolbar = true
+        IQKeyboardToolbarManager.shared.isEnabled = true
         IQKeyboardManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_left_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
         IQKeyboardManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_right_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
     }
@@ -112,9 +112,9 @@ class FPQueAnsTableEditViewController: UIViewController {
         super.viewWillDisappear(animated)
         NotificationCenter.default.removeObserver(self)
         IQKeyboardManager.shared.isEnabled = false
-        IQKeyboardManager.shared.enableAutoToolbar = false
-        IQKeyboardManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
-        IQKeyboardManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
+        IQKeyboardToolbarManager.shared.isEnabled = false
+        IQKeyboardToolbarManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
+        IQKeyboardToolbarManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
     }
     
     

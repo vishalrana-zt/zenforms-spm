@@ -176,7 +176,7 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("Cancel"), style: .cancel , handler:{_ in }))
-                
+        alert.applyLegacyActionSheetStyle()
         if UIDevice.current.userInterfaceIdiom == .phone {
             self.present(alert, animated: true) {
             }
@@ -258,7 +258,7 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("Cancel"), style: .cancel , handler:{_ in }))
-                
+        alert.applyLegacyActionSheetStyle()
         if UIDevice.current.userInterfaceIdiom == .phone {
             self.present(alert, animated: true) {
             }
@@ -306,6 +306,7 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
                 imagePicker.delegate = self
                 self.present(imagePicker, animated:true, completion:nil)
             })
+            cameraAction.setValue(FPUtility.make("camera"), forKey: "image")
             alert.addAction(cameraAction)
         }
         
@@ -315,16 +316,17 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
             imagePicker.delegate = self
             self.present(imagePicker, animated:true, completion:nil)
         })
+        libraryAction.setValue(FPUtility.make("photo.stack"), forKey: "image")
         alert.addAction(libraryAction)
         
         let whiteboardAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_White_Board"), style:.default, handler:{ action in
         })
+        whiteboardAction.setValue(FPUtility.make("pencil.and.scribble"), forKey: "image")
         alert.addAction(whiteboardAction)
         
-        let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style:.cancel, handler:{ (action:UIAlertAction!) in
-        })
+        let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style:.cancel, handler:{ _ in})
         alert.addAction(cancelAction)
-        
+        alert.applyLegacyActionSheetStyle()
         self.present(alert, animated:true, completion:nil)
     }
     

@@ -98,11 +98,25 @@ public class FPFieldDetails: NSObject {
     var files:[SSMedia]?
     var deletedFiles = [String]()
     
-    public var isSectionDuplicationField: Bool {
-        if self.options?.getDictonary()["isSectionDuplicationField"] as? Bool ?? false {
-            return true
+    private let util = FPUtility()
+    private lazy var cachedUIType: FPDynamicUITypes = resolveUIType()
+    
+    private var optionsDictionary: [String:Any]?
+    func getOptionsDictionary() -> [String:Any]? {
+
+        if let cached = optionsDictionary {
+            return cached
         }
-        return false
+
+        guard let options = options else { return nil }
+
+        let dict = options.getDictonary()
+        optionsDictionary = dict
+        return dict
+    }
+    
+    public var isSectionDuplicationField: Bool {
+        return getOptionsDictionary()?["isSectionDuplicationField"] as? Bool ?? false
     }
     
     public override init() {
@@ -119,7 +133,7 @@ public class FPFieldDetails: NSObject {
         self.sortPosition = FPUtility.getSQLiteCompatibleStringValue(json["sortPosition"], isForLocal: isForLocal)
         self.uiType = FPUtility.getSQLiteCompatibleStringValue(json["uiType"], isForLocal: isForLocal)
         self.dataType = FPUtility.getSQLiteCompatibleStringValue(json["dataType"], isForLocal: isForLocal)
-        self.defaultValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: json["defaultValue"], isForLocal: isForLocal)
+        self.defaultValue = util.getSQLiteSpecialCharsCompatibleString(value: json["defaultValue"], isForLocal: isForLocal)
         self.fieldDescription = FPUtility.getSQLiteCompatibleStringValue(json["description"], isForLocal: isForLocal)
         if let dict = json["options"] as? [String:Any] {
             let object = dict.getJson()
@@ -128,25 +142,27 @@ public class FPFieldDetails: NSObject {
         }else if let string = json["options"] as? String {
             self.options = FPUtility.getSQLiteCompatibleStringValue(string, isForLocal: isForLocal)
         }
-        if self.uiType == "TABLE"  || self.uiType == "TABLE_RESTRICTED"{
-            var attachmentColumns = [String]()
-            if let dictOptions = self.options?.getDictonary(), let columns = dictOptions["columns"] as? [[String:Any]]{
+        
+        let optionsDict = getOptionsDictionary()
+        if cachedUIType == .TABLE || cachedUIType == .TABLE_RESTRICTED {
+            var attachmentColumns: Set<String> = []
+
+            if let columns = optionsDict?["columns"] as? [[String:Any]]{
                 for column in columns {
                     if let columnType = column["uiType"] as? String, columnType == "ATTACHMENT"{
-                        attachmentColumns.append( column["name"] as? String ?? "")
+                        if let name = column["name"] as? String {
+                            attachmentColumns.insert(name)
+                        }
                     }
                 }
             }
             if let arrValue = json["value"] as? [[String: Any]] {
                 let dbArrValue = arrValue.map { dict in
                     var newDict = dict
-                    for i in newDict.values.indices {
-                        //ignore attachment columns
-                        if !self.isTableAttchmentColumn(strColumnName: newDict.keys[safe: i], attachmentColumns: attachmentColumns),
-                            let value = newDict.values[safe:i] as? String{
-                            newDict.values[i] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: true) ?? ""
-                        }else{
-                            newDict.values[i] = newDict.values[i]
+                    for (key, value) in newDict {
+                        if !attachmentColumns.contains(key),
+                           let str = value as? String {
+                            newDict[key] = util.getSQLiteSpecialCharsCompatibleString(value: str, isForLocal: true) ?? ""
                         }
                     }
                     return newDict
@@ -157,13 +173,10 @@ public class FPFieldDetails: NSObject {
                 if strValue.getArray().count > 0{
                     let dbArrValue = strValue.getArray().map { dict in
                         var newDict = dict
-                        for i in newDict.values.indices {
-                            //ignore attachment columns
-                            if !self.isTableAttchmentColumn(strColumnName: newDict.keys[safe: i], attachmentColumns: attachmentColumns),
-                                let value = newDict.values[safe:i] as? String{
-                                newDict.values[i] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: true) ?? ""
-                            }else{
-                                newDict.values[i] = newDict.values[i]
+                        for (key, value) in newDict {
+                            if !attachmentColumns.contains(key),
+                               let str = value as? String {
+                                newDict[key] = util.getSQLiteSpecialCharsCompatibleString(value: str, isForLocal: true) ?? ""
                             }
                         }
                         return newDict
@@ -174,8 +187,8 @@ public class FPFieldDetails: NSObject {
             } else {
                 self.value = ""
             }
-        } else if self.uiType == "BUTTON_RADIO" {
-            self.value = FPUtility().getSQLiteSpecialCharsCompatibleString(value: json["value"], isForLocal: isForLocal)
+        } else if cachedUIType == .BUTTON_RADIO {
+            self.value = util.getSQLiteSpecialCharsCompatibleString(value: json["value"], isForLocal: isForLocal)
             if let attachmentsValue = json["attachments"] as? [[String: Any]]{
                 //online
                 self.attachments = FPUtility.getSQLiteCompatibleStringValue(attachmentsValue.getJson(), isForLocal: isForLocal)
@@ -189,18 +202,18 @@ public class FPFieldDetails: NSObject {
                 self.attachments = nil
             }
 
-        } else if self.uiType == "CHECKBOX" {
+        } else if cachedUIType == .CHECKBOX {
             if let dict = json["value"] as? [String:Any] {
                 var newDict = dict
-                for i in newDict.values.indices {
-                    if let value = newDict.values[i] as? String{
-                        newDict.values[i] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: false) ?? ""
+                for (key, value) in newDict {
+                    if let str = value as? String {
+                        newDict[key] = util.getSQLiteSpecialCharsCompatibleString(value: str, isForLocal: false) ?? ""
                     }
                 }
                 let object = newDict.getJson()
                 self.value = FPUtility.getSQLiteCompatibleStringValue(object, isForLocal: isForLocal)
             }else {
-                self.value = FPUtility().getSQLiteSpecialCharsCompatibleString(value: json["value"], isForLocal: isForLocal)
+                self.value = util.getSQLiteSpecialCharsCompatibleString(value: json["value"], isForLocal: isForLocal)
             }
             if self.value == nil, let dict = (json["options"] as? String)?.getDictonary()["checkboxOptions"] as? [[String:Any]] {
                 var values: [String: Bool] = [:]
@@ -211,7 +224,7 @@ public class FPFieldDetails: NSObject {
                 }
                 self.value = values.getJson()
             }
-        } else if self.uiType == "ATTACHMENT" {
+        } else if cachedUIType == .FILE{ // "ATTACHMENT"
             if let array = json["value"] as? [[String:Any]] , !array.isEmpty {
                 self.value = array.getJson()
             } else if let array = (json["value"] as? String)?.getArray() as? [[String:Any]] , !array.isEmpty {
@@ -221,22 +234,22 @@ public class FPFieldDetails: NSObject {
             }else {
                 self.value = nil
             }
-        }else if self.uiType == "CHART" {
+        }else if cachedUIType == .CHART {
             if let dict = json["value"] as? [String:Any] {
                 var newDict = dict
-                for i in newDict.values.indices {
-                    if let value = newDict.values[i] as? String{
-                        newDict.values[i] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: false) ?? ""
+                for (key, value) in newDict {
+                    if let str = value as? String {
+                        newDict[key] = util.getSQLiteSpecialCharsCompatibleString(value: str, isForLocal: false) ?? ""
                     }
                 }
                 let object = newDict.getJson()
                 self.value = FPUtility.getSQLiteCompatibleStringValue(object, isForLocal: isForLocal)
             }else {
-                self.value = FPUtility().getSQLiteSpecialCharsCompatibleString(value: json["value"], isForLocal: isForLocal)
+                self.value = util.getSQLiteSpecialCharsCompatibleString(value: json["value"], isForLocal: isForLocal)
             }
         }
         else {
-            self.value = FPUtility().getSQLiteSpecialCharsCompatibleString(value: json["value"], isForLocal: isForLocal)
+            self.value = util.getSQLiteSpecialCharsCompatibleString(value: json["value"], isForLocal: isForLocal)
         }
         
         self.max = FPUtility.getNumberValue(json["max"])
@@ -295,12 +308,9 @@ public class FPFieldDetails: NSObject {
         
     }
     
-    func isTableAttchmentColumn(strColumnName:String?, attachmentColumns:[String]) -> Bool{
-        guard let strColumnName = strColumnName else { return false }
-        if attachmentColumns.contains(strColumnName){
-            return true
-        }
-        return false
+    func isTableAttchmentColumn(strColumnName: String?, attachmentColumns: Set<String>) -> Bool {
+        guard let name = strColumnName else { return false }
+        return attachmentColumns.contains(name)
     }
     
     func getJSON() -> [String:Any] {
@@ -315,15 +325,16 @@ public class FPFieldDetails: NSObject {
         json["description"] = self.fieldDescription
         json["defaultValue"] = ""
         if let value = self.defaultValue {
-            json["defaultValue"] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: false)
+            json["defaultValue"] = util.getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: false)
         }
         json["max"] = FPUtility.getStringValue(self.max)
         json["min"] = FPUtility.getStringValue(self.min)
         json["sectionId"] = self.sectionId
-        if self.uiType == "TABLE"  || self.uiType == "TABLE_RESTRICTED"{
+        if cachedUIType == .TABLE  || cachedUIType == .TABLE_RESTRICTED{
             // json["value"] = self.value?.getArray()
+            let optionsDict = getOptionsDictionary()
             var attachmentColumn = ""
-            if let dictOptions = self.options?.getDictonary(), let columns = dictOptions["columns"] as? [[String:Any]]{
+            if let columns = optionsDict?["columns"] as? [[String:Any]]{
                 for column in columns {
                     if let columnType = column["uiType"] as? String, columnType == "ATTACHMENT"{
                         attachmentColumn = column["name"] as? String ?? ""
@@ -333,9 +344,9 @@ public class FPFieldDetails: NSObject {
             var arrValues = [[String:Any]]()
             for arrValue in self.value?.getArray() ?? [] {
                 var newDict = arrValue
-                for i in newDict.values.indices {
-                    if let value = newDict.values[i] as? String{
-                        newDict.values[i] = FPUtility().fetchCompataibleSpecialCharsStringFromDB(strInput: value)
+                for (key, value) in newDict {
+                    if let str = value as? String {
+                        newDict[key] = util.fetchCompataibleSpecialCharsStringFromDB(strInput: str)
                     }
                 }
                 var updatedValue = newDict
@@ -348,16 +359,16 @@ public class FPFieldDetails: NSObject {
                 }
             }
             json["value"] = arrValues
-        } else if self.uiType == "BUTTON_RADIO" {
-            json["value"] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: self.value, isForLocal: false)
+        } else if cachedUIType == .BUTTON_RADIO {
+            json["value"] = util.getSQLiteSpecialCharsCompatibleString(value: self.value, isForLocal: false)
             var arrayReasons = [[:]]
             var isCustomTemplateAdded = false
             self.reasons?.getArray().forEach({ newDict in
                 
                 var dict = newDict
-                for i in dict.values.indices {
-                    if let value = dict.values[i] as? String{
-                        dict.values[i] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: false) ?? ""
+                for (key, value) in dict {
+                    if let str = value as? String {
+                        dict[key] = util.getSQLiteSpecialCharsCompatibleString(value: str, isForLocal: false) ?? ""
                     }
                 }
                 
@@ -413,11 +424,11 @@ public class FPFieldDetails: NSObject {
             deletedFiles.forEach { id in
                 if let array = self.attachments?.getArray()  {
                     let arr = array.filter {$0["id"] as? String != id}
-                    attachmentJson["file"] = array
+                    attachmentJson["file"] = arr //need to test this one
                 }
             }
             json["attachments"] = attachmentJson
-        } else if self.uiType == "ATTACHMENT" {
+        } else if cachedUIType == .FILE{ // "ATTACHMENT"
             var filesJson = [[String: Any]]()
             files?.forEach({ ssmedia in
                 if ssmedia.serverUrl != nil && ssmedia.serverUrl != "" && (ssmedia.id == nil || ssmedia.id == "") {
@@ -437,12 +448,12 @@ public class FPFieldDetails: NSObject {
                     self.value = arr.getJson()
                 }
             }
-        } else if self.uiType == "CHECKBOX"  || self.uiType == "CHART"{
+        } else if cachedUIType == .CHECKBOX  || cachedUIType == .CHART{
             var dict = self.value?.getDictonary()
             if dict != nil{
                 for i in dict!.values.indices {
                     if let value = dict!.values[i] as? String{
-                        dict!.values[i] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: false) ?? ""
+                        dict!.values[i] = util.getSQLiteSpecialCharsCompatibleString(value: value, isForLocal: false) ?? ""
                     }
                 }
                 json["value"] = dict
@@ -450,15 +461,20 @@ public class FPFieldDetails: NSObject {
         }else {
             json["value"] = ""
             if let value = self.value {
-                json["value"] = FPUtility().getSQLiteSpecialCharsCompatibleString(value: self.value, isForLocal: false)
+                json["value"] = util.getSQLiteSpecialCharsCompatibleString(value: self.value, isForLocal: false)
             }
         }
-        json["options"] = self.options?.getDictonary()
+        json["options"] = self.getOptionsDictionary()
         json["mandatory"] = NSNumber.init(value:self.mandatory)
         json["readonly"] = NSNumber.init(value:self.readOnly)
         return json
     }
+    
     func getUIType() -> FPDynamicUITypes {
+        return cachedUIType
+    }
+    
+    private func resolveUIType() -> FPDynamicUITypes {
         switch self.uiType {
         case "INPUT":
             return .INPUT
@@ -528,7 +544,9 @@ public class FPFieldDetails: NSObject {
     }
     func getDropdownOptions() -> [FPFieldOption] {
         var array = [FPFieldOption]()
-        guard let dict = self.options?.getDictonary(), let dropDownOptions = dict["dropdownOptions"] as? [[String:Any]] else {
+        let optionsDict = getOptionsDictionary()
+
+        guard let dropDownOptions = optionsDict?["dropdownOptions"] as? [[String:Any]] else {
             return array
         }
         for item in dropDownOptions  {
@@ -639,7 +657,12 @@ public class FPFieldDetails: NSObject {
     
     func getRadioOptions(inSection:Int,row:Int,uiType: FPDynamicUITypes) -> [FPFieldOption] {
         var array = [FPFieldOption]()
-        guard let dict = self.options?.getDictonary(), let radioOptions = (uiType == .CHECKBOX ? dict["checkboxOptions"] : dict["radioOptions"]) as? [[String:Any]] else {
+        let optionsDict = getOptionsDictionary()
+
+        guard let radioOptions =
+                (uiType == .CHECKBOX
+                 ? optionsDict?["checkboxOptions"]
+                 : optionsDict?["radioOptions"]) as? [[String:Any]] else {
             return array
         }
         for item in radioOptions  {

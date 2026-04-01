@@ -388,6 +388,12 @@ struct AssetFormLinkingDatabaseManager: FPDataBaseQueries {
     func fetchAndRemoveNotConfirmedAssetLinkingForForm(_ customForm: FPForms?){
         FPLocalDatabaseManager.shared.executeQuery(self.getFetchAssetLinkingForForm(customForm?.objectId, formLocalId: customForm?.sqliteId?.stringValue, formTemplateId: customForm?.templateId, isNotConfirmed: true) , dbManager: self, completionHandler: { results in
             for result in results {
+                if (result["sectionId"] == nil || result["sectionId"] is NSNull),
+                   result["sectionLinking"] as? Bool == true,
+                   let sectionLocalId = result["sectionLocalId"] as? NSNumber {
+                    //delete locally created section for not confirmed
+                    FPSectionDetailsDatabaseManager().deleteScannedNotSavedSection(for: sectionLocalId)
+                }
                 FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([self.getDeleteQuery(sqliteId: FPUtility.getNumberValue(result["sqliteId"]) ?? 0 )], dbManager: self) { success in }
             }
         })

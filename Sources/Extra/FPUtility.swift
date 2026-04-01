@@ -49,6 +49,13 @@ class FPUtility : NSObject{
         
     }
     
+    class func make(_ systemName: String, color: UIColor = .systemBlue) -> UIImage? {
+        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+
+        return UIImage(systemName: systemName, withConfiguration: config)?
+            .withTintColor(color, renderingMode: .alwaysOriginal)
+    }
+    
     static func getAppVersion() -> String {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
@@ -278,7 +285,7 @@ class FPUtility : NSObject{
 extension FPUtility {
     
     class func showErrorMessage(_ delegate:Any?, withTitle title:String?, withWarningMessage message:String?) {
-        let alert:UIAlertController = self.errorAlertController(title: title, message:message)
+        let alert = self.errorAlertController(title: title, message:message)
         DispatchQueue.main.async {
             self.topViewController()?.present(alert, animated:true, completion:nil)
         }
@@ -295,6 +302,7 @@ extension FPUtility {
             let cancel = UIAlertAction(title: negativeButton, style:.default, handler:negativeHandler)
             alert.addAction(cancel)
         }
+        alert.applyLegacyActionSheetStyle()
         return alert
     }
     
@@ -311,6 +319,7 @@ extension FPUtility {
             alert.addAction(ok)
         }
         
+        alert.applyLegacyActionSheetStyle()
         if (parentVC != nil) {
             DispatchQueue.main.async {
                 parentVC?.present(alert, animated:true, completion:alertPresentCompletion)
@@ -341,18 +350,19 @@ extension FPUtility {
             
             alert.addAction(cancel)
         }
-        
+        alert.applyLegacyActionSheetStyle()
         self.topViewController()?.present(alert, animated:true, completion:alertPresentCompletion)
         return alert
     }
     
     class func errorAlertController(title:String?, message:String?) -> UIAlertController {
         let alert = FPUtility.createAlertController(title: title,
-                                                    andMessage:message,
-                                                    withPositiveAction:FPLocalizationHelper.localize("OK"),
-                                                    andHandler:nil,
-                                                    withNegativeAction:nil,
-                                                    andHandler:nil)
+                                                  andMessage:message,
+                                                  withPositiveAction:FPLocalizationHelper.localize("OK"),
+                                                  andHandler:nil,
+                                                  withNegativeAction:nil,
+                                                  andHandler:nil)
+        alert.applyLegacyActionSheetStyle()
         return alert
     }
     
@@ -381,6 +391,7 @@ extension FPUtility {
     
     class func showAlertController(title:String?, message:String?, viewController:UIViewController?, completion: (()->Void)?) -> UIAlertController {
         let alert = self.errorAlertController(title: title, message:message)
+        alert.applyLegacyActionSheetStyle()
         if viewController != nil {
             viewController!.present(alert, animated:true, completion:completion)
         } else {
@@ -504,7 +515,7 @@ extension FPUtility {
             let okAction = UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default, handler: {_ in
             })
             alertController.addAction(okAction)
-            // show alert
+            alertController.applyLegacyActionSheetStyle()
             DispatchQueue.main.async {
                 self.topViewController()?.present(alertController, animated:true, completion:nil)
             }
@@ -1108,6 +1119,54 @@ extension UserDefaults{
         }
     }
     
+}
+
+extension UIAlertController {
+
+    func applyLegacyActionSheetStyle() {
+
+        view.tintColor = .systemBlue
+        
+        // MARK: - Title (iOS 16 style)
+        if let title = title {
+            let attributedTitle = NSAttributedString(
+                string: title,
+                attributes: [
+                    .font: UIFont.preferredFont(forTextStyle: .headline),
+                    .foregroundColor: UIColor.label
+                ]
+            )
+            setValue(attributedTitle, forKey: "attributedTitle")
+        }
+        
+        // MARK: - Message (iOS 16 style)
+        if let message = message {
+            let attributedMessage = NSAttributedString(
+                string: message,
+                attributes: [
+                    .font: UIFont.preferredFont(forTextStyle: .subheadline),
+                    .foregroundColor: UIColor.secondaryLabel
+                ]
+            )
+            setValue(attributedMessage, forKey: "attributedMessage")
+        }
+        
+        // MARK: - Button Styling (Safer Way)
+        actions.forEach { action in
+            switch action.style {
+            case .destructive:
+                // Keep system destructive red
+                action.setValue(UIColor.systemRed, forKey: "titleTextColor")
+                
+            case .cancel:
+                // iOS 16 cancel uses tintColor (not gray)
+                action.setValue(view.tintColor, forKey: "titleTextColor")
+                
+            default:
+                action.setValue(view.tintColor, forKey: "titleTextColor")
+            }
+        }
+    }
 }
 
 

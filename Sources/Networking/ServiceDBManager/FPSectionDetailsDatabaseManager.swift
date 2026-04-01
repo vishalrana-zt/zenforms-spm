@@ -498,6 +498,26 @@ struct FPSectionDetailsDatabaseManager: FPDataBaseQueries {
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([self.getDeleteQuery(for: sqlitId)], dbManager: self)
     }
     
+    func getFetchBySqLiteIdQuery(sqliteId: NSNumber?) -> String {
+        return """
+        SELECT * FROM \(FPSectionDetailsDatabaseManager.getTableName())
+        WHERE
+        \(FPColumn.sqliteId) = \(sqliteId ?? 0)
+        """
+    }
+    
+    func deleteScannedNotSavedSection(for sqlitId: NSNumber) {
+        FPLocalDatabaseManager.shared.executeQuery(self.getFetchBySqLiteIdQuery(sqliteId: sqlitId), dbManager: self,  completionHandler: { results in
+            if let item = results.first {
+                let localSection = FPSectionDetails(json: item, isForLocal: false)
+                if let id = localSection.sqliteId {
+                    localSection.fields = FPFieldDetailsDatabaseManager().fetchFieldDetails(for: id, FPFormMduleId)
+                }
+                deleteSectionDetails(forArray: [localSection])
+            }
+        })
+    }
+    
     func deleteSectionDetails(forArray sections: [FPSectionDetails]) {
         var sqliteIdArray = [String]()
         for item in sections {

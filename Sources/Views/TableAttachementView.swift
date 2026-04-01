@@ -106,17 +106,25 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
         }
         let actionOptions = UIAlertController(title: FPLocalizationHelper.localize("lbl_attachment"), message: nil, preferredStyle: .actionSheet)
         let libraryAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Library"), style: .default) { _ in self.checkPermissionAndShowPhotoLibrary() }
+        libraryAction.setValue(FPUtility.make("photo.stack"), forKey: "image")
+
         let cameraAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Camera"), style: .default) { _ in
             if !UIImagePickerController.isSourceTypeAvailable(.camera) {
                 FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: FPLocalizationHelper.localize("No_Camera"))
             } else { self.checkPermissionAndShowCamera() }
         }
+        cameraAction.setValue(FPUtility.make("camera"), forKey: "image")
+
         let documentAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Document"), style: .default) { _ in self.showDocumentPicker() }
+        documentAction.setValue(FPUtility.make("document.badge.plus"), forKey: "image")
+
         let sketchAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Sketch"), style: .default) { _ in
             let vc = FPDrawViewController(nibName: "FPDrawViewController", bundle: ZenFormsBundle.bundle)
             vc.delegate = self
             self.parentViewController?.navigationController?.pushViewController(vc, animated: true)
         }
+        sketchAction.setValue(FPUtility.make("lasso"), forKey: "image")
+
         actionOptions.addAction(libraryAction)
         actionOptions.addAction(cameraAction)
         actionOptions.addAction(documentAction)
@@ -155,7 +163,8 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
         let libraryAction = UIAlertAction(title:FPLocalizationHelper.localize("lbl_Library"), style: .default) { action in
             self.checkPermissionAndShowPhotoLibrary()
         }
-        
+        libraryAction.setValue(FPUtility.make("photo.stack"), forKey: "image")
+
         let cameraAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Camera"), style: .default) { action in
             if !UIImagePickerController.isSourceTypeAvailable(.camera) {
                 FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: FPLocalizationHelper.localize("No_Camera"))
@@ -163,17 +172,20 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
                 self.checkPermissionAndShowCamera()
             }
         }
-        
+        cameraAction.setValue(FPUtility.make("camera"), forKey: "image")
+
         let documentAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Document"), style: .default) { action in
             self.showDocumentPicker()
         }
-        
+        documentAction.setValue(FPUtility.make("document.badge.plus"), forKey: "image")
+
         let sketchAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Sketch"), style: .default) { action in
             let viewController =  FPDrawViewController(nibName: "FPDrawViewController", bundle: ZenFormsBundle.bundle)
             viewController.delegate = self
             self.parentViewController?.navigationController?.pushViewController(viewController, animated: true)
         }
-        
+        sketchAction.setValue(FPUtility.make("lasso"), forKey: "image")
+
         let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: nil)
         
         actionOptions.addAction(libraryAction)
@@ -181,7 +193,7 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
         actionOptions.addAction(documentAction)
         actionOptions.addAction(sketchAction)
         actionOptions.addAction(cancelAction)
-        
+        actionOptions.applyLegacyActionSheetStyle()
         actionOptions.popoverPresentationController?.sourceView = sender ;
         self.parentViewController?.navigationController?.present(actionOptions, animated: true, completion: nil)
     }

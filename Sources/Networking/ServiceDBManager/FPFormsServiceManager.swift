@@ -26,6 +26,8 @@ class FPFormsServiceManager: NSObject {
     
     static let serialQueueUpsertFPForms = DispatchQueue(label: "com.queue.serialQueueUpsertFPForms")
 
+    private static let fpformQueue = DispatchQueue(label: "com.fp.form.sync", qos: .userInitiated)
+    
     static let router = FPRouter<FPFormsApiName>()
     
     class func getComputedFields(ticketID:String){
@@ -408,21 +410,26 @@ class FPFormsServiceManager: NSObject {
      This function is used to save partial function api where we pass forms id, template Id and section object
      */
     
-    class func routeToPartialSaveCustomFormSection(ticketId: NSNumber, section: FPSectionDetails, form: FPForms, sectionIndex: Int, setSynced: Bool, assetLinkDetail:[String:Any]? = nil, completion: @escaping GetFormWithError) {
+    class func routeToPartialSaveCustomFormSection(ticketId: NSNumber, section: FPSectionDetails, justScannedSection:Bool = false, form: FPForms, sectionIndex: Int, setSynced: Bool, assetLinkDetail:[String:Any]? = nil, completion: @escaping GetFormWithError) {
+        
+        let assetdbMnger = AssetFormLinkingDatabaseManager()
         guard FPUtility.isConnectedToNetwork() else {
-            DispatchQueue.global(qos: .userInitiated).async {
+            fpformQueue.async {
                 form.isSyncedToServer = false
                 section.isSyncedToServer = false
                 self.markFormUnsync(form: form, ticketId: ticketId, moduleId: FPFormMduleId) { _ in
-                    let results = AssetFormLinkingDatabaseManager().fetchAssetLinkigDataFor(customForm: form)
-                    for linkdata in results{
-                        let updated = linkdata
-                        updated.isNotConfirmed = false
-                        AssetFormLinkingDatabaseManager().upsert(item: updated){  _ in }
+                    if !justScannedSection{
+                        let results = assetdbMnger.fetchAssetLinkigDataFor(customForm: form)
+                        for linkdata in results {
+                            linkdata.isNotConfirmed = false
+                            assetdbMnger.upsert(item: linkdata) { _ in }
+                        }
                     }
                     section.moduleEntityLocalId = form.sqliteId
                     self.upsertDataForPartialSave(ticketId: ticketId, moduleId: FPFormMduleId, section: section) { form, error in
-                        completion(form, error)
+                        DispatchQueue.main.async {
+                            completion(form, error)
+                        }
                     }
                 }
             }
@@ -449,170 +456,118 @@ class FPFormsServiceManager: NSObject {
            }
        }
         router.request(.updateCustomFormSection(params)) { (json, _data, response, _error ) in
-            DispatchQueue.global(qos: .userInitiated).async {
-                if _error == nil {
-                    guard let result = json?["result"] as? [String: Any] else {
-                        let tempError = FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong"))
-                        return
+            fpformQueue.async {
+                guard _error == nil else {
+                    FPUtility.hideHUD()
+                    DispatchQueue.main.async {
+                        completion(nil, _error)
                     }
-                    var updatedSection = section
-                    let formOnline = FPForms.init(dict: result, isForLocal: true)
-                    if let localSection = FPFormDataHolder.shared.getSection(at: sectionIndex){
-                        if let serverSection = formOnline.sections?.filter({$0.sortPosition == localSection.sortPosition} ).first as? FPSectionDetails{
-                            serverSection.sqliteId = localSection.sqliteId
+                    return
+                }
+               
+                guard let result = json?["result"] as? [String: Any] else {
+                    let tempError = FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong"))
+                    return
+                }
+                var updatedSection = section
+                let formOnline = FPForms.init(dict: result, isForLocal: true)
+                
+                if let localSection = FPFormDataHolder.shared.getSection(at: sectionIndex){
+                    if let serverSection = formOnline.sections?.first(where: { $0.sortPosition == localSection.sortPosition }) as? FPSectionDetails{
+                        serverSection.sqliteId = localSection.sqliteId
+                        
+                        // MARK: Reconcile local ↔ server fields safely
+                        var localByObjectId: [Int: NSNumber] = [:]
+                        var localBySortPosition: [String: NSNumber] = [:]
+                        
+                        localByObjectId.reserveCapacity(localSection.fields.count)
+                        localBySortPosition.reserveCapacity(localSection.fields.count)
+                        
+                        // Build lookup tables
+                        for field in localSection.fields {
+                            guard let sqliteId = field.sqliteId else { continue }
+                            if let objectId = field.objectId?.intValue {
+                                localByObjectId[objectId] = sqliteId
+                            }
+                            if let sort = field.sortPosition {
+                                localBySortPosition[sort] = sqliteId
+                            }
+                        }
+                        
+                        // Attach sqliteId to server fields
+                        for i in 0..<serverSection.fields.count {
                             
-                            // MARK: Reconcile local ↔ server fields safely
-                            // 1️⃣ Lookup tables from local
-                            var localByObjectId: [Int: NSNumber] = [:]
-                            var localBySortPosition: [Int: NSNumber] = [:]
-
-                            for field in localSection.fields {
-
-                                if let sqliteId = field.sqliteId {
-
-                                    // primary identity (after first sync)
-                                    if let objectId = field.objectId?.intValue {
-                                        localByObjectId[objectId] = sqliteId
-                                    }
-
-                                    // fallback identity (first sync)
-                                    let key = Int(field.sortPosition ?? "") ?? -1
-                                    localBySortPosition[key] = sqliteId
-                                }
-                            }
-
-                            // 2️⃣ Attach sqliteId to server fields
-                            serverSection.fields = serverSection.fields.map { field in
-                                var newField = field
-
-                                // Priority 1 → objectId match
-                                if let objectId = field.objectId?.intValue,
-                                   let sqliteId = localByObjectId[objectId] {
-
-                                    newField.sqliteId = sqliteId
-                                    return newField
-                                }
-
-                                // Priority 2 → first save fallback
-                                let key = Int(field.sortPosition ?? "") ?? -1
-                                if let sqliteId = localBySortPosition[key] {
-                                    newField.sqliteId = sqliteId
-                                }
-
-                                return newField
-                            }
+                            var field = serverSection.fields[i]
                             
-                            //make sure assetId field at last---
-                            var sectionFields = serverSection.fields
-                            if let index = sectionFields.firstIndex(where: {$0.getUIType() == .HIDDEN && $0.name == "assetId"}){
-                                sectionFields.append(sectionFields.remove(at: index))
+                            if let objectId = field.objectId?.intValue,
+                               let sqliteId = localByObjectId[objectId] {
+                                field.sqliteId = sqliteId
                             }
-                            serverSection.fields = sectionFields
-                            
-                            
-                            var sections = FPFormDataHolder.shared.sections ?? []
-                            // MARK: 1. Match by permanent identity (objectId)
-                            if let localObjectId = localSection.objectId,
-                               let idx = sections.firstIndex(where: { $0.objectId == localObjectId }) {
-                                sections[idx] = serverSection
-                                FPFormDataHolder.shared.sections = sections
-                                
+                            else if let sort = field.sortPosition,
+                                    let sqliteId = localBySortPosition[sort] {
+                                field.sqliteId = sqliteId
                             }
-                            // MARK: 2. First sync fallback (sortPosition)
-                            else if let sort = localSection.sortPosition,
-                               let idx = sections.firstIndex(where: { $0.sortPosition == sort }) {
-                                sections[idx] = serverSection
-                                FPFormDataHolder.shared.sections = sections
-                            }
-                            // MARK: 3. New section from server → INSERT (do NOT overwrite random index)
-                            else{
-                                sections.append(serverSection)
-                            }
-                            FPFormDataHolder.shared.sections = sections
-                            
-                            updatedSection = serverSection
+                            serverSection.fields[i] = field
+                        }
+                        
+                        
+                        //make sure assetId field at last---
+                        if let index = serverSection.fields.firstIndex(where: {
+                            $0.getUIType() == .HIDDEN && $0.name == "assetId"
+                        }) {
+                            let field = serverSection.fields.remove(at: index)
+                            serverSection.fields.append(field)
+                        }
+                        
+                        var sections = FPFormDataHolder.shared.sections ?? []
+                        var replaceIndex: Int?
+                        
+                        if let localObjectId = localSection.objectId {
+                            replaceIndex = sections.firstIndex { $0.objectId == localObjectId }
+                        }
+                        
+                        if replaceIndex == nil, let sort = localSection.sortPosition {
+                            replaceIndex = sections.firstIndex { $0.sortPosition == sort }
+                        }
+                        
+                        if let idx = replaceIndex {
+                            sections[idx] = serverSection
+                        } else {
+                            sections.append(serverSection)
+                        }
+                        FPFormDataHolder.shared.sections = sections
+                        
+                        updatedSection = serverSection
+                    }
+                }
+                
+                if !justScannedSection{
+                    //after scanning a section, we should not update all linking
+                    let results = assetdbMnger.fetchAssetLinkigDataFor(customForm: form)
+                    let formId = NSNumber(value: Int(formOnline.objectId ?? "") ?? 0)
+                    
+                    for linkdata in results {
+                        linkdata.customFormId = formId
+                        linkdata.isSyncedToServer = true
+                        linkdata.isNotConfirmed = false
+                        
+                        if linkdata.deleteLinking {
+                            assetdbMnger.deleteMappingData(linkdata) { _ in }
+                        } else {
+                            assetdbMnger.upsert(item: linkdata) { _ in }
                         }
                     }
-                    let results = AssetFormLinkingDatabaseManager().fetchAssetLinkigDataFor(customForm: form)
-                    for linkdata in results{
-                        let updated = linkdata
-                        updated.customFormId = NSNumber(value: Int(formOnline.objectId ?? "0") ?? 0)
-                        updated.isSyncedToServer = true
-                        updated.isNotConfirmed = false
-                        if linkdata.deleteLinking{
-                            AssetFormLinkingDatabaseManager().deleteMappingData(updated){  _ in }
-                        }else{
-                            AssetFormLinkingDatabaseManager().upsert(item: updated){  _ in }
-                        }
-                    }
-                    updatedSection.moduleEntityLocalId = form.sqliteId
-                    updatedSection.isSyncedToServer = true
-                    self.upsertDataForPartialSave(ticketId: ticketId, moduleId: FPFormMduleId, section: updatedSection) { form, error in
+                }
+                
+                updatedSection.moduleEntityLocalId = form.sqliteId
+                updatedSection.isSyncedToServer = true
+                self.upsertDataForPartialSave(ticketId: ticketId, moduleId: FPFormMduleId, section: updatedSection) { form, error in
+                    DispatchQueue.main.async {
                         completion(form, error)
                     }
-                } else {
-                    FPUtility.hideHUD()
-                    completion(nil, _error)
                 }
             }
         }
-    }
-    
-    func reconcileSectionFields(serverSection: inout FPSectionDetails, localSection: FPSectionDetails) {
-
-        // Attach section sqliteId
-        serverSection.sqliteId = localSection.sqliteId
-
-        guard !serverSection.fields.isEmpty else { return }
-
-        // MARK: Build lookup tables from LOCAL
-
-        var localByServerId: [NSNumber: NSNumber] = [:]
-        var localBySortPosition: [Int: NSNumber] = [:]
-
-        for localField in localSection.fields {
-
-            // 1️⃣ Permanent identity
-            if let serverId = localField.objectId{
-                localByServerId[serverId] = localField.sqliteId
-            }
-
-            // 2️⃣ Temporary identity (first sync)
-            let key = sortKey(localField.sortPosition)
-            localBySortPosition[key] = localField.sqliteId
-        }
-
-        // MARK: Attach sqliteId to SERVER fields
-
-        for index in serverSection.fields.indices {
-
-            let serverField = serverSection.fields[index]
-
-            // Priority 1 — Match by serverObjectId
-            if let serverId = serverField.objectId,
-               let sqliteId = localByServerId[serverId] {
-
-                serverSection.fields[index].sqliteId = sqliteId
-                continue
-            }
-
-            // Priority 2 — Fallback to sortPosition (first sync only)
-            let key = sortKey(serverField.sortPosition)
-
-            if let sqliteId = localBySortPosition[key] {
-                serverSection.fields[index].sqliteId = sqliteId
-            }
-            else {
-                // New field from backend
-                // leave sqliteId nil → will insert new row
-                debugPrint("🆕 Insert new field from server at sortPosition:", key)
-            }
-        }
-    }
-
-    
-    private func sortKey(_ value: String?) -> Int {
-        Int(value ?? "") ?? -1
     }
 
     
@@ -1015,11 +970,12 @@ class FPFormsServiceManager: NSObject {
         return (fpformArray, deletedArray)
     }
     
-    class func deleteCustomForms(ticketId: NSNumber, forms: [FPForms], showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
+    class func deleteCustomForms(ticketId: NSNumber, forms: [FPForms], deleteDeficiencies:Bool, showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
         var params = [String: Any]()
         params["ticketId"] = ticketId
         let formIds = forms.compactMap({$0.objectId})
         params["fpFormIds"] = formIds
+        params["deleteDeficiencies"] = deleteDeficiencies
         if showLoader{
             DispatchQueue.main.async {
                 FPUtility.showHUDWithDeleteMessage()

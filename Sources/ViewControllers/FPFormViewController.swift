@@ -14,6 +14,7 @@ import UniformTypeIdentifiers
 import Photos
 import PhotosUI
 internal import IQKeyboardManagerSwift
+internal import IQKeyboardToolbarManager
 import SwiftUI
 
 protocol FPCollectionCellDelegate{
@@ -68,7 +69,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     public var delegate: ZenFormsDelegate?
     public var linkingDelegate: ZenFormsAssetLinkingDelegate?
 
-
+    private let util = FPUtility()
+        
     var shownAlertForPull = 0
     var section = 0
     var previousSection = -1
@@ -124,21 +126,33 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         txtFieldSection.isUserInteractionEnabled = true
     }
     
+    
+   
+    
     fileprivate func setupDropDownView() {
+        
         
         let toolbar = UIToolbar()
         toolbar.sizeToFit()
+        toolbar.isTranslucent = false
+
+        let appearance = UIToolbarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .white
+        toolbar.standardAppearance = appearance
+        toolbar.scrollEdgeAppearance = appearance
+        toolbar.compactAppearance = appearance
+        
         let doneButton = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style:.plain, target: self, action: #selector(onDoneButtonTapped(sender:)))
+        
         let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         toolbar.setItems([flexibleSpace,doneButton], animated: false)
-        toolbar.barTintColor = UIColor.white
         
         let imgViewForDropDown = UIImageView()
         imgViewForDropDown.frame = CGRect(x: 0, y: 0, width: 30, height: 48)
         imgViewForDropDown.image = UIImage(named: "ic_down_arrow_black")
         txtFieldSection.text = FPUtility.getSQLiteCompatibleStringValue(FPFormDataHolder.shared.getFormSections().first?.displayName ?? "", isForLocal: false)
         lblCurrentSectionName.text = txtFieldSection.text
-        txtFieldSection.iq.toolbar.isHidden = true
         if(FPFormDataHolder.shared.getSectionCount()>1) {
             addSectionPicker()
         }else{
@@ -311,13 +325,13 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         FPFormsServiceManager.getZenFormConstants()
         setupNavBar()
         IQKeyboardManager.shared.isEnabled = true
-        IQKeyboardManager.shared.enableAutoToolbar = true
+        IQKeyboardToolbarManager.shared.isEnabled = true
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         IQKeyboardManager.shared.isEnabled = false
-        IQKeyboardManager.shared.enableAutoToolbar = false
+        IQKeyboardToolbarManager.shared.isEnabled = false
     }
     
     deinit {
@@ -356,7 +370,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         setupDropDownView()
         setUpTableView()
         handleSectionControlUI()
-        FPUtility().feedAssetLinkingIfAny(form: FPFormDataHolder.shared.customForm)
+        util.feedAssetLinkingIfAny(form: FPFormDataHolder.shared.customForm)
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -860,7 +874,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         self.continuePartialSave(
                                             form:  FPFormDataHolder.shared.customForm!,
                                             isDismiss: false,
-                                            sectionIndex: self.section+1) { success in
+                                            sectionIndex: self.section+1,
+                                            justScannedSection: true) { success in
                                                 
                                             }
                                     }else{
@@ -1095,7 +1110,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
     }
     
-    func continuePartialSave(form:FPForms, isDismiss:Bool, sectionIndex:Int , completion: @escaping FPFormsServiceManager.successCompletionHandler){
+    func continuePartialSave(form:FPForms, isDismiss:Bool, sectionIndex:Int, justScannedSection:Bool = false , completion: @escaping FPFormsServiceManager.successCompletionHandler){
         if FPUtility.isConnectedToNetwork(),  form.isSyncedToServer == false{
             self.saveForm(isDismiss: isDismiss, isRefreshForm: true) { status in
                 completion(status)
@@ -1112,7 +1127,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                             return
                         }
                         FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { assetLinkJson in
-                            FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { form, error in
+                            FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, justScannedSection: justScannedSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { form, error in
                                 if error == nil {
                                     DispatchQueue.main.async {
                                         self.stopLoadings()
@@ -1350,6 +1365,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         invalidNameAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                             self.showRenameCurrentSection()
                         })
+                        invalidNameAlert.applyLegacyActionSheetStyle()
                         self.present(invalidNameAlert, animated: true, completion: nil)
                     }else if textCount > 256{
                         let fileNameTooLongAlert = UIAlertController(title: FPLocalizationHelper.localize("error_dialog_title"),
@@ -1358,6 +1374,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         fileNameTooLongAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                             self.showRenameCurrentSection()
                         })
+                        fileNameTooLongAlert.applyLegacyActionSheetStyle()
                         self.present(fileNameTooLongAlert, animated: true, completion: nil)
                     }else{
                         FPFormDataHolder.shared.getFormSections()[safe:self.section]?.displayName = strName
@@ -1371,6 +1388,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     invalidNameAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                         self.showRenameCurrentSection()
                     })
+                    invalidNameAlert.applyLegacyActionSheetStyle()
                     self.present(invalidNameAlert, animated: true, completion: nil)
                 }
             }
@@ -1378,6 +1396,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         alertController.addAction(.init(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: { action in
             alertController.dismiss(animated: true)
         }))
+        alertController.applyLegacyActionSheetStyle()
         self.present(alertController, animated: true)
     }
     
@@ -1405,6 +1424,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         invalidNameAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                             self.showRenamePopup()
                         })
+                        invalidNameAlert.applyLegacyActionSheetStyle()
                         self.present(invalidNameAlert, animated: true, completion: nil)
                     }else if textCount > 256{
                         let fileNameTooLongAlert = UIAlertController(title: FPLocalizationHelper.localize("error_dialog_title"),
@@ -1413,6 +1433,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         fileNameTooLongAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                             self.showRenamePopup()
                         })
+                        fileNameTooLongAlert.applyLegacyActionSheetStyle()
                         self.present(fileNameTooLongAlert, animated: true, completion: nil)
                     }else{
                         self.customForm.name = strName
@@ -1434,6 +1455,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     invalidNameAlert.addAction(UIAlertAction(title: FPLocalizationHelper.localize("OK"), style: .default) { _ in
                         self.showRenamePopup()
                     })
+                    invalidNameAlert.applyLegacyActionSheetStyle()
                     self.present(invalidNameAlert, animated: true, completion: nil)
                 }
             }
@@ -1442,6 +1464,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         alertController.addAction(.init(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: { action in
             alertController.dismiss(animated: true)
         }))
+        alertController.applyLegacyActionSheetStyle()
         self.present(alertController, animated: true)
     }
     
@@ -1817,9 +1840,9 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
             datePmode = .dateAndTime
         }
         
-        var fieldValue = FPUtility().fetchCompataibleSpecialCharsStringFromDB(strInput: sectionItem.value ?? "")
+        var fieldValue = util.fetchCompataibleSpecialCharsStringFromDB(strInput: sectionItem.value ?? "")
         if self.isNew, let defaultVal = sectionItem.defaultValue, !defaultVal.trim.isEmpty, let val = sectionItem.value, val.trim.isEmpty{
-            fieldValue = FPUtility().fetchCompataibleSpecialCharsStringFromDB(strInput: defaultVal)
+            fieldValue = util.fetchCompataibleSpecialCharsStringFromDB(strInput: defaultVal)
         }
         let cell = tableView.dequeueReusableCell(withIdentifier: "FPInputFieldCell")
         cell?.backgroundColor = .clear
@@ -1899,7 +1922,7 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
             if arrDatasets.isEmpty{
                 isNoChartData = true
             }
-            linChartView =  FPUtility().renderSwiftChart(dictValue: dictValue, xLbls: arrXLablels)
+            linChartView =  util.renderSwiftChart(dictValue: dictValue, xLbls: arrXLablels)
         }else{
             isNoChartData = true
         }
@@ -2079,7 +2102,8 @@ extension FPFormViewController  {
         let libraryAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Library"), style: .default) { action in
             self.checkPermissionAndShowPhotoLibrary()
         }
-        
+        libraryAction.setValue(FPUtility.make("photo.stack"), forKey: "image")
+
         let cameraAction = UIAlertAction(title:  FPLocalizationHelper.localize("lbl_Camera"), style: .default) { action in
             if !UIImagePickerController.isSourceTypeAvailable(.camera) {
                 FPUtility.showErrorMessage(nil, withTitle: "", withWarningMessage: FPLocalizationHelper.localize("No_Camera"))
@@ -2087,17 +2111,20 @@ extension FPFormViewController  {
                 self.checkPermissionAndShowCamera()
             }
         }
-        
+        cameraAction.setValue(FPUtility.make("camera"), forKey: "image")
+
         let documentAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Document"), style: .default) { action in
             self.showDocumentPicker()
         }
-        
+        documentAction.setValue(FPUtility.make("document.badge.plus"), forKey: "image")
+
         let sketchAction = UIAlertAction(title: FPLocalizationHelper.localize("lbl_Sketch"), style: .default) { action in
             let viewController =  FPDrawViewController(nibName: "FPDrawViewController", bundle: ZenFormsBundle.bundle)
             viewController.delegate = self
             self.navigationController?.pushViewController(viewController, animated: true)
         }
-        
+        sketchAction.setValue(FPUtility.make("lasso"), forKey: "image")
+
         let cancelAction = UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style: .cancel, handler: nil)
         
         actionOptions.addAction(libraryAction)
@@ -2107,7 +2134,7 @@ extension FPFormViewController  {
         }
         actionOptions.addAction(sketchAction)
         actionOptions.addAction(cancelAction)
-        
+        actionOptions.applyLegacyActionSheetStyle()
         actionOptions.popoverPresentationController?.sourceView = sender
         self.navigationController?.present(actionOptions, animated: true, completion: nil)
     }

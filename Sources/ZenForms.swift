@@ -146,12 +146,13 @@ public final class ZenForms {
     }
     
     @MainActor  private class func setupKeyboard(){
+        IQKeyboardToolbarManager.shared.toolbarConfiguration.barTintColor = .systemBackground
         IQKeyboardManager.shared.keyboardDistance = 20
-        IQKeyboardManager.shared.toolbarConfiguration.previousNextDisplayMode = .alwaysShow
+        IQKeyboardToolbarManager.shared.toolbarConfiguration.previousNextDisplayMode = .alwaysShow
         IQKeyboardManager.shared.isEnabled = false
-        IQKeyboardManager.shared.enableAutoToolbar = false
+        IQKeyboardToolbarManager.shared.isEnabled = false
         IQKeyboardManager.shared.resignOnTouchOutside = true
-        IQKeyboardManager.shared.deepResponderAllowedContainerClasses  = [UITableView.self, UICollectionView.self, UIStackView.self, UIView.self, UIScrollView.self]
+        IQKeyboardToolbarManager.shared.deepResponderAllowedContainerClasses  = [UITableView.self, UICollectionView.self, UIStackView.self, UIView.self, UIScrollView.self]
     }
    
     public func syncZenForm(form:FPForms, syncDelegate: ZenFormsSyncAssetLinkingDelegate?, isAssetEnabled:Bool , completion: @escaping (_ success: Bool) -> ()){
@@ -332,8 +333,8 @@ public final class ZenForms {
         FPFormsServiceManager.upsertInspectionFormsFor(ticketId: ticketId, forms: inspectionForms, completion: completion)
     }
 
-    public class func deleteFPForms(ticketId: NSNumber, forms: [FPForms], showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
-        FPFormsServiceManager.deleteCustomForms(ticketId: ticketId, forms: forms, showLoader: showLoader, completion: completion)
+    public class func deleteFPForms(ticketId: NSNumber, forms: [FPForms], deleteDeficiencies:Bool, showLoader: Bool, completion: @escaping ((_ success: Bool, _ error: Error?) -> ())) {
+        FPFormsServiceManager.deleteCustomForms(ticketId: ticketId, forms: forms, deleteDeficiencies: deleteDeficiencies, showLoader: showLoader, completion: completion)
     }
     
     public class func downloadFPForm(ticketId: NSNumber, showLoader: Bool, params: [String:Any], completion: @escaping(_ strUrl: String?, Error?) -> ()) {
