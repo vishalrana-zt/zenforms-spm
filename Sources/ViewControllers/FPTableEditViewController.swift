@@ -47,6 +47,7 @@ class FPTableEditViewController: UIViewController {
     @IBOutlet weak var stkOptions: UIStackView!
     
     @IBOutlet weak var btnEditRow: UIButton!
+    @IBOutlet weak var btnBulkEdit: UIButton!
     @IBOutlet weak var btnAssetLink: UIButton!
     @IBOutlet weak var btnDuplicate: UIButton!
     @IBOutlet weak var btnMultipleDeleteRows: UIButton!
@@ -348,30 +349,72 @@ class FPTableEditViewController: UIViewController {
         }
     }
 
-    /// Opens FPEditRowViewController for the given collection view section (section 1 = first data row).
-    /// When sort/filter is applied, maps the visible section to the correct row index in the full table.
-    func openEditRow(forSection section: Int, completion: (() -> Void)? = nil) {
-        guard section >= 1 else { return }
+    @IBAction func btnBulkEditDidTap(_ sender: UIButton) {
+        openBulkEditFromCurrentSelection {
+            self.resetMultipleSeletion()
+        }
+    }
+
+    /// Maps a collection view data section to a 0-based index in `tableComponent.rows` (handles sort/filter).
+    func fullRowIndex(fromVisibleSection section: Int) -> Int? {
+        guard section >= 1 else { return nil }
         let rowCount = tableComponent?.rows?.count ?? 0
-        let rowNo: Int
         if isSortFilterApplied {
             guard let filteredRow = sortFilteredTableComponent?.rows?[section - 1],
                   let indexInFull = tableComponent?.rows?.firstIndex(where: { $0.sortUuid == filteredRow.sortUuid }),
                   indexInFull >= 0, indexInFull < rowCount else {
-                return
+                return nil
             }
-            rowNo = indexInFull
-        } else {
-            rowNo = section - 1
-            guard rowNo < rowCount else { return }
+            return indexInFull
         }
+        let rowNo = section - 1
+        guard rowNo < rowCount else { return nil }
+        return rowNo
+    }
+
+    /// Unique selected data rows as full-table indices (0-based), sorted ascending.
+    func uniqueSelectedFullRowIndices() -> [Int] {
+        var set = Set<Int>()
+        for ip in arrSelectedIndexes where ip.section >= 1 {
+            if let idx = fullRowIndex(fromVisibleSection: ip.section) {
+                set.insert(idx)
+            }
+        }
+        return set.sorted()
+    }
+
+    /// Opens bulk edit when at least two distinct rows are selected; uses smallest row index as the base row.
+    func openBulkEditFromCurrentSelection(completion: (() -> Void)? = nil) {
+        let indices = uniqueSelectedFullRowIndices()
+        guard indices.count >= 2 else { return }
+        presentRowEditor(fullRowIndices: indices, isBulkMode: true, completion: completion)
+    }
+
+    /// Opens FPEditRowViewController for the given collection view section (section 1 = first data row).
+    /// When sort/filter is applied, maps the visible section to the correct row index in the full table.
+    func openEditRow(forSection section: Int, completion: (() -> Void)? = nil) {
+        guard let rowNo = fullRowIndex(fromVisibleSection: section) else { return }
+        presentRowEditor(fullRowIndices: [rowNo], isBulkMode: false, completion: completion)
+    }
+
+    private func presentRowEditor(fullRowIndices: [Int], isBulkMode: Bool, completion: (() -> Void)? = nil) {
+        let sorted = fullRowIndices.sorted()
+        guard let baseRow = sorted.first,
+              let last = sorted.last,
+              let rowCount = tableComponent?.rows?.count,
+              baseRow >= 0,
+              last < rowCount else { return }
+
         let vc = FPEditRowViewController(
             nibName: "FPEditRowViewController",
             bundle: ZenFormsBundle.bundle
         )
-        vc.title = "Edit Row"
+        vc.title = isBulkMode ? FPLocalizationHelper.localize("lbl_Bulk_Edit") : "Edit Row"
         vc.tableIndexPath = tableIndexPath
-        vc.currentRowNo = rowNo
+        vc.currentRowNo = baseRow
+        vc.isBulkEditMode = isBulkMode
+        vc.bulkSelectedFullRowIndices = isBulkMode ? sorted : []
+        vc.columnApplyToAllByKey = [:]
         vc.tableComponent = tableComponent
         vc.arrTblFormulas = arrTblFormulas
         vc.isAutoCalculateEnabled = isAutoCalculateEnabled
@@ -602,6 +645,10 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             shouldShowDuplicate = false
         }
 
+        let shouldShowBulkEdit = uniqueSelectedFullRowIndices().count >= 2
+            && !isAnalysed
+            && !isFromHistory
+
         updateVisibility(
             view: stkOptions,
             hidden: !hasSelection,
@@ -611,6 +658,12 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         updateVisibility(
             view: btnEditRow,
             hidden: !shouldShowEditRow,
+            animated: animated
+        )
+
+        updateVisibility(
+            view: btnBulkEdit,
+            hidden: !shouldShowBulkEdit,
             animated: animated
         )
 

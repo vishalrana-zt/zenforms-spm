@@ -26,10 +26,20 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     @IBOutlet weak var btnNext: ZTLIBLoaderButton!
     @IBOutlet weak var txtRow: UITextField!
     @IBOutlet weak var lblCurrentRow: UILabel!
-   
+    @IBOutlet weak var lblRowTitle: UILabel!
+
     var tableComponent:TableComponent?
     var currentRowNo:Int = 0
     var tableIndexPath:IndexPath?
+
+    /// When true, uses `bulkSelectedFullRowIndices` and per-column apply switches; hides row navigation chrome.
+    var isBulkEditMode: Bool = false
+    /// Full table row indices (0-based), sorted ascending. Base row is `currentRowNo` (smallest index).
+    var bulkSelectedFullRowIndices: [Int] = []
+    /// Column key → apply edited value to all selected rows (default true when key absent).
+    var columnApplyToAllByKey: [String: Bool] = [:]
+
+    private var defaultRowTitleText: String?
 
     var attachmentIndex:IndexPath?
     var attachmentColumnData: ColumnData?
@@ -51,6 +61,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        defaultRowTitleText = lblRowTitle?.text
         initializeView()
     }
     override func viewWillAppear(_ animated: Bool) {
@@ -139,6 +150,16 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     func handleSectionControlUI(){
         self.stopLoadings()
         DispatchQueue.main.async {
+            if self.isBulkEditMode {
+                self.btnPrevious.isHidden = true
+                self.btnNext.isHidden = true
+                self.txtRow.isHidden = true
+                self.viewBottom.isHidden = true
+                self.tblRows.reloadData()
+                return
+            }
+            self.viewBottom.isHidden = false
+            self.txtRow.isHidden = false
             let rows = self.tableComponent?.rows ?? []
             if rows.count == 1{
                 self.btnPrevious.isHidden = true
@@ -163,6 +184,15 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     }
     
     func reflectCurrentRowOnUI(){
+        if isBulkEditMode {
+            lblRowTitle?.text = FPLocalizationHelper.localize("lbl_Selected_Rows")
+            let nums = bulkSelectedFullRowIndices.map { "\($0 + 1)" }.joined(separator: ", ")
+            lblCurrentRow.text = nums
+            return
+        }
+        if let t = defaultRowTitleText {
+            lblRowTitle?.text = t
+        }
         lblCurrentRow.text = "\(currentRowNo + 1)"
         txtRow.text = "\(currentRowNo + 1)"
     }
@@ -172,8 +202,79 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     @objc func saveButtonAction() {
         self.view.endEditing(true)
+        if isBulkEditMode {
+            applyBulkEditsToSelectedRows()
+            synchronizeTableComponentValuesFromRows()
+        }
         self.navigationController?.dismiss(animated: true) {
             self.didEditedRows?(self.tableComponent)
+        }
+    }
+
+    private func synchronizeTableComponentValuesFromRows() {
+        guard var comp = tableComponent else { return }
+        comp.values = comp.getValuesObject()
+        tableComponent = comp
+    }
+
+    /// Copies values from the base row (`currentRowNo`) to other selected rows per-column when the column toggle is ON.
+    private func applyBulkEditsToSelectedRows() {
+        guard var comp = tableComponent,
+              let rowsIn = comp.rows,
+              !bulkSelectedFullRowIndices.isEmpty else { return }
+        let baseRow = currentRowNo
+        guard baseRow >= 0, baseRow < rowsIn.count else { return }
+
+        var rows = rowsIn
+        let visibleColumns = rows[baseRow].columns.filter { $0.getUIType() != .HIDDEN }
+
+        for columnKey in visibleColumns.map(\.key) {
+            let applyAll = columnApplyToAllByKey[columnKey] ?? true
+            if !applyAll { continue }
+            guard let sourceColumn = rows[baseRow].columns.first(where: { $0.key == columnKey }),
+                  sourceColumn.readonly != true else { continue }
+
+            let isAttachment = sourceColumn.uiType == "ATTACHMENT"
+
+            for targetIdx in bulkSelectedFullRowIndices where targetIdx != baseRow && targetIdx < rows.count {
+                guard let tci = rows[targetIdx].columns.firstIndex(where: { $0.key == columnKey }) else { continue }
+                if rows[targetIdx].columns[tci].readonly == true { continue }
+                rows[targetIdx].columns[tci].value = sourceColumn.value
+            }
+
+            if isAttachment {
+                let targets = bulkSelectedFullRowIndices.filter { $0 != baseRow }
+                replicateAttachmentMediaCacheFromBase(columnKey: columnKey, baseRow: baseRow, targetRows: targets)
+            }
+        }
+
+        if isAutoCalculateEnabled, !arrTblFormulas.isEmpty {
+            for idx in bulkSelectedFullRowIndices where idx < rows.count {
+                if let col = rows[idx].columns.first {
+                    rows[idx] = processAutoCalculationFor(row: rows[idx], with: col)
+                }
+            }
+        }
+
+        comp.rows = rows
+        tableComponent = comp
+    }
+
+    private func replicateAttachmentMediaCacheFromBase(columnKey: String, baseRow: Int, targetRows: [Int]) {
+        guard let parentIdx = tableIndexPath else { return }
+        let baseSection = baseRow + 1
+        let caches = FPFormDataHolder.shared.tableMediaCache.filter {
+            $0.parentTableIndex == parentIdx && $0.childTableIndex?.section == baseSection && $0.key == columnKey
+        }
+        guard !caches.isEmpty else { return }
+        for target in targetRows {
+            let targetSection = target + 1
+            for tm in caches {
+                var copy = tm
+                let rowPart = tm.childTableIndex?.row ?? 0
+                copy.childTableIndex = IndexPath(row: rowPart, section: targetSection)
+                FPFormDataHolder.shared.addUpdateTableMediaCache(media: copy)
+            }
         }
     }
     
@@ -203,11 +304,18 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
             withIdentifier: "FPEditRowTableViewCell",
             for: indexPath
         ) as! FPEditRowTableViewCell
-        
+
+        let filtered = self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN}) ?? []
+        let column = filtered[safe: indexPath.row]
+        cell.showsBulkApplyToAllToggle = isBulkEditMode
+        cell.bulkApplyToAllIsOn = columnApplyToAllByKey[column?.key ?? ""] ?? true
+        cell.onBulkApplyToAllChanged = { [weak self] key, isOn in
+            self?.columnApplyToAllByKey[key] = isOn
+        }
         // Use 1-based section so TableMedia matches FPFormDataHolder convention (valueArray[section - 1])
         cell.childTableIndex = IndexPath(row: indexPath.row, section: currentRowNo + 1)
         cell.parentTableIndex = tableIndexPath
-        cell.data = self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN})[safe: indexPath.row]
+        cell.data = column
         cell.delegate = self
         return cell
     }

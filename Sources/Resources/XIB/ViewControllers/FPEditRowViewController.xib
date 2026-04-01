@@ -16,6 +16,7 @@
                 <outlet property="btnNext" destination="5Wl-Ua-quw" id="jnO-rS-hGX"/>
                 <outlet property="btnPrevious" destination="odh-Ih-M5C" id="OVY-Xw-JRo"/>
                 <outlet property="lblCurrentRow" destination="gcY-L2-OGl" id="Fhv-fu-HGD"/>
+                <outlet property="lblRowTitle" destination="tri-P8-7jb" id="out-lbl-row-title"/>
                 <outlet property="tblRows" destination="Ehb-JK-Sqi" id="zCq-hu-eZV"/>
                 <outlet property="txtRow" destination="YNE-vd-DGe" id="Rez-tX-HTc"/>
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>

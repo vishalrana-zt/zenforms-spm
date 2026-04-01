@@ -17,6 +17,9 @@
 "lbl_Select_Section" = "Seleccionar sección";
 "lbl_Section" = "Sección:";
 "lbl_Row" = "Fila actual:";
+"lbl_Selected_Rows" = "Filas seleccionadas:";
+"lbl_Bulk_Edit" = "Edición masiva";
+"lbl_Apply_column_to_all_rows" = "Aplicar esta columna a todas las filas seleccionadas al guardar";
 "lbl_Clear" = "Clara";
 "lbl_Selet_color" = "Selecciona un color";
 "lbl_Black" = "Negra";

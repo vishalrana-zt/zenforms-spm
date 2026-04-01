@@ -17,6 +17,9 @@
 "lbl_Select_Section" = "Select Section";
 "lbl_Section" = "Section:";
 "lbl_Row" = "Current Row:";
+"lbl_Selected_Rows" = "Selected Rows:";
+"lbl_Bulk_Edit" = "Bulk Edit";
+"lbl_Apply_column_to_all_rows" = "Apply this column to all selected rows when saving";
 "lbl_Clear" = "Clear";
 "lbl_Selet_color" = "Selet a color";
 "lbl_Black" = "Black";
