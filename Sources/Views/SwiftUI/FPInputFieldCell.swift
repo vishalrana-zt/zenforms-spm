@@ -65,10 +65,14 @@ struct FPInputFieldCell: View {
         VStack(alignment: .leading, spacing: 6) {
             if fieldItem.mandatory{
                 SwiftUI.Text(fetchAttributedString())
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }else{
                 SwiftUI.Text(fieldDisplayName)
                     .font(.headline)
                     .foregroundColor(Color("ZT-Black"))
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
             if showTextNumberAutoPopulateView(){
