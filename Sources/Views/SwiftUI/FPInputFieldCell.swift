@@ -66,12 +66,14 @@ struct FPInputFieldCell: View {
             if fieldItem.mandatory{
                 SwiftUI.Text(fetchAttributedString())
                     .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }else{
                 SwiftUI.Text(fieldDisplayName)
                     .font(.headline)
                     .foregroundColor(Color("ZT-Black"))
                     .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
             
@@ -108,9 +110,9 @@ struct FPInputFieldCell: View {
     }
     
     func fetchAttributedString() -> AttributedString {
-        let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 17, weight: .semibold), .foregroundColor: UIColor.black]
+        let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.black]
         let baseString =  NSAttributedString(string: " \(fieldDisplayName)", attributes: fontAttributes)
-        let colrattributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.red]
+        let colrattributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.red]
         let starString =  NSAttributedString(string: "*", attributes: colrattributes)
         let mutableString = NSMutableAttributedString(attributedString: starString)
         mutableString.append(baseString)
