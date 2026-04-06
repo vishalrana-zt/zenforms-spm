@@ -106,6 +106,7 @@ public class FPForms : NSObject{
         }
         
         self.ticketNumber = FPUtility.getNumberValue(dict["parentTicketId"])
+        self.ticketId = FPUtility.getNumberValue(dict["ticketId"])        
         self.isActive = dict["isActive"] as? Bool ?? false
         self.isDeleted = dict["isDeleted"] as? Bool ?? false
         
