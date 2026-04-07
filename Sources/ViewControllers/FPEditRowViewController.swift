@@ -28,6 +28,8 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     @IBOutlet weak var txtRow: UITextField!
     @IBOutlet weak var lblCurrentRow: UILabel!
     @IBOutlet weak var lblRowTitle: UILabel!
+    @IBOutlet weak var btnBulkRowInfo: UIButton!
+    @IBOutlet weak var viewBulkEditHeaderSpacer: UIView!
 
     var tableComponent:TableComponent?
     var currentRowNo:Int = 0
@@ -63,6 +65,9 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     override func viewDidLoad() {
         super.viewDidLoad()
         defaultRowTitleText = lblRowTitle?.text
+        viewBulkEditHeaderSpacer?.setContentHuggingPriority(UILayoutPriority(1), for: .horizontal)
+        viewBulkEditHeaderSpacer?.setContentCompressionResistancePriority(UILayoutPriority(1), for: .horizontal)
+        configureBulkRowInfoButton()
         initializeView()
     }
     override func viewWillAppear(_ animated: Bool) {
@@ -186,16 +191,64 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     func reflectCurrentRowOnUI(){
         if isBulkEditMode {
-            lblRowTitle?.text = FPLocalizationHelper.localize("lbl_Selected_Rows")
+            let count = bulkSelectedFullRowIndices.count
             let nums = bulkSelectedFullRowIndices.map { "\($0 + 1)" }.joined(separator: ", ")
-            lblCurrentRow.text = nums
+            let prefix = FPLocalizationHelper.localizeWith(args: [count], key: "msg_bulk_edit_row_summary_prefix")
+            let font = lblRowTitle?.font ?? .systemFont(ofSize: 17, weight: .semibold)
+            let summaryGrey = UIColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1)
+            let rowNumberBlue = UIColor(named: "BT-Primary") ?? .systemBlue
+            let muted = NSMutableAttributedString(string: prefix, attributes: [
+                .font: font,
+                .foregroundColor: summaryGrey
+            ])
+            muted.append(NSAttributedString(string: nums, attributes: [
+                .font: font,
+                .foregroundColor: rowNumberBlue
+            ]))
+            lblRowTitle?.attributedText = muted
+            lblRowTitle?.accessibilityLabel = FPLocalizationHelper.localizeWith(args: [count, nums], key: "msg_bulk_edit_row_summary")
+            lblRowTitle?.adjustsFontSizeToFitWidth = true
+            lblRowTitle?.minimumScaleFactor = 0.72
+            lblRowTitle?.textAlignment = .natural
+            lblRowTitle?.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            lblCurrentRow.isHidden = true
+            btnBulkRowInfo?.isHidden = false
             return
         }
+        btnBulkRowInfo?.isHidden = true
+        lblCurrentRow.isHidden = false
+        lblRowTitle?.attributedText = nil
+        lblRowTitle?.accessibilityLabel = nil
+        lblRowTitle?.adjustsFontSizeToFitWidth = false
+        lblRowTitle?.minimumScaleFactor = 1.0
+        lblRowTitle?.textAlignment = .natural
+        lblRowTitle?.setContentCompressionResistancePriority(.required, for: .horizontal)
         if let t = defaultRowTitleText {
             lblRowTitle?.text = t
         }
         lblCurrentRow.text = "\(currentRowNo + 1)"
         txtRow.text = "\(currentRowNo + 1)"
+    }
+
+    private func configureBulkRowInfoButton() {
+        guard let btn = btnBulkRowInfo else { return }
+        let base = UIImage(systemName: "info.circle")
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold, scale: .medium)
+        if let img = base?.applyingSymbolConfiguration(config) {
+            btn.setImage(img, for: .normal)
+        }
+        btn.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        btn.accessibilityLabel = FPLocalizationHelper.localize("lbl_Bulk_edit_info_a11y")
+        btn.addTarget(self, action: #selector(bulkRowInfoTapped), for: .touchUpInside)
+        btn.isHidden = !isBulkEditMode
+    }
+
+    @objc private func bulkRowInfoTapped() {
+        _ = FPUtility.showAlertController(
+            title: FPLocalizationHelper.localize("lbl_Bulk_edit_info_alert_title"),
+            message: FPLocalizationHelper.localize("msg_bulk_edit_toggle_help_detail"),
+            completion: nil
+        )
     }
     
     

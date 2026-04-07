@@ -15,6 +15,8 @@
             <connections>
                 <outlet property="btnNext" destination="5Wl-Ua-quw" id="jnO-rS-hGX"/>
                 <outlet property="btnPrevious" destination="odh-Ih-M5C" id="OVY-Xw-JRo"/>
+                <outlet property="btnBulkRowInfo" destination="btn-bulk-info" id="out-btn-bulk-info"/>
+                <outlet property="viewBulkEditHeaderSpacer" destination="23d-8s-LIR" id="out-bulk-hdr-spacer"/>
                 <outlet property="lblCurrentRow" destination="gcY-L2-OGl" id="Fhv-fu-HGD"/>
                 <outlet property="lblRowTitle" destination="tri-P8-7jb" id="out-lbl-row-title"/>
                 <outlet property="tblRows" destination="Ehb-JK-Sqi" id="zCq-hu-eZV"/>
@@ -40,7 +42,7 @@
                                         <stackView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="lfE-nb-Ifr">
                                             <rect key="frame" x="16" y="2" width="361" height="36"/>
                                             <subviews>
-                                                <stackView opaque="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="nhL-Y2-YeQ">
+                                                <stackView opaque="NO" contentMode="scaleToFill" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="nhL-Y2-YeQ">
                                                     <rect key="frame" x="0.0" y="0.0" width="361" height="36"/>
                                                     <subviews>
                                                         <stackView opaque="NO" contentMode="scaleToFill" spacing="8" translatesAutoresizingMaskIntoConstraints="NO" id="cy7-ua-506">
@@ -73,6 +75,19 @@
                                                             <rect key="frame" x="211.66666666666663" y="0.0" width="149.33333333333337" height="36"/>
                                                             <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                         </view>
+                                                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="btn-bulk-info" hidden="YES">
+                                                            <rect key="frame" x="361" y="4" width="28" height="28"/>
+                                                            <constraints>
+                                                                <constraint firstAttribute="width" constant="28" id="c-bulk-info-w"/>
+                                                                <constraint firstAttribute="height" constant="28" id="c-bulk-info-h"/>
+                                                            </constraints>
+                                                            <color key="tintColor" name="BT-Primary"/>
+                                                            <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
+                                                            <state key="normal">
+                                                                <imageReference key="image" image="info.circle" catalog="system" symbolScale="medium"/>
+                                                                <preferredSymbolConfiguration key="preferredSymbolConfiguration" configurationType="pointSize" pointSize="20" weight="semibold"/>
+                                                            </state>
+                                                        </button>
                                                         <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Xgd-8b-HDm">
                                                             <rect key="frame" x="361" y="0.0" width="36" height="36"/>
                                                             <constraints>

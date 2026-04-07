@@ -69,7 +69,17 @@ class FPQueAnsTableEditViewController: UIViewController {
     var fieldDetails:FPFieldDetails?
     var sectionDetails:FPSectionDetails?
     var fpFormViewController:FPFormViewController?
-   
+
+    private var qaTableSearchBar: UISearchBar?
+    private var qaTableSearchFilterButton: UIButton?
+    private var qaTableSearchEmptyLabel: UILabel?
+    private var qaTableSearchDebounceWorkItem: DispatchWorkItem?
+    private var qaTableSearchColumnNameKeys: Set<String> = []
+    private var qaTableSearchHighlightQuery: String = ""
+    private var qaTableSearchColumnPrefsKey: String {
+        "ZenForms.FPQueAnsTableEdit.textSearch.columns.\(fieldDetails?.templateId ?? "0")"
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
        
@@ -93,6 +103,8 @@ class FPQueAnsTableEditViewController: UIViewController {
         viewModel = FPQueAnsCollectionViewModel()
         viewModel?.widthQuesColumn = WIDTH_QUES_COLUMN
         self.title  = titleText
+        qaRestoreTableSearchColumnPrefs()
+        qaInstallTableSearchChrome()
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -165,6 +177,7 @@ extension FPQueAnsTableEditViewController: FPQueAnsCollectionViewModelDataSource
             contentcell.parentTableIndex = tableIndexPath
             contentcell.childTableIndex = indexPath
             contentcell.data = column
+            contentcell.searchHighlightQuery = qaTableSearchHighlightQuery.isEmpty ? nil : qaTableSearchHighlightQuery
             contentcell.delegate = self
             contentcell.btnAction.isHidden = true
             contentcell.viewBarcode.isHidden = true
@@ -304,6 +317,7 @@ extension FPQueAnsTableEditViewController{
         self.sortFilterColumn = nil
         self.sortFilteredTableComponent = nil
         self.collectionView.reloadData()
+        qaReapplyTableTextSearchIfNeeded()
     }
     
     func displayOptionsPopUp(_ sender:UIButton){
@@ -348,7 +362,8 @@ extension FPQueAnsTableEditViewController{
             generateDynamically = column.columnOptions?.generateDynamically ?? false
             arrOptions.append(contentsOf: options)
         }
-        var menuFilterOptions = arrOptions.compactMap({ generateDynamically ? $0.label.stringValue() :  $0.value.stringValue()})
+        var seen = Set<String>()
+        var menuFilterOptions = arrOptions.compactMap({ generateDynamically ? $0.label.stringValue() :  $0.value.stringValue()}).filter { seen.insert($0).inserted }
         menuFilterOptions.append(fileterBlankOptionKey)
         let menu = RSSelectionMenu(selectionStyle: .multiple, dataSource: menuFilterOptions) { (cell, name, indexPath) in
             cell.textLabel?.text = name
@@ -490,6 +505,7 @@ extension FPQueAnsTableEditViewController{
             }else{
                 self.collectionView.reloadData()
             }
+            self.qaReapplyTableTextSearchIfNeeded()
         }
     }
 }
@@ -503,24 +519,25 @@ extension FPQueAnsTableEditViewController: TableContentCellDelegate{
     
     
     func updateData(at index: IndexPath, with data: ColumnData, filedData filed: FPFieldDetails?) {
+        guard let dRow = qa_visibleSectionToDisplayRowIndex(index.section) else { return }
         if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent{
-            if var row = sortCompnt.rows?[safe:index.section-1]{
+            if var row = sortCompnt.rows?[safe:dRow]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
                     row.columns[columnIndex] = data
-                    sortCompnt.rows?[index.section-1] = row
+                    sortCompnt.rows?[dRow] = row
                     sortFilteredTableComponent = sortCompnt
                 }
             }
-            if let updateRow =  sortCompnt.rows?[safe:index.section-1], let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == updateRow.sortUuid }){
+            if let updateRow =  sortCompnt.rows?[safe:dRow], let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == updateRow.sortUuid }){
                 self.tableComponent?.rows?.remove(at: indexOfRow)
                 self.tableComponent?.rows?.insert(updateRow, at: indexOfRow)
             }
             self.collectionView.reloadItems(at: [index])
         }else if let tblCompnt = tableComponent, let _ = tableIndexPath{
-            if var row = tblCompnt.rows?[safe:index.section-1]{
+            if var row = tblCompnt.rows?[safe:dRow]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
                     row.columns[columnIndex] = data
-                    tblCompnt.rows?[index.section-1] = row
+                    tblCompnt.rows?[dRow] = row
                     tableComponent = tblCompnt
                 }
             }
@@ -546,7 +563,7 @@ extension FPQueAnsTableEditViewController: TableContentCellDelegate{
 extension FPQueAnsTableEditViewController: AttachmentPickerDelegate{
     func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
         if let index = attachmentIndex,let data = attachmentColumnData{
-            if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent, let attachrow = sortCompnt.rows?[index.section-1], let tblRowIndex = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == attachrow.sortUuid }){
+            if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent, let dRow = qa_visibleSectionToDisplayRowIndex(index.section), let attachrow = sortCompnt.rows?[dRow], let tblRowIndex = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == attachrow.sortUuid }){
                 let currentMainTblRow = self.tableComponent?.rows?[safe:tblRowIndex]
                 let attachIndexPath  = IndexPath(row: index.row, section: tblRowIndex + 1)
                 let tableMedia = TableMedia(columnIndex: attachIndexPath.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: attachIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
@@ -577,19 +594,20 @@ extension FPQueAnsTableEditViewController: AttachmentPickerDelegate{
                         self.sortFilteredTableComponent?.rows?.insert(row, at: indexOfRow)
                     }
                 }
-            }else{
-                let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: index, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
+            }else if let fullR = qa_visibleSectionToFullTableRowIndex(index.section) {
+                let childIdx = IndexPath(row: index.row, section: fullR + 1)
+                let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: childIdx, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
                 FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                 let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
                 if let component  = tableComponent{
                     component.values = result?.valueArray ?? []
-                    var row = component.rows![tableMedia.childTableIndex!.section-1]
+                    var row = component.rows![fullR]
                     if let columnIndex = row.columns.firstIndex(where: {$0.key == tableMedia.key}){
                         var column  = row.columns[columnIndex]
                         column.value = result?.columnValue ?? ""
                         row.columns[columnIndex] = column
                     }
-                    component.rows![tableMedia.childTableIndex!.section-1] = row
+                    component.rows![fullR] = row
                     self.tableComponent = component
                 }
             }
@@ -604,3 +622,220 @@ protocol FPQueAnsTableEditViewControllerDelegate{
     func didEditTableData()
 }
 
+private extension FPQueAnsTableEditViewController {
+
+    func qa_visibleSectionToDisplayRowIndex(_ section: Int) -> Int? {
+        guard section >= 1 else { return nil }
+        if let map = viewModel?.textSearchVisibleRowIndices {
+            let i = section - 1
+            guard i >= 0, i < map.count else { return nil }
+            return map[i]
+        }
+        let count = (isSortFilterApplied ? sortFilteredTableComponent?.rows?.count : tableComponent?.rows?.count) ?? 0
+        let r = section - 1
+        guard r >= 0, r < count else { return nil }
+        return r
+    }
+
+    func qa_visibleSectionToFullTableRowIndex(_ section: Int) -> Int? {
+        guard let d = qa_visibleSectionToDisplayRowIndex(section) else { return nil }
+        let rowCount = tableComponent?.rows?.count ?? 0
+        if isSortFilterApplied {
+            guard let filteredRow = sortFilteredTableComponent?.rows?[d],
+                  let indexInFull = tableComponent?.rows?.firstIndex(where: { $0.sortUuid == filteredRow.sortUuid }),
+                  indexInFull >= 0, indexInFull < rowCount else {
+                return nil
+            }
+            return indexInFull
+        }
+        guard d >= 0, d < rowCount else { return nil }
+        return d
+    }
+
+    func qaRestoreTableSearchColumnPrefs() {
+        if let saved = UserDefaults.standard.array(forKey: qaTableSearchColumnPrefsKey) as? [String] {
+            qaTableSearchColumnNameKeys = Set(saved)
+        }
+    }
+
+    func qaPersistTableSearchColumnPrefs() {
+        UserDefaults.standard.set(Array(qaTableSearchColumnNameKeys), forKey: qaTableSearchColumnPrefsKey)
+    }
+
+    func qaInstallTableSearchChrome() {
+        guard let stack = collectionView.superview?.superview as? UIStackView else { return }
+        let searchBar = UISearchBar()
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        searchBar.placeholder = FPLocalizationHelper.localize("lbl_table_search_placeholder")
+        searchBar.searchBarStyle = .minimal
+        searchBar.delegate = self
+        searchBar.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        let filterBtn = UIButton(type: .system)
+        filterBtn.setImage(UIImage(systemName: "line.3.horizontal.decrease.circle"), for: .normal)
+        filterBtn.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        filterBtn.translatesAutoresizingMaskIntoConstraints = false
+        filterBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        filterBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        filterBtn.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_columns")
+        filterBtn.addAction(UIAction { [weak self] _ in
+            self?.qaPresentTableSearchColumnPicker(from: filterBtn)
+        }, for: .touchUpInside)
+
+        let row = UIStackView(arrangedSubviews: [searchBar, filterBtn])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 4
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        let emptyLabel = UILabel()
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        emptyLabel.font = .preferredFont(forTextStyle: .subheadline)
+        emptyLabel.textColor = .systemRed
+        emptyLabel.textAlignment = .center
+        emptyLabel.numberOfLines = 0
+        emptyLabel.text = FPLocalizationHelper.localize("msg_table_search_no_results")
+        emptyLabel.isHidden = true
+
+        let outer = UIStackView(arrangedSubviews: [row, emptyLabel])
+        outer.axis = .vertical
+        outer.spacing = 6
+        outer.translatesAutoresizingMaskIntoConstraints = false
+        stack.insertArrangedSubview(outer, at: 0)
+
+        qaTableSearchBar = searchBar
+        qaTableSearchFilterButton = filterBtn
+        qaTableSearchEmptyLabel = emptyLabel
+    }
+
+    func qaPresentTableSearchColumnPicker(from sender: UIView) {
+        view.endEditing(true)
+        let cols = tableComponent?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+        guard !cols.isEmpty else { return }
+        let labels: [String] = cols.map {
+            ($0.displayName.isEmpty ? $0.name : $0.displayName).handleAndDisplayApostrophe()
+        }
+        var nameByLabel: [String: String] = [:]
+        for (i, col) in cols.enumerated() {
+            let label = labels[i]
+            if nameByLabel[label] == nil {
+                nameByLabel[label] = col.name
+            }
+        }
+        let menu = RSSelectionMenu(selectionStyle: .multiple, dataSource: labels) { cell, name, _ in
+            cell.textLabel?.text = name
+            cell.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        }
+        menu.tableView?.configureRSSelectionMenuTable()
+        menu.setNavigationBar(title: FPLocalizationHelper.localize("lbl_table_search_columns"), attributes: [NSAttributedString.Key.foregroundColor: isFromCoPILOT ? UIColor.white : UIColor.black], barTintColor: UIColor(named: "BT-Primary"), tintColor: isFromCoPILOT ? UIColor.white : UIColor.black)
+
+        let preselected: [String]
+        if qaTableSearchColumnNameKeys.isEmpty {
+            preselected = labels
+        } else {
+            preselected = cols.filter { qaTableSearchColumnNameKeys.contains($0.name) }.map {
+                ($0.displayName.isEmpty ? $0.name : $0.displayName).handleAndDisplayApostrophe()
+            }
+        }
+        let allSelected = (qaTableSearchColumnNameKeys.isEmpty || qaTableSearchColumnNameKeys.count == cols.count)
+        menu.addFirstRowAs(rowType: .all, showSelected: allSelected) { [weak menu] _, selected in
+            guard let menu = menu else { return }
+            if selected {
+                menu.setSelectedItems(items: labels) { _, _, _, _ in }
+                menu.tableView?.reloadData()
+            }
+        }
+        menu.setSelectedItems(items: preselected) { _, _, _, _ in }
+
+        menu.setRightBarButton(title: FPLocalizationHelper.localize("Done")) { selectedItems in
+            if selectedItems.isEmpty {
+                _ = FPUtility.showAlertController(
+                    title: FPLocalizationHelper.localize("error_dialog_title"),
+                    message: FPLocalizationHelper.localize("msg_select_at_least_one_column"),
+                    completion: nil
+                )
+                return
+            }
+            menu.dismiss(animated: true)
+            var keys = Set<String>()
+            for item in selectedItems {
+                if let n = nameByLabel[item] {
+                    keys.insert(n)
+                }
+            }
+            self.qaTableSearchColumnNameKeys = keys
+            self.qaPersistTableSearchColumnPrefs()
+            self.qaApplyTableTextSearchFromField(animated: true)
+        }
+        menu.cellSelectionStyle = .checkbox
+        menu.show(style: .popover(sourceView: sender, size: nil, arrowDirection: .any), from: self)
+    }
+
+    func qaApplyTableTextSearchFromField(animated: Bool) {
+        let raw = qaTableSearchBar?.text ?? ""
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rows = getTableComponent()?.rows ?? []
+        if trimmed.isEmpty {
+            viewModel?.textSearchVisibleRowIndices = nil
+            qaTableSearchHighlightQuery = ""
+            qaTableSearchEmptyLabel?.isHidden = true
+            qaTableSearchBar?.searchTextField.backgroundColor = nil
+            qaTableSearchBar?.searchTextField.textColor = .label
+        } else {
+            let indices = TableRowTextSearch.matchingRowIndices(
+                rows: rows,
+                query: trimmed,
+                columnKeys: qaTableSearchColumnNameKeys
+            )
+            viewModel?.textSearchVisibleRowIndices = indices
+            qaTableSearchHighlightQuery = trimmed
+            let noResults = indices.isEmpty
+            qaTableSearchEmptyLabel?.isHidden = true
+            qaTableSearchBar?.searchTextField.backgroundColor = noResults ? UIColor.systemRed.withAlphaComponent(0.08) : nil
+            qaTableSearchBar?.searchTextField.textColor = noResults ? .systemRed : .label
+        }
+        if let layout = collectionView.collectionViewLayout as? FPQueAnsCollectionViewLayout {
+            layout.invalidateLayout()
+        }
+        if animated {
+            UIView.transition(with: collectionView, duration: 0.12, options: .transitionCrossDissolve) {
+                self.collectionView.reloadData()
+            }
+        } else {
+            collectionView.reloadData()
+        }
+    }
+
+    func qaReapplyTableTextSearchIfNeeded() {
+        guard let raw = qaTableSearchBar?.text, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            viewModel?.textSearchVisibleRowIndices = nil
+            qaTableSearchHighlightQuery = ""
+            qaTableSearchEmptyLabel?.isHidden = true
+            qaTableSearchBar?.searchTextField.backgroundColor = nil
+            qaTableSearchBar?.searchTextField.textColor = .label
+            return
+        }
+        qaApplyTableTextSearchFromField(animated: false)
+    }
+
+    func qaScheduleTableSearchDebounce() {
+        qaTableSearchDebounceWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in
+            self?.qaApplyTableTextSearchFromField(animated: true)
+        }
+        qaTableSearchDebounceWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: item)
+    }
+}
+
+extension FPQueAnsTableEditViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        guard searchBar === qaTableSearchBar else { return }
+        qaScheduleTableSearchDebounce()
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+        qaTableSearchDebounceWorkItem?.cancel()
+        qaApplyTableTextSearchFromField(animated: true)
+    }
+}

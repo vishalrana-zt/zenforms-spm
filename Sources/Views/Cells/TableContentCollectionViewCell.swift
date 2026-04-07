@@ -90,6 +90,9 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     var generateDynamically:Bool = false
     var isUITypeDeficiency:Bool = false
 
+    /// When set, matching substrings are highlighted in visible text controls (read-only / display contexts).
+    var searchHighlightQuery: String?
+
     override func awakeFromNib() {
         super.awakeFromNib()
         // Initialization code
@@ -205,6 +208,45 @@ class TableContentCollectionViewCell: UICollectionViewCell {
         self.tblTextView.tag = childTableIndex!.row-2
         self.tblTextField.tag = childTableIndex!.row-2
         self.btnAddAttachment.tag = childTableIndex!.row-2
+        applySearchHighlightIfNeeded()
+    }
+
+    private func applySearchHighlightIfNeeded() {
+        guard let raw = searchHighlightQuery?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return
+        }
+        let font = UIFont.preferredFont(forTextStyle: .body)
+        if !tblTextView.isHidden {
+            let base = tblTextView.text ?? ""
+            tblTextView.attributedText = TableContentCollectionViewCell.attributedText(
+                full: base,
+                highlight: raw,
+                baseFont: font,
+                textColor: .label
+            )
+        }
+        if !tblTextField.isHidden, tblTextField.inputView == nil, let base = tblTextField.text {
+            tblTextField.attributedText = TableContentCollectionViewCell.attributedText(
+                full: base,
+                highlight: raw,
+                baseFont: font,
+                textColor: .label
+            )
+        }
+    }
+
+    private static func attributedText(full: String, highlight: String, baseFont: UIFont, textColor: UIColor) -> NSAttributedString {
+        let attributed = NSMutableAttributedString(string: full, attributes: [
+            .font: baseFont,
+            .foregroundColor: textColor
+        ])
+        var searchRange = full.startIndex..<full.endIndex
+        while let range = full.range(of: highlight, options: [.caseInsensitive, .diacriticInsensitive], range: searchRange, locale: nil) {
+            let nsRange = NSRange(range, in: full)
+            attributed.addAttribute(.backgroundColor, value: UIColor.systemYellow.withAlphaComponent(0.35), range: nsRange)
+            searchRange = range.upperBound..<full.endIndex
+        }
+        return attributed
     }
     
     private func setTextFieldByType(_ rowData: ColumnData) {

@@ -27,6 +27,9 @@ final class FPSpreadsheetCollectionViewModel: NSObject {
     var parentIndexPath:IndexPath?
     var pickerArray: [DropdownOptions]?
     var pickerView: UIPickerView?
+
+    /// When non-nil, only these indices into `getTableComponent()?.rows` are shown as data rows. `nil` = show every row.
+    var textSearchVisibleRowIndices: [Int]?
     var accessoryToolbar: UIToolbar {
         get {
             let toolbarFrame = CGRect(x: 0, y: 0, width: SCREEN_WIDTH_S, height: 44)
@@ -55,7 +58,22 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
     // i.e. rows
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         let tableComponent = dataSource?.getTableComponent()
-        return (tableComponent?.rows?.count ?? 0 > 0 ? tableComponent?.rows?.count ?? 0 : 0)+1 // +1 headers
+        let baseCount = tableComponent?.rows?.count ?? 0
+        let dataRows = textSearchVisibleRowIndices?.count ?? baseCount
+        return (baseCount > 0 ? dataRows : 0) + 1 // +1 header when there is at least one underlying row
+    }
+
+    private func resolvedDataRowIndex(forSection section: Int) -> Int? {
+        guard section >= 1 else { return nil }
+        if let map = textSearchVisibleRowIndices {
+            let i = section - 1
+            guard i >= 0, i < map.count else { return nil }
+            return map[i]
+        }
+        let rc = dataSource?.getTableComponent()?.rows?.count ?? 0
+        let r = section - 1
+        guard r >= 0, r < rc else { return nil }
+        return r
     }
     
     // i.e. number of columns
@@ -93,7 +111,6 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
             let column = ColumnData(key: "action-checkbox", value: "", uiType: "CHECKBOX", dataType: "",dropDownOptions: nil)
             dataSource?.configure(cell, with: cellContent,column:column,indexPath:indexPath, isHideMore: isHideMore, isHideCHeckBoxHeader: isHideCHeckBoxHeader)
             return cell
-            break
             
             // Top row - Header
         case (_, 0):
@@ -114,7 +131,8 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
             
             // Inner-content
         default:
-            let columns = tableComponent?.rows?[indexPath.section-1].columns.filter({$0.getUIType() != .HIDDEN})
+            guard let rowIdx = resolvedDataRowIndex(forSection: indexPath.section) else { break }
+            let columns = tableComponent?.rows?[rowIdx].columns.filter({$0.getUIType() != .HIDDEN})
             if let column = columns?[indexPath.row-2]{
                 dataSource?.configure(cell, with: cellContent,column:column,indexPath:indexPath, isHideMore: isHideMore, isHideCHeckBoxHeader: isHideCHeckBoxHeader)
                 return cell

@@ -19,6 +19,12 @@
 "lbl_Row" = "Current Row:";
 "lbl_Selected_Rows" = "Selected Rows:";
 "lbl_Bulk_Edit" = "Bulk Edit";
+"msg_bulk_edit_row_summary" = "%d Rows Selected : %@";
+"msg_bulk_edit_row_summary_prefix" = "%d Rows Selected : ";
+"lbl_Bulk_edit_info_alert_title" = "Switches";
+"lbl_Bulk_edit_info_a11y" = "More about column switches";
+"msg_bulk_edit_confirm_detail" = "You will edit several rows in one pass. Values shown are from the lowest-numbered selected row.\n\nEach column has a switch: when ON, changes you make apply to every selected row when you tap Done. When OFF, changes apply only to that first row and other rows keep their current values.\n\nContinue?";
+"msg_bulk_edit_toggle_help_detail" = "The form loads data from the lowest-numbered row you selected. Each column’s switch controls where edits go when you tap Done:\n\n• ON — that column’s value is saved to all selected rows.\n\n• OFF — that column is updated only on the first (lowest) row; other selected rows are left unchanged for that column.";
 "lbl_Apply_column_to_all_rows" = "Apply this column to all selected rows when saving";
 "lbl_Clear" = "Clear";
 "lbl_Selet_color" = "Selet a color";
@@ -99,6 +105,11 @@
 "msg_duplicate_selected_rows" = "Do you want to duplicate selected row(s)?";
 "msg_delete_selected_rows" = "Do you want to delete selected row(s)?";
 "msg_no_data" = "No data found.";
+"msg_table_search_no_results" = "No results found.";
+"lbl_table_search_placeholder" = "Search";
+"lbl_table_search_columns" = "Search columns";
+"lbl_table_search_all_columns" = "All columns";
+"msg_select_at_least_one_column" = "Please select at least one column.";
 "msg_duplicate_row" = "Do you want to duplicate row %@?";
 "msg_delete_row" = "Do you want to delete row %@?";
 "msg_asset_already_linked_row" = "An asset is already linked to selected row.\nDo you want to delete existing and link new asset on same row";
