@@ -171,7 +171,7 @@ extension FPSegmentView: UITableViewDelegate,UITableViewDataSource {
         label.lineBreakMode = .byWordWrapping
         label.numberOfLines = 0
         if fieldItem?.mandatory ?? false{
-            let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 17, weight: .semibold), .foregroundColor: UIColor.black]
+            let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.black]
             let baseString =  NSAttributedString(string: " \(title)", attributes: fontAttributes)
             let attributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.red]
             let starString =  NSAttributedString(string: "*", attributes: attributes)

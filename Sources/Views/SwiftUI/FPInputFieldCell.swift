@@ -125,7 +125,7 @@ struct FPInputFieldCell: View {
                 .focused($isInputFocused)
                 .withClearButton(text: $fieldValue, isFocused: Binding(get: { self.isInputFocused }, set: { self.isInputFocused = $0 }))
                 .padding(.horizontal, 8)
-                .font(.system(size: 14))
+                .font(.subheadline)
                 .foregroundStyle(Color("ZT-Black"))
                 .frame(height: 50)
                 .autocorrectionDisabled(true)
@@ -170,7 +170,7 @@ struct FPInputFieldCell: View {
     private var textAreaInputView: some View {
         TextEditor(text: $fieldValue)
             .frame(height: 100)
-            .font(.system(size: 14, weight: .regular))
+            .font(.subheadline)
             .focused($isInputFocused)
             .autocorrectionDisabled(true)
             .padding(8)
@@ -203,12 +203,13 @@ struct FPInputFieldCell: View {
                 }
                 onFieldInputChanged?(sectionIndex, fieldIndex, nil, date != nil ? FPUtility.getStringWithTZFormat(date!) : "", date, isSectionDuplicationField )
             }
-            .padding(.leading, 10)
+            .padding(.horizontal, 8)
             .frame(height: 50)
             .background(
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .stroke(Color(.systemGray4), lineWidth: 1)
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var yearPickerInputView: some View{
@@ -226,10 +227,12 @@ struct FPInputFieldCell: View {
                 }
                 onFieldInputChanged?(sectionIndex, fieldIndex, nil, date != nil ? FPUtility.getStringWithTZFormat(date!) : "", date, isSectionDuplicationField )
             }
+            .frame(height: 50)
             .background(
                 RoundedRectangle(cornerRadius: 4)
                     .stroke(Color(.systemGray4), lineWidth: 1)
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     //MARK: Helper Methods

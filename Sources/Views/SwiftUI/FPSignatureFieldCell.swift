@@ -26,7 +26,7 @@ struct FPSignatureFieldCell: View {
                     Button(action: onAddSignatureClicked) {
                         SwiftUI.Text(FPLocalizationHelper.localize("lbl_Add_Signature"))
                             .foregroundStyle(Color("BT-Primary"))
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.subheadline.weight(.medium))
                             .multilineTextAlignment(.trailing)
                     }
                 }
@@ -62,9 +62,9 @@ struct FPSignatureFieldCell: View {
     }
     
     func fetchAttributedString() -> AttributedString {
-        let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 17, weight: .semibold), .foregroundColor: UIColor.black]
+        let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.black]
         let baseString =  NSAttributedString(string: " \(fieldItem.displayName?.handleAndDisplayApostrophe() ?? "")", attributes: fontAttributes)
-        let colrattributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.red]
+        let colrattributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.red]
         let starString =  NSAttributedString(string: "*", attributes: colrattributes)
         let mutableString = NSMutableAttributedString(attributedString: starString)
         mutableString.append(baseString)
