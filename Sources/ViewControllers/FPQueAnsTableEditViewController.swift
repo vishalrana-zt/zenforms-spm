@@ -176,8 +176,10 @@ extension FPQueAnsTableEditViewController: FPQueAnsCollectionViewModelDataSource
         if let contentcell = cell as? TableContentCollectionViewCell {
             contentcell.parentTableIndex = tableIndexPath
             contentcell.childTableIndex = indexPath
-            contentcell.data = column
+            contentcell.searchHighlightCaseSensitive = TableRowTextSearch.userPrefersCaseSensitiveSearch
+            contentcell.searchHighlightColumnKeys = qaTableSearchColumnNameKeys
             contentcell.searchHighlightQuery = qaTableSearchHighlightQuery.isEmpty ? nil : qaTableSearchHighlightQuery
+            contentcell.data = column
             contentcell.delegate = self
             contentcell.btnAction.isHidden = true
             contentcell.viewBarcode.isHidden = true
@@ -678,6 +680,8 @@ private extension FPQueAnsTableEditViewController {
         searchBar.searchBarStyle = .minimal
         searchBar.delegate = self
         searchBar.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        searchBar.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
+        searchBar.searchTextField.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
         let filterBtn = UIButton(type: .system)
         filterBtn.setImage(UIImage(systemName: "line.3.horizontal.decrease.circle"), for: .normal)
         filterBtn.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
@@ -685,6 +689,7 @@ private extension FPQueAnsTableEditViewController {
         filterBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
         filterBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
         filterBtn.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_columns")
+        filterBtn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
         filterBtn.addAction(UIAction { [weak self] _ in
             self?.qaPresentTableSearchColumnPicker(from: filterBtn)
         }, for: .touchUpInside)
@@ -702,6 +707,7 @@ private extension FPQueAnsTableEditViewController {
         emptyLabel.textAlignment = .center
         emptyLabel.numberOfLines = 0
         emptyLabel.text = FPLocalizationHelper.localize("msg_table_search_no_results")
+        emptyLabel.accessibilityLabel = FPLocalizationHelper.localize("msg_table_search_no_results")
         emptyLabel.isHidden = true
 
         let outer = UIStackView(arrangedSubviews: [row, emptyLabel])
@@ -713,6 +719,36 @@ private extension FPQueAnsTableEditViewController {
         qaTableSearchBar = searchBar
         qaTableSearchFilterButton = filterBtn
         qaTableSearchEmptyLabel = emptyLabel
+        qaUpdateTableSearchFilterButtonAppearance()
+    }
+
+    private func qaTableSearchColumnScopeIsRestricted() -> Bool {
+        let cols = tableComponent?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+        guard !cols.isEmpty else { return false }
+        if qaTableSearchColumnNameKeys.isEmpty { return false }
+        return qaTableSearchColumnNameKeys.count < cols.count
+    }
+
+    private func qaUpdateTableSearchFilterButtonAppearance() {
+        guard let btn = qaTableSearchFilterButton else { return }
+        let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+        let restricted = qaTableSearchColumnScopeIsRestricted()
+        let symbol = restricted ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+        btn.setImage(UIImage(systemName: symbol), for: .normal)
+        btn.tintColor = primary
+        btn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
+        btn.accessibilityTraits = restricted ? [.button, .selected] : .button
+        if restricted {
+            let cols = tableComponent?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+            let n = min(qaTableSearchColumnNameKeys.count, cols.count)
+            btn.accessibilityValue = String.localizedStringWithFormat(
+                FPLocalizationHelper.localize("msg_table_search_scope_active_a11y"),
+                n,
+                cols.count
+            )
+        } else {
+            btn.accessibilityValue = FPLocalizationHelper.localize("msg_table_search_scope_all_a11y")
+        }
     }
 
     func qaPresentTableSearchColumnPicker(from sender: UIView) {
@@ -772,6 +808,7 @@ private extension FPQueAnsTableEditViewController {
             }
             self.qaTableSearchColumnNameKeys = keys
             self.qaPersistTableSearchColumnPrefs()
+            self.qaUpdateTableSearchFilterButtonAppearance()
             self.qaApplyTableTextSearchFromField(animated: true)
         }
         menu.cellSelectionStyle = .checkbox
@@ -792,14 +829,21 @@ private extension FPQueAnsTableEditViewController {
             let indices = TableRowTextSearch.matchingRowIndices(
                 rows: rows,
                 query: trimmed,
-                columnKeys: qaTableSearchColumnNameKeys
+                columnKeys: qaTableSearchColumnNameKeys,
+                caseSensitive: TableRowTextSearch.userPrefersCaseSensitiveSearch
             )
             viewModel?.textSearchVisibleRowIndices = indices
             qaTableSearchHighlightQuery = trimmed
             let noResults = indices.isEmpty
             qaTableSearchEmptyLabel?.isHidden = true
-            qaTableSearchBar?.searchTextField.backgroundColor = noResults ? UIColor.systemRed.withAlphaComponent(0.08) : nil
-            qaTableSearchBar?.searchTextField.textColor = noResults ? .systemRed : .label
+            let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+            if noResults {
+                qaTableSearchBar?.searchTextField.backgroundColor = UIColor.systemRed.withAlphaComponent(0.08)
+                qaTableSearchBar?.searchTextField.textColor = .systemRed
+            } else {
+                qaTableSearchBar?.searchTextField.backgroundColor = primary.withAlphaComponent(0.1)
+                qaTableSearchBar?.searchTextField.textColor = .label
+            }
         }
         if let layout = collectionView.collectionViewLayout as? FPQueAnsCollectionViewLayout {
             layout.invalidateLayout()

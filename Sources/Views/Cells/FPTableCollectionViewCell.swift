@@ -322,8 +322,11 @@ private extension FPTableCollectionViewCell {
     }
 
     func fpEnsurePreviewSearchChromeInstalled() {
-        guard !fpPreviewSearchChromeInstalled,
-              let stack = collMain.superview?.superview as? UIStackView else { return }
+        guard let stack = collMain.superview?.superview as? UIStackView else { return }
+        if fpPreviewSearchChromeInstalled {
+            fpUpdatePreviewSearchFilterButtonAppearance()
+            return
+        }
         fpPreviewSearchChromeInstalled = true
         let searchBar = UISearchBar()
         searchBar.translatesAutoresizingMaskIntoConstraints = false
@@ -331,6 +334,8 @@ private extension FPTableCollectionViewCell {
         searchBar.searchBarStyle = .minimal
         searchBar.delegate = self
         searchBar.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        searchBar.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
+        searchBar.searchTextField.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
         let filterBtn = UIButton(type: .system)
         filterBtn.setImage(UIImage(systemName: "line.3.horizontal.decrease.circle"), for: .normal)
         filterBtn.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
@@ -338,6 +343,7 @@ private extension FPTableCollectionViewCell {
         filterBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
         filterBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
         filterBtn.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_columns")
+        filterBtn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
         filterBtn.addAction(UIAction { [weak self] _ in
             guard let self, let base = self.fpViewController else { return }
             self.fpPresentPreviewColumnPicker(from: filterBtn, presenting: base)
@@ -356,6 +362,7 @@ private extension FPTableCollectionViewCell {
         emptyLabel.textAlignment = .center
         emptyLabel.numberOfLines = 0
         emptyLabel.text = FPLocalizationHelper.localize("msg_table_search_no_results")
+        emptyLabel.accessibilityLabel = FPLocalizationHelper.localize("msg_table_search_no_results")
         emptyLabel.isHidden = true
 
         let outer = UIStackView(arrangedSubviews: [row, emptyLabel])
@@ -367,6 +374,36 @@ private extension FPTableCollectionViewCell {
         fpPreviewSearchBar = searchBar
         fpPreviewSearchFilterButton = filterBtn
         fpPreviewSearchEmptyLabel = emptyLabel
+        fpUpdatePreviewSearchFilterButtonAppearance()
+    }
+
+    private func fpPreviewTableSearchColumnScopeIsRestricted() -> Bool {
+        let cols = cellItem?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+        guard !cols.isEmpty else { return false }
+        if fpPreviewSearchColumnNameKeys.isEmpty { return false }
+        return fpPreviewSearchColumnNameKeys.count < cols.count
+    }
+
+    private func fpUpdatePreviewSearchFilterButtonAppearance() {
+        guard let btn = fpPreviewSearchFilterButton else { return }
+        let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+        let restricted = fpPreviewTableSearchColumnScopeIsRestricted()
+        let symbol = restricted ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+        btn.setImage(UIImage(systemName: symbol), for: .normal)
+        btn.tintColor = primary
+        btn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
+        btn.accessibilityTraits = restricted ? [.button, .selected] : .button
+        if restricted {
+            let cols = cellItem?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+            let n = min(fpPreviewSearchColumnNameKeys.count, cols.count)
+            btn.accessibilityValue = String.localizedStringWithFormat(
+                FPLocalizationHelper.localize("msg_table_search_scope_active_a11y"),
+                n,
+                cols.count
+            )
+        } else {
+            btn.accessibilityValue = FPLocalizationHelper.localize("msg_table_search_scope_all_a11y")
+        }
     }
 
     func fpPresentPreviewColumnPicker(from sender: UIView, presenting: UIViewController) {
@@ -411,6 +448,7 @@ private extension FPTableCollectionViewCell {
             }
             self.fpPreviewSearchColumnNameKeys = keys
             self.fpPersistPreviewSearchColumnPrefs()
+            self.fpUpdatePreviewSearchFilterButtonAppearance()
             self.fpApplyPreviewTextSearchFromField(animated: true)
         }
         menu.cellSelectionStyle = .checkbox
@@ -426,7 +464,12 @@ private extension FPTableCollectionViewCell {
             fpPreviewSearchHighlightQuery = ""
             fpPreviewSearchEmptyLabel?.isHidden = true
         } else {
-            let indices = TableRowTextSearch.matchingRowIndices(rows: rows, query: trimmed, columnKeys: fpPreviewSearchColumnNameKeys)
+            let indices = TableRowTextSearch.matchingRowIndices(
+                rows: rows,
+                query: trimmed,
+                columnKeys: fpPreviewSearchColumnNameKeys,
+                caseSensitive: TableRowTextSearch.userPrefersCaseSensitiveSearch
+            )
             viewModel?.textSearchVisibleRowIndices = indices
             fpPreviewSearchHighlightQuery = trimmed
             fpPreviewSearchEmptyLabel?.isHidden = !indices.isEmpty
@@ -481,8 +524,10 @@ extension FPTableCollectionViewCell: FPQueAnsCollectionViewModelDataSource {
         if let contentcell = cell as? TableContentCollectionViewCell {
             contentcell.parentTableIndex = tableIndexPath
             contentcell.childTableIndex = indexPath
-            contentcell.data = column
+            contentcell.searchHighlightCaseSensitive = TableRowTextSearch.userPrefersCaseSensitiveSearch
+            contentcell.searchHighlightColumnKeys = fpPreviewSearchColumnNameKeys
             contentcell.searchHighlightQuery = fpPreviewSearchHighlightQuery.isEmpty ? nil : fpPreviewSearchHighlightQuery
+            contentcell.data = column
             contentcell.viewBarcode.isHidden = true
             contentcell.isUserInteractionEnabled = false
             contentcell.btnAddAttachment.isEnabled = false

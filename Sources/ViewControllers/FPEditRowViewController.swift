@@ -259,8 +259,14 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     @objc private func bulkRowInfoTapped() {
         _ = FPUtility.showAlertController(
             title: FPLocalizationHelper.localize("lbl_Bulk_edit_info_alert_title"),
-            message: FPLocalizationHelper.localize("msg_bulk_edit_toggle_help_detail"),
-            completion: nil
+            andMessage: FPLocalizationHelper.localize("msg_bulk_edit_toggle_help_detail"),
+            completion: nil,
+            withPositiveAction: FPLocalizationHelper.localize("lbl_Ok"),
+            style: .default,
+            andHandler: nil,
+            withNegativeAction: nil,
+            style: .default,
+            andHandler: nil
         )
     }
     

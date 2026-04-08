@@ -10,7 +10,8 @@ import UIKit
 class DuplicateRowPrefrenceViewController: UIViewController {
 
     @IBOutlet weak var dropDownPreference: ZTDropDown!
-    
+    @IBOutlet weak var switchCaseSensitiveSearch: UISwitch!
+
     var arrDropdowns:[String] = [FPLocalizationHelper.localize("lbl_After_Original_Row"), FPLocalizationHelper.localize("lbl_End_Table")]
     var selectedIndex = 0
     override func viewDidLoad() {
@@ -18,6 +19,7 @@ class DuplicateRowPrefrenceViewController: UIViewController {
 
         // Do any additional setup after loading the view.
         setupDropdownField()
+        setupCaseSensitiveSearchSwitch()
         setBarButtons()
     }
     
@@ -50,6 +52,12 @@ class DuplicateRowPrefrenceViewController: UIViewController {
             }
         }
     }
+
+    private func setupCaseSensitiveSearchSwitch() {
+        guard let sw = switchCaseSensitiveSearch else { return }
+        sw.onTintColor = .systemBlue
+        sw.isOn = TableRowTextSearch.userPrefersCaseSensitiveSearch
+    }
     
     //MARK: Nav
     
@@ -69,6 +77,9 @@ class DuplicateRowPrefrenceViewController: UIViewController {
         self.view.endEditing(true)
         let preference = self.selectedIndex == 1 ? "lbl_End_Table"  : "lbl_After_Original_Row"
         UserDefaults.standard.set(preference, forKey: "DuplicateRowPreference")
+        if let sw = switchCaseSensitiveSearch {
+            UserDefaults.standard.set(sw.isOn, forKey: TableRowTextSearch.caseSensitiveSearchUserDefaultsKey)
+        }
         UserDefaults.standard.synchronize()
         self.dismiss(animated: true, completion: nil)
     }

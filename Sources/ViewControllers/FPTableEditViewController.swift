@@ -208,6 +208,7 @@ class FPTableEditViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.registerAssetObservers()
+        fpReapplyTableTextSearchIfNeeded()
         IQKeyboardManager.shared.isEnabled = true
         IQKeyboardToolbarManager.shared.isEnabled = true
         IQKeyboardToolbarManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_left_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
@@ -391,7 +392,7 @@ class FPTableEditViewController: UIViewController {
             title: FPLocalizationHelper.localize("lbl_Bulk_Edit"),
             andMessage: FPLocalizationHelper.localize("msg_bulk_edit_confirm_detail"),
             completion: nil,
-            withPositiveAction: FPLocalizationHelper.localize("Yes"),
+            withPositiveAction: FPLocalizationHelper.localize("lbl_Continue"),
             style: .default,
             andHandler: { _ in
                 self.openBulkEditFromCurrentSelection {
@@ -446,7 +447,7 @@ class FPTableEditViewController: UIViewController {
             nibName: "FPEditRowViewController",
             bundle: ZenFormsBundle.bundle
         )
-        vc.title = isBulkMode ? FPLocalizationHelper.localize("lbl_Bulk_Edit") : "Edit Row"
+        vc.title = isBulkMode ? FPLocalizationHelper.localize("lbl_Bulk_Edit") : FPLocalizationHelper.localize("lbl_Edit_Row")
         vc.tableIndexPath = tableIndexPath
         vc.currentRowNo = baseRow
         vc.isBulkEditMode = isBulkMode
@@ -534,8 +535,10 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         if let contentcell = cell as? TableContentCollectionViewCell {
             contentcell.parentTableIndex = tableIndexPath
             contentcell.childTableIndex = indexPath
-            contentcell.data = column
+            contentcell.searchHighlightCaseSensitive = TableRowTextSearch.userPrefersCaseSensitiveSearch
+            contentcell.searchHighlightColumnKeys = fpTableSearchColumnNameKeys
             contentcell.searchHighlightQuery = fpTableSearchHighlightQuery.isEmpty ? nil : fpTableSearchHighlightQuery
+            contentcell.data = column
             contentcell.delegate = self
             contentcell.btnAction.isSelected = self.isSelectedAll || self.arrSelectedIndexes.contains(indexPath)
             contentcell.btnAction.addTarget(self, action: #selector(btnActionClicked(sender:)), for: .touchUpInside)
@@ -1725,6 +1728,8 @@ private extension FPTableEditViewController {
         searchBar.searchBarStyle = .minimal
         searchBar.delegate = self
         searchBar.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        searchBar.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
+        searchBar.searchTextField.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
         let filterBtn = UIButton(type: .system)
         filterBtn.setImage(UIImage(systemName: "line.3.horizontal.decrease.circle"), for: .normal)
         filterBtn.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
@@ -1732,6 +1737,7 @@ private extension FPTableEditViewController {
         filterBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
         filterBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
         filterBtn.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_columns")
+        filterBtn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
         filterBtn.addAction(UIAction { [weak self] _ in
             self?.fpPresentTableSearchColumnPicker(from: filterBtn)
         }, for: .touchUpInside)
@@ -1749,6 +1755,7 @@ private extension FPTableEditViewController {
         emptyLabel.textAlignment = .center
         emptyLabel.numberOfLines = 0
         emptyLabel.text = FPLocalizationHelper.localize("msg_table_search_no_results")
+        emptyLabel.accessibilityLabel = FPLocalizationHelper.localize("msg_table_search_no_results")
         emptyLabel.isHidden = true
 
         let outer = UIStackView(arrangedSubviews: [row, emptyLabel])
@@ -1760,6 +1767,37 @@ private extension FPTableEditViewController {
         fpTableSearchBar = searchBar
         fpTableSearchFilterButton = filterBtn
         fpTableSearchEmptyLabel = emptyLabel
+        fpUpdateTableSearchFilterButtonAppearance()
+    }
+
+    /// True when search is limited to a strict subset of visible (non-hidden) columns.
+    private func fpTableSearchColumnScopeIsRestricted() -> Bool {
+        let cols = tableComponent?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+        guard !cols.isEmpty else { return false }
+        if fpTableSearchColumnNameKeys.isEmpty { return false }
+        return fpTableSearchColumnNameKeys.count < cols.count
+    }
+
+    private func fpUpdateTableSearchFilterButtonAppearance() {
+        guard let btn = fpTableSearchFilterButton else { return }
+        let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+        let restricted = fpTableSearchColumnScopeIsRestricted()
+        let symbol = restricted ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+        btn.setImage(UIImage(systemName: symbol), for: .normal)
+        btn.tintColor = primary
+        btn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
+        btn.accessibilityTraits = restricted ? [.button, .selected] : .button
+        if restricted {
+            let cols = tableComponent?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+            let n = min(fpTableSearchColumnNameKeys.count, cols.count)
+            btn.accessibilityValue = String.localizedStringWithFormat(
+                FPLocalizationHelper.localize("msg_table_search_scope_active_a11y"),
+                n,
+                cols.count
+            )
+        } else {
+            btn.accessibilityValue = FPLocalizationHelper.localize("msg_table_search_scope_all_a11y")
+        }
     }
 
     func fpPresentTableSearchColumnPicker(from sender: UIView) {
@@ -1819,6 +1857,7 @@ private extension FPTableEditViewController {
             }
             self.fpTableSearchColumnNameKeys = keys
             self.fpPersistTableSearchColumnPrefs()
+            self.fpUpdateTableSearchFilterButtonAppearance()
             self.fpApplyTableTextSearchFromField(animated: true)
         }
         menu.cellSelectionStyle = .checkbox
@@ -1839,14 +1878,21 @@ private extension FPTableEditViewController {
             let indices = TableRowTextSearch.matchingRowIndices(
                 rows: rows,
                 query: trimmed,
-                columnKeys: fpTableSearchColumnNameKeys
+                columnKeys: fpTableSearchColumnNameKeys,
+                caseSensitive: TableRowTextSearch.userPrefersCaseSensitiveSearch
             )
             viewModel?.textSearchVisibleRowIndices = indices
             fpTableSearchHighlightQuery = trimmed
             let noResults = indices.isEmpty
             fpTableSearchEmptyLabel?.isHidden = true
-            fpTableSearchBar?.searchTextField.backgroundColor = noResults ? UIColor.systemRed.withAlphaComponent(0.08) : nil
-            fpTableSearchBar?.searchTextField.textColor = noResults ? .systemRed : .label
+            let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+            if noResults {
+                fpTableSearchBar?.searchTextField.backgroundColor = UIColor.systemRed.withAlphaComponent(0.08)
+                fpTableSearchBar?.searchTextField.textColor = .systemRed
+            } else {
+                fpTableSearchBar?.searchTextField.backgroundColor = primary.withAlphaComponent(0.1)
+                fpTableSearchBar?.searchTextField.textColor = .label
+            }
         }
         resetMultipleSeletion()
         if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {

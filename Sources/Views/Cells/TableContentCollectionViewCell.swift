@@ -91,7 +91,22 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     var isUITypeDeficiency:Bool = false
 
     /// When set, matching substrings are highlighted in visible text controls (read-only / display contexts).
+    /// Configure this before setting `data` so `setupView` applies highlighting for the correct column.
     var searchHighlightQuery: String?
+
+    /// When true, search highlighting uses case-sensitive matching (should match `TableRowTextSearch` / user default).
+    var searchHighlightCaseSensitive: Bool = false
+
+    /// When non-empty, only these column `key`s get highlights (same scoping as table search). Empty = all columns.
+    var searchHighlightColumnKeys: Set<String> = []
+
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        searchHighlightQuery = nil
+        searchHighlightCaseSensitive = false
+        searchHighlightColumnKeys = []
+        stripSearchHighlightFormatting()
+    }
 
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -212,9 +227,22 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     }
 
     private func applySearchHighlightIfNeeded() {
-        guard let raw = searchHighlightQuery?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+        guard let raw = searchHighlightQuery?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty,
+              let column = data else {
+            stripSearchHighlightFormatting()
             return
         }
+        if !searchHighlightColumnKeys.isEmpty && !searchHighlightColumnKeys.contains(column.key) {
+            stripSearchHighlightFormatting()
+            return
+        }
+        let compareOptions: String.CompareOptions = searchHighlightCaseSensitive ? [] : [.caseInsensitive, .diacriticInsensitive]
+        let haystack = TableRowTextSearch.searchableText(for: column)
+        guard TableRowTextSearch.containsWordBoundedSubstring(haystack, raw, options: compareOptions) else {
+            stripSearchHighlightFormatting()
+            return
+        }
+
         let font = UIFont.preferredFont(forTextStyle: .body)
         if !tblTextView.isHidden {
             let base = tblTextView.text ?? ""
@@ -222,7 +250,8 @@ class TableContentCollectionViewCell: UICollectionViewCell {
                 full: base,
                 highlight: raw,
                 baseFont: font,
-                textColor: .label
+                textColor: .label,
+                compareOptions: compareOptions
             )
         }
         if !tblTextField.isHidden, tblTextField.inputView == nil, let base = tblTextField.text {
@@ -230,7 +259,8 @@ class TableContentCollectionViewCell: UICollectionViewCell {
                 full: base,
                 highlight: raw,
                 baseFont: font,
-                textColor: .label
+                textColor: .label,
+                compareOptions: compareOptions
             )
         }
         if !tblDropdownField.isHidden, let base = tblDropdownField.text {
@@ -238,21 +268,38 @@ class TableContentCollectionViewCell: UICollectionViewCell {
                 full: base,
                 highlight: raw,
                 baseFont: font,
-                textColor: .label
+                textColor: .label,
+                compareOptions: compareOptions
             )
         }
     }
 
-    private static func attributedText(full: String, highlight: String, baseFont: UIFont, textColor: UIColor) -> NSAttributedString {
+    /// Removes yellow search highlight while keeping visible text (covers reuse and “search cleared” cases).
+    private func stripSearchHighlightFormatting() {
+        let font = UIFont.preferredFont(forTextStyle: .body)
+        let color = UIColor.label
+        if !tblTextView.isHidden {
+            let plain = tblTextView.attributedText?.string ?? tblTextView.text ?? ""
+            tblTextView.attributedText = NSAttributedString(string: plain, attributes: [.font: font, .foregroundColor: color])
+        }
+        if !tblTextField.isHidden, tblTextField.inputView == nil {
+            let plain = tblTextField.attributedText?.string ?? tblTextField.text ?? ""
+            tblTextField.attributedText = NSAttributedString(string: plain, attributes: [.font: font, .foregroundColor: color])
+        }
+        if !tblDropdownField.isHidden {
+            let plain = tblDropdownField.attributedText?.string ?? tblDropdownField.text ?? ""
+            tblDropdownField.attributedText = NSAttributedString(string: plain, attributes: [.font: font, .foregroundColor: color])
+        }
+    }
+
+    private static func attributedText(full: String, highlight: String, baseFont: UIFont, textColor: UIColor, compareOptions: String.CompareOptions) -> NSAttributedString {
         let attributed = NSMutableAttributedString(string: full, attributes: [
             .font: baseFont,
             .foregroundColor: textColor
         ])
-        var searchRange = full.startIndex..<full.endIndex
-        while let range = full.range(of: highlight, options: [.caseInsensitive, .diacriticInsensitive], range: searchRange, locale: nil) {
+        for range in TableRowTextSearch.wordBoundedRanges(of: highlight, in: full, options: compareOptions) {
             let nsRange = NSRange(range, in: full)
             attributed.addAttribute(.backgroundColor, value: UIColor.systemYellow.withAlphaComponent(0.35), range: nsRange)
-            searchRange = range.upperBound..<full.endIndex
         }
         return attributed
     }

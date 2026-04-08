@@ -135,6 +135,14 @@ class FPEditRowTableViewCell: UITableViewCell {
         switchApplyToAllRows?.addTarget(self, action: #selector(bulkApplySwitchChanged(_:)), for: .valueChanged)
         switchApplyToAllRows?.isHidden = true
         switchApplyToAllRows?.accessibilityLabel = FPLocalizationHelper.localize("lbl_Apply_column_to_all_rows")
+        switchApplyToAllRows?.accessibilityHint = FPLocalizationHelper.localize("lbl_Apply_column_to_all_rows_hint")
+        applyBulkApplySwitchPlatformTint()
+    }
+
+    /// Uses system accent blue for the “apply to all rows” switch (on state track).
+    private func applyBulkApplySwitchPlatformTint() {
+        guard let sw = switchApplyToAllRows else { return }
+        sw.onTintColor = .systemBlue
     }
 
     override func prepareForReuse() {
@@ -158,11 +166,19 @@ class FPEditRowTableViewCell: UITableViewCell {
         stackViewInput?.isHidden = false
         stackViewInput?.alpha = 1
         tagListView?.alpha = 1
+        viewBarcode.alpha = 1
         btnAddAttachment.alpha = 1
         btnAddAttachment.isEnabled = true
         btnBarcode.isEnabled = true
         viewBarcode.isUserInteractionEnabled = true
         tagListView?.enableRemoveButton = true
+        tblTextField.textColor = .label
+        tblTextView.textColor = .label
+        tblDropdownField.textColor = .label
+        tblTextView.backgroundColor = .clear
+        tblTextField.backgroundColor = .clear
+        tblDropdownField.backgroundColor = .clear
+        applyBulkApplySwitchPlatformTint()
     }
     
     private func resolveMode(_ column: ColumnData) -> CellInputMode {
@@ -270,10 +286,41 @@ private extension FPEditRowTableViewCell {
         tagListView?.enableRemoveButton = inputsEnabled
         tagListView?.isUserInteractionEnabled = inputsEnabled
 
-        let dim: CGFloat = lockedForBulk ? 0.58 : 1.0
+        if !showBulkSwitch {
+            stackViewInput?.alpha = 1
+            tagListView?.alpha = 1
+            btnAddAttachment.alpha = 1
+            viewBarcode.alpha = 1
+            tblTextField.textColor = .label
+            tblTextView.textColor = .label
+            tblDropdownField.textColor = .label
+            tblTextView.backgroundColor = .clear
+            tblTextField.backgroundColor = .clear
+            tblDropdownField.backgroundColor = .clear
+            return
+        }
+
+        let dim: CGFloat = lockedForBulk ? 0.5 : 1.0
         stackViewInput?.alpha = dim
-        tagListView?.alpha = max(dim, 0.85)
+        tagListView?.alpha = dim
         btnAddAttachment.alpha = dim
+        viewBarcode.alpha = dim
+
+        if lockedForBulk {
+            tblTextField.textColor = .tertiaryLabel
+            tblTextView.textColor = .tertiaryLabel
+            tblDropdownField.textColor = .tertiaryLabel
+            tblTextView.backgroundColor = .secondarySystemFill
+            tblTextField.backgroundColor = .secondarySystemFill
+            tblDropdownField.backgroundColor = .secondarySystemFill
+        } else {
+            tblTextField.textColor = .label
+            tblTextView.textColor = .label
+            tblDropdownField.textColor = .label
+            tblTextView.backgroundColor = .clear
+            tblTextField.backgroundColor = .clear
+            tblDropdownField.backgroundColor = .clear
+        }
     }
     
     private func configureDropdown(_ column: ColumnData) {
