@@ -41,6 +41,8 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     var bulkSelectedFullRowIndices: [Int] = []
     /// Column key → apply edited value to all selected rows (default true when key absent).
     var columnApplyToAllByKey: [String: Bool] = [:]
+    /// Snapshot of visible column values on the base row when bulk edit opens (used to leave “switch off” columns unchanged on save).
+    private var bulkEditBaselineColumnValuesByKey: [String: String] = [:]
 
     private var defaultRowTitleText: String?
 
@@ -67,8 +69,19 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         defaultRowTitleText = lblRowTitle?.text
         viewBulkEditHeaderSpacer?.setContentHuggingPriority(UILayoutPriority(1), for: .horizontal)
         viewBulkEditHeaderSpacer?.setContentCompressionResistancePriority(UILayoutPriority(1), for: .horizontal)
+        if isBulkEditMode {
+            captureBulkEditColumnBaseline()
+        }
         configureBulkRowInfoButton()
         initializeView()
+    }
+
+    private func captureBulkEditColumnBaseline() {
+        bulkEditBaselineColumnValuesByKey = [:]
+        guard let row = tableComponent?.rows?[safe: currentRowNo] else { return }
+        for col in row.columns where col.getUIType() != .HIDDEN {
+            bulkEditBaselineColumnValuesByKey[col.key] = col.value
+        }
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -284,7 +297,20 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
 
         for columnKey in visibleColumns.map(\.key) {
             let applyAll = columnApplyToAllByKey[columnKey] ?? true
-            if !applyAll { continue }
+            if !applyAll {
+                if let baseline = bulkEditBaselineColumnValuesByKey[columnKey],
+                   let idx = rows[baseRow].columns.firstIndex(where: { $0.key == columnKey }) {
+                    rows[baseRow].columns[idx].value = baseline
+                }
+                if let parentIdx = tableIndexPath {
+                    FPFormDataHolder.shared.removeTableMediaCacheForCell(
+                        parentTableIndex: parentIdx,
+                        childTableSection: baseRow + 1,
+                        columnKey: columnKey
+                    )
+                }
+                continue
+            }
             guard let sourceColumn = rows[baseRow].columns.first(where: { $0.key == columnKey }),
                   sourceColumn.readonly != true else { continue }
 
@@ -439,6 +465,10 @@ extension FPEditRowViewController:UITextFieldDelegate{
 
 extension FPEditRowViewController: FPEditRowCellDelegate{
     func updateRow(with data: ColumnData) {
+        if isBulkEditMode {
+            let applyAll = columnApplyToAllByKey[data.key] ?? true
+            if !applyAll { return }
+        }
         if let tblCompnt = tableComponent, let _ = tableIndexPath{
             if var row = tblCompnt.rows?[safe:currentRowNo]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
@@ -469,6 +499,10 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     
     
     func showRowAttachment(at index:IndexPath,with data:ColumnData){
+        if isBulkEditMode {
+            let applyAll = columnApplyToAllByKey[data.key] ?? true
+            if !applyAll { return }
+        }
         self.view.endEditing(true)
         self.attachmentIndex = index
         self.attachmentColumnData = data
@@ -480,6 +514,10 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     }
     
     func didRemoveAttachment(at index: IndexPath, columnData: ColumnData, fileName: String) {
+        if isBulkEditMode {
+            let applyAll = columnApplyToAllByKey[columnData.key] ?? true
+            if !applyAll { return }
+        }
         guard let tableIndexPath = tableIndexPath,
               let component = tableComponent,
               let rows = component.rows,
@@ -554,6 +592,10 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
 extension FPEditRowViewController: AttachmentPickerDelegate{
     func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
         guard let index = attachmentIndex, let data = attachmentColumnData, let tableIndexPath = tableIndexPath else { return }
+        if isBulkEditMode {
+            let applyAll = columnApplyToAllByKey[data.key] ?? true
+            if !applyAll { return }
+        }
         let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded.filter({ $0.id?.isEmpty ?? true }), mediaDeleted: mediaDeleted)
         FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
         guard let result = FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values),

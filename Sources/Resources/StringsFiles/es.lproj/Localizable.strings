@@ -21,11 +21,11 @@
 "lbl_Bulk_Edit" = "Edición masiva";
 "msg_bulk_edit_row_summary" = "%d filas seleccionadas : %@";
 "msg_bulk_edit_row_summary_prefix" = "%d filas seleccionadas : ";
-"lbl_Bulk_edit_info_alert_title" = "Interruptores";
-"lbl_Bulk_edit_info_a11y" = "Más información sobre los interruptores de columna";
-"msg_bulk_edit_confirm_detail" = "Editará varias filas a la vez. Los valores mostrados corresponden a la fila seleccionada con el número más bajo.\n\nCada columna tiene un interruptor: si está ACTIVADO, los cambios se aplican a todas las filas seleccionadas al pulsar Hecho. Si está DESACTIVADO, los cambios solo afectan a esa primera fila y las demás conservan sus valores.\n\n¿Continuar?";
-"msg_bulk_edit_toggle_help_detail" = "El formulario carga los datos de la fila con el número más bajo que seleccionó. El interruptor de cada columna indica dónde se guardan los cambios al pulsar Hecho:\n\n• ACTIVADO — el valor de esa columna se guarda en todas las filas seleccionadas.\n\n• DESACTIVADO — solo se actualiza la primera (más baja) fila; las demás filas seleccionadas no cambian en esa columna.";
-"lbl_Apply_column_to_all_rows" = "Aplicar esta columna a todas las filas seleccionadas al guardar";
+"lbl_Bulk_edit_info_alert_title" = "Cómo funciona";
+"lbl_Bulk_edit_info_a11y" = "Explicación de la edición masiva";
+"msg_bulk_edit_confirm_detail" = "Puede actualizar varias filas a la vez. Lo que ve es de la primera fila que seleccionó.\n\nCada campo tiene un interruptor:\n• Activado — puede editar; al pulsar Hecho, el cambio se copia a cada fila resaltada.\n• Desactivado — el campo queda bloqueado y al pulsar Hecho no cambia en ninguna fila seleccionada.\n\n¿Continuar?";
+"msg_bulk_edit_toggle_help_detail" = "Interruptor activado: puede cambiar este campo. Al pulsar Hecho, ese valor se copia a cada fila resaltada.\n\nInterruptor desactivado: aquí no puede cambiar este campo. Al pulsar Hecho, ese campo no cambia en ninguna fila resaltada — queda tal como estaba antes.";
+"lbl_Apply_column_to_all_rows" = "Activado: copiar este campo a todas las filas al terminar";
 "lbl_Clear" = "Clara";
 "lbl_Selet_color" = "Selecciona un color";
 "lbl_Black" = "Negra";

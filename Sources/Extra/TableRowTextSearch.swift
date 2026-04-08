@@ -52,9 +52,28 @@ enum TableRowTextSearch {
         parts.append(column.key)
         if let opts = column.dropDownOptions {
             for o in opts {
-                parts.append(o.label.stringValue())
-                parts.append(o.value.stringValue())
-                parts.append(o.key.stringValue())
+                let label = o.label.stringValue()
+                let val = o.value.stringValue()
+                let key = o.key.stringValue()
+                parts.append(label)
+                parts.append(val)
+                parts.append(key)
+                if value.caseInsensitiveCompare(val) == .orderedSame || value.caseInsensitiveCompare(key) == .orderedSame || value.caseInsensitiveCompare(label) == .orderedSame {
+                    parts.append(label)
+                    parts.append(val)
+                    parts.append(key)
+                }
+            }
+        }
+
+        if column.uiType == "DEFICIENCY" {
+            let lower = value.lowercased()
+            if ["1", "true", "yes"].contains(lower) {
+                parts.append(FPLocalizationHelper.localize("Yes"))
+            } else if ["0", "false", "no"].contains(lower) {
+                parts.append(FPLocalizationHelper.localize("No"))
+            } else if ["na", "n/a"].contains(lower) {
+                parts.append("NA")
             }
         }
         return parts.joined(separator: " ")

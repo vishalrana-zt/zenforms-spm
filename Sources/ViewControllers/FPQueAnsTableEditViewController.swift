@@ -234,7 +234,7 @@ extension FPQueAnsTableEditViewController: FPQueAnsCollectionViewModelDataSource
         if  let sortedIndexPth = sortFilterColumnIndexPath, let shownColumns = self.tableComponent?.tableOptions?.columns?.filter({$0.uiType != "HIDDEN"}), let column = shownColumns[safe:sortedIndexPth.row - 1]{
             sortFilterColumn = column
         }
-        if sortFilterColumn?.uiType == "DROPDOWN"{
+        if sortFilterColumn?.uiType == "DROPDOWN" || sortFilterColumn?.uiType == "DEFICIENCY"{
             displayOptionsPopUp(sender)
         }else{
             displaySortingPopUp(sender)
@@ -358,9 +358,17 @@ extension FPQueAnsTableEditViewController{
     func displayFilterPopUp(_ sender:UIButton){
         var arrOptions = [DropdownOptions]()
         var generateDynamically = false
-        if let column = sortFilterColumn, column.uiType == "DROPDOWN", let options = column.columnOptions?.dropdownOptions{
+        if let column = sortFilterColumn, (column.uiType == "DROPDOWN" || column.uiType == "DEFICIENCY") {
             generateDynamically = column.columnOptions?.generateDynamically ?? false
-            arrOptions.append(contentsOf: options)
+            if let options = column.columnOptions?.dropdownOptions, !options.isEmpty {
+                arrOptions.append(contentsOf: options)
+            } else if column.uiType == "DEFICIENCY" {
+                arrOptions.append(contentsOf: [
+                    DropdownOptions(key: .string(FPLocalizationHelper.localize("Yes")), value: .string(FPLocalizationHelper.localize("Yes")), label: .string(FPLocalizationHelper.localize("Yes"))),
+                    DropdownOptions(key: .string(FPLocalizationHelper.localize("No")), value: .string(FPLocalizationHelper.localize("No")), label: .string(FPLocalizationHelper.localize("No"))),
+                    DropdownOptions(key: .string("NA"), value: .string("NA"), label: .string("NA"))
+                ])
+            }
         }
         var seen = Set<String>()
         var menuFilterOptions = arrOptions.compactMap({ generateDynamically ? $0.label.stringValue() :  $0.value.stringValue()}).filter { seen.insert($0).inserted }

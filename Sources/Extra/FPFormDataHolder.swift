@@ -739,6 +739,15 @@ struct FPFormDataHolder{
         }
         self.tableMediaCache.append(mediaObject)
     }
+
+    /// Removes cached attachment edits for one table cell column (used when bulk-edit “apply to all” is off for that column).
+    mutating func removeTableMediaCacheForCell(parentTableIndex: IndexPath, childTableSection: Int, columnKey: String) {
+        tableMediaCache.removeAll {
+            $0.parentTableIndex == parentTableIndex
+                && $0.childTableIndex?.section == childTableSection
+                && $0.key == columnKey
+        }
+    }
     
     mutating func getValueFromTableMedia(tableMedia:TableMedia,tableValues:[[String:Any]]?)->(valueArray:[[String:Any]],columnValue:String)?{
         let mediaObjct = tableMedia

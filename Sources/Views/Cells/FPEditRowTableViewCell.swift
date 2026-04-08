@@ -41,7 +41,7 @@ class FPEditRowTableViewCell: UITableViewCell {
 
     /// When true, shows the per-column "apply to all selected rows" switch (bulk edit mode).
     var showsBulkApplyToAllToggle: Bool = false
-    /// Default ON: changes apply to all selected rows; OFF applies only to the base row for that column.
+    /// Default ON: user can edit and changes may apply to every selected row on save. OFF: field is read-only and that column is left unchanged for every row on save.
     var bulkApplyToAllIsOn: Bool = true
     var onBulkApplyToAllChanged: ((String, Bool) -> Void)?
 
@@ -156,6 +156,13 @@ class FPEditRowTableViewCell: UITableViewCell {
         tagListView?.removeAllTags()
         tagListView?.isHidden = true
         stackViewInput?.isHidden = false
+        stackViewInput?.alpha = 1
+        tagListView?.alpha = 1
+        btnAddAttachment.alpha = 1
+        btnAddAttachment.isEnabled = true
+        btnBarcode.isEnabled = true
+        viewBarcode.isUserInteractionEnabled = true
+        tagListView?.enableRemoveButton = true
     }
     
     private func resolveMode(_ column: ColumnData) -> CellInputMode {
@@ -193,7 +200,9 @@ class FPEditRowTableViewCell: UITableViewCell {
 
     @objc private func bulkApplySwitchChanged(_ sender: UISwitch) {
         guard let key = data?.key else { return }
+        bulkApplyToAllIsOn = sender.isOn
         onBulkApplyToAllChanged?(key, sender.isOn)
+        applyBulkInputLockState()
     }
 
     @IBAction func didTapAddAttachments(_ sender: Any) {
@@ -241,6 +250,30 @@ private extension FPEditRowTableViewCell {
         default:
             configureTextInput(column)
         }
+        applyBulkInputLockState()
+    }
+
+    /// When the bulk “apply to all” switch is off, lock inputs so this column is not edited in this screen.
+    private func applyBulkInputLockState() {
+        guard let column = data else { return }
+        let showBulkSwitch = showsBulkApplyToAllToggle && !(column.readonly ?? false)
+        let lockedForBulk = showBulkSwitch && !bulkApplyToAllIsOn
+        let readOnly = column.readonly ?? false
+        let inputsEnabled = !readOnly && !lockedForBulk
+
+        tblTextField.isUserInteractionEnabled = inputsEnabled
+        tblTextView.isUserInteractionEnabled = inputsEnabled
+        tblDropdownField.isUserInteractionEnabled = inputsEnabled
+        btnAddAttachment.isEnabled = inputsEnabled
+        btnBarcode.isEnabled = inputsEnabled
+        viewBarcode.isUserInteractionEnabled = inputsEnabled
+        tagListView?.enableRemoveButton = inputsEnabled
+        tagListView?.isUserInteractionEnabled = inputsEnabled
+
+        let dim: CGFloat = lockedForBulk ? 0.58 : 1.0
+        stackViewInput?.alpha = dim
+        tagListView?.alpha = max(dim, 0.85)
+        btnAddAttachment.alpha = dim
     }
     
     private func configureDropdown(_ column: ColumnData) {

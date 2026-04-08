@@ -233,6 +233,14 @@ class TableContentCollectionViewCell: UICollectionViewCell {
                 textColor: .label
             )
         }
+        if !tblDropdownField.isHidden, let base = tblDropdownField.text {
+            tblDropdownField.attributedText = TableContentCollectionViewCell.attributedText(
+                full: base,
+                highlight: raw,
+                baseFont: font,
+                textColor: .label
+            )
+        }
     }
 
     private static func attributedText(full: String, highlight: String, baseFont: UIFont, textColor: UIColor) -> NSAttributedString {
