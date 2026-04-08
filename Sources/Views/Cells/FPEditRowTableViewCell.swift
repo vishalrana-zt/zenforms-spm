@@ -142,7 +142,8 @@ class FPEditRowTableViewCell: UITableViewCell {
     /// Uses system accent blue for the “apply to all rows” switch (on state track).
     private func applyBulkApplySwitchPlatformTint() {
         guard let sw = switchApplyToAllRows else { return }
-        sw.onTintColor = .systemBlue
+        let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+        sw.onTintColor = primary
     }
 
     override func prepareForReuse() {

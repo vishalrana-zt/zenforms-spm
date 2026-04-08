@@ -55,7 +55,7 @@ class DuplicateRowPrefrenceViewController: UIViewController {
 
     private func setupCaseSensitiveSearchSwitch() {
         guard let sw = switchCaseSensitiveSearch else { return }
-        sw.onTintColor = .systemBlue
+        sw.onTintColor = UIColor(named: "BT-Primary") ?? .systemBlue
         sw.isOn = TableRowTextSearch.userPrefersCaseSensitiveSearch
     }
     
