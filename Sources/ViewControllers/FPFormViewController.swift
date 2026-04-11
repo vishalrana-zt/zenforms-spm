@@ -346,8 +346,16 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
     }
     
+    func resetLocalVariables(){
+        // Reset table attachment context to prevent attachments from previous forms/tickets showing up
+        tableAttachementParentIndexPath = nil
+        tableAttachementChildIndexPath = nil
+        tableAttachementcoloumnIndex = nil
+        tableAttachementcoloumnKey = nil
+    }
     
     func initializeView() {
+        resetLocalVariables()
         self.imgEditSectionName.isHidden = false
         FPFormDataHolder.shared.customForm = self.customForm.getCopyOfCustomForm(isTemplate: false)
         if isNew || isFromHistory{

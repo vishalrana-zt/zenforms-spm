@@ -933,6 +933,7 @@ struct FPFormDataHolder{
         rows.removeAll()
         tableComponents.removeAll()
         tableMedia.removeAll()
+        tableMediaCache.removeAll() // Clear table media cache to prevent attachments from previous forms showing up
         filesAtIndex.removeAll()
     }
     
