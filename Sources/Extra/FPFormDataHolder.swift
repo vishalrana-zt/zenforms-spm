@@ -76,6 +76,7 @@ struct FPFormDataHolder{
 
     var tableMedia:[TableMedia] = []
     var tableMediaCache:[TableMedia] = [] // This is used hold table tempTable media for edit page Clear before closing edit table page
+    var currentFormSessionId:String = "" // Unique identifier for the current form editing session to prevent cache leaking
 
     public static var shared = FPFormDataHolder()
     
@@ -513,7 +514,7 @@ struct FPFormDataHolder{
                                                        updateTableFieldValue(media: tableMedia)
                                                        
                                                    }else{
-                                                       let tableMedia = TableMedia(columnIndex: columnIndex,key:data.key,parentTableIndex: indexPath,childTableIndex:  IndexPath(row: columnIndex, section: rowIndex+1), mediaAdded: mediasAdded, mediaDeleted: [])
+                                                       let tableMedia = TableMedia(columnIndex: columnIndex,key:data.key,parentTableIndex: indexPath,childTableIndex:  IndexPath(row: columnIndex, section: rowIndex+1), mediaAdded: mediasAdded, mediaDeleted: [], formSessionId: currentFormSessionId)
                                                        updateTableFieldValue(media: tableMedia)
                                                    }
                                                }
@@ -726,7 +727,12 @@ struct FPFormDataHolder{
     
     mutating func addUpdateTableMediaCache(media: TableMedia){
         var mediaObject =  media
-        if let index = tableMediaCache.firstIndex(where: {$0.parentTableIndex == media.parentTableIndex && $0.childTableIndex == media.childTableIndex && $0.columnIndex == media.columnIndex}){
+        if let index = tableMediaCache.firstIndex(where: {
+            $0.parentTableIndex == media.parentTableIndex && 
+            $0.childTableIndex == media.childTableIndex && 
+            $0.columnIndex == media.columnIndex &&
+            $0.formSessionId == media.formSessionId // Match session ID to prevent cross-form updates
+        }){
             let tblMedia = tableMediaCache[index]
             if(tblMedia.mediaDeleted.count>0&&mediaObject.mediaDeleted.count == 0){
                 mediaObject.mediaDeleted = tblMedia.mediaDeleted
@@ -935,6 +941,7 @@ struct FPFormDataHolder{
         tableMedia.removeAll()
         tableMediaCache.removeAll() // Clear table media cache to prevent attachments from previous forms showing up
         filesAtIndex.removeAll()
+        // Note: currentFormSessionId is set by FPFormViewController when it opens
     }
     
     mutating func removeMediaAt(indexPath: IndexPath, index: Int){
@@ -1107,6 +1114,7 @@ struct TableMedia{
     var childTableIndex:IndexPath?
     var mediaAdded:[SSMedia]
     var mediaDeleted:[SSMedia]
+    let formSessionId:String // Unique identifier for the current form editing session to prevent cache leaking
 }
 
 class TableOptions: NSObject, Codable, FetchableRecord, PersistableRecord  {

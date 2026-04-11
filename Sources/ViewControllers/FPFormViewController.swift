@@ -302,6 +302,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             form.objectId = nil
         }
         FPFormDataHolder.shared.resetData()
+        FPFormDataHolder.shared.currentFormSessionId = UUID().uuidString // Generate unique session ID for this form
         FPFormDataHolder.shared.customForm = form
         if !(form.isSyncedToServer ?? false) {
             FPFormDataHolder.shared.getFilesFromValue(form: form)
@@ -336,6 +337,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
+        // Clear session ID when form view controller is deallocated
+        FPFormDataHolder.shared.currentFormSessionId = ""
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -2634,7 +2637,7 @@ extension FPFormViewController:  FPDrawHelper{
 extension FPFormViewController: AttachmentPickerDelegate{
     
     func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
-        let tableMedia = TableMedia(columnIndex: tableAttachementcoloumnIndex, key: tableAttachementcoloumnKey!, parentTableIndex: tableAttachementParentIndexPath, childTableIndex: tableAttachementChildIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
+        let tableMedia = TableMedia(columnIndex: tableAttachementcoloumnIndex, key: tableAttachementcoloumnKey!, parentTableIndex: tableAttachementParentIndexPath, childTableIndex: tableAttachementChildIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
         FPFormDataHolder.shared.updateTableFieldValue(media: tableMedia)
         hasDataChanges = true
         self.formTableView.reloadData()
