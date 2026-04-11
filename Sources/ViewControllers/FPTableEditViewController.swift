@@ -271,6 +271,7 @@ class FPTableEditViewController: UIViewController {
             FPFormDataHolder.shared.arrLinkingDB.append(contentsOf: otherFieldTableSavedLinkings)
             AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
         }
+        FPFormDataHolder.shared.tableMediaCache = []
         self.navigationController?.popViewController(animated: true)
     }
     

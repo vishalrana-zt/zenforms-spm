@@ -154,6 +154,7 @@ class FPQueAnsTableEditViewController: UIViewController {
     
     @objc func cancelButtonClicked() {
         view.endEditing(true)
+        FPFormDataHolder.shared.tableMediaCache = []
         self.navigationController?.popViewController(animated: true)
     }
     
