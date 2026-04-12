@@ -337,8 +337,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        // Clear session ID when form view controller is deallocated
-        FPFormDataHolder.shared.currentFormSessionId = ""
     }
     
     override func viewDidAppear(_ animated: Bool) {

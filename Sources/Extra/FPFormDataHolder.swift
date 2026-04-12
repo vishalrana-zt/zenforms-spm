@@ -1096,6 +1096,8 @@ struct FPFormDataHolder{
         tableComponents = [:]
         tableMedia.removeAll()
         arrLinkingDB.removeAll()
+        // Clear session ID when form view controller is dismissed
+        currentFormSessionId = ""
         //        image = nil
     }
     
