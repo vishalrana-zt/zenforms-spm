@@ -76,7 +76,7 @@ struct FPFormDataHolder{
 
     var tableMedia:[TableMedia] = []
     var tableMediaCache:[TableMedia] = [] // This is used hold table tempTable media for edit page Clear before closing edit table page
-    var currentFormSessionId:String = "" // Unique identifier for the current form editing session to prevent cache leaking
+    var currentFormSessionId:String = "" // Unique identifier bound to the form (uses sqliteId or UUID fallback) to prevent cache leaking
 
     public static var shared = FPFormDataHolder()
     
@@ -1101,6 +1101,56 @@ struct FPFormDataHolder{
         //        image = nil
     }
     
+    /// Updates the currentFormSessionId to use sqliteId when it becomes available (replacing UUID)
+    /// and updates all existing tableMedia items to use the new session ID
+    mutating func updateSessionIdWithSqliteId() {
+        guard let sqliteId = customForm?.sqliteId?.stringValue else {
+            return // No sqliteId available yet
+        }
+        
+        // Check if current session ID is different from sqliteId (i.e., it's a UUID)
+        guard currentFormSessionId != sqliteId else {
+            return // Already using sqliteId
+        }
+        
+        let oldSessionId = currentFormSessionId
+        currentFormSessionId = sqliteId
+        
+        // Update all tableMedia items with the new session ID
+        tableMedia = tableMedia.map { media in
+            var updatedMedia = media
+            if updatedMedia.formSessionId == oldSessionId {
+                updatedMedia = TableMedia(
+                    columnIndex: media.columnIndex,
+                    key: media.key,
+                    parentTableIndex: media.parentTableIndex,
+                    childTableIndex: media.childTableIndex,
+                    mediaAdded: media.mediaAdded,
+                    mediaDeleted: media.mediaDeleted,
+                    formSessionId: sqliteId
+                )
+            }
+            return updatedMedia
+        }
+        
+        // Update all tableMediaCache items with the new session ID
+        tableMediaCache = tableMediaCache.map { media in
+            var updatedMedia = media
+            if updatedMedia.formSessionId == oldSessionId {
+                updatedMedia = TableMedia(
+                    columnIndex: media.columnIndex,
+                    key: media.key,
+                    parentTableIndex: media.parentTableIndex,
+                    childTableIndex: media.childTableIndex,
+                    mediaAdded: media.mediaAdded,
+                    mediaDeleted: media.mediaDeleted,
+                    formSessionId: sqliteId
+                )
+            }
+            return updatedMedia
+        }
+    }
+    
     
 }
 
@@ -1116,7 +1166,7 @@ struct TableMedia{
     var childTableIndex:IndexPath?
     var mediaAdded:[SSMedia]
     var mediaDeleted:[SSMedia]
-    let formSessionId:String // Unique identifier for the current form editing session to prevent cache leaking
+    let formSessionId:String // Unique identifier bound to the form (sqliteId or UUID) to prevent cache leaking
 }
 
 class TableOptions: NSObject, Codable, FetchableRecord, PersistableRecord  {

@@ -302,7 +302,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             form.objectId = nil
         }
         FPFormDataHolder.shared.resetData()
-        FPFormDataHolder.shared.currentFormSessionId = UUID().uuidString // Generate unique session ID for this form
+        // Use sqliteId as session ID if available, otherwise fallback to UUID for new forms
+        FPFormDataHolder.shared.currentFormSessionId = form.sqliteId?.stringValue ?? UUID().uuidString
         FPFormDataHolder.shared.customForm = form
         if !(form.isSyncedToServer ?? false) {
             FPFormDataHolder.shared.getFilesFromValue(form: form)
@@ -1243,6 +1244,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { serverForm, error in
                                     self.stopLoadings()
                                     if error == nil {
+                                        // Update session ID to use sqliteId if it became available after save
+                                        FPFormDataHolder.shared.updateSessionIdWithSqliteId()
+                                        
                                         if isDismiss{
                                             DispatchQueue.main.async {
                                                 self.delegate?.formUpdated()
@@ -1296,6 +1300,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         self.stopLoadings()
                                         if error == nil {
                                             FPFormDataHolder.shared.customForm = form
+                                            // Update session ID to use sqliteId if it became available after save
+                                            FPFormDataHolder.shared.updateSessionIdWithSqliteId()
                                             self.customForm = form
                                             self.isNew = false
                                             self.delegate?.refreshListNeeded()
