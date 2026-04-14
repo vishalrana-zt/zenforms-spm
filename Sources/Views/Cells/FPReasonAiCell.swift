@@ -7,7 +7,6 @@
 
 import UIKit
 internal import SSMediaManager
-internal import SDWebImage
 internal import Lottie
 import Speech
 internal let Reason_cell_DATE_STRING_FORMAT:String = "dd MMM yyyy"
@@ -499,18 +498,17 @@ extension FPReasonAiCell : UICollectionViewDelegate, UICollectionViewDataSource,
             return cell
         }else if collectionView == self.collectionViewImage{
             let cell = FPImageCollectionViewCell.getDequeuedCell(for: collectionView, indexPath: indexPath) as! FPImageCollectionViewCell
-            if let url = ssMediaArray[safe:indexPath.row]?.serverUrl{
-                cell.fpImageView.sd_imageIndicator = SDWebImageActivityIndicator.gray
-                if let downloadURL = SDImageCache.shared.imageFromCache(forKey: url){
-                    cell.fpImageView.image = downloadURL
-                }else{
-                    cell.fpImageView
-                        .sd_setImage(with: URL(string:url),placeholderImage: UIImage(named: "image-placeholder")!, completed: nil)
-                }
-            }else{
-                let url = ssMediaArray[safe:indexPath.row]?.filePath ?? ""
-                let image = UIImage(contentsOfFile: url)
-                cell.fpImageView.image = image
+            if let url = ssMediaArray[safe: indexPath.row]?.serverUrl {
+                let imageURL = URL(string: url)
+                cell.fpImageView.kf.indicatorType = .activity
+                cell.fpImageView.kf.setImage(
+                    with: imageURL,
+                    placeholder: UIImage(named: "image-placeholder"),
+                    options: [.transition(.fade(0.2))]
+                )
+            } else {
+                let filePath = ssMediaArray[safe: indexPath.row]?.filePath ?? ""
+                cell.fpImageView.image = UIImage(contentsOfFile: filePath)
             }
             cell.onItemsRemoved = {
                 if let files = FPFormDataHolder.shared.getFiledFilesArray()[self.indexPath!], let index = files.firstIndex(where:{$0.name == self.ssMediaArray[safe:indexPath.row]?.name}), let media = FPFormDataHolder.shared.getFiledFilesArray()[self.indexPath!]?[index], FPUtility.isConnectedToNetwork() ||  media.id == nil {

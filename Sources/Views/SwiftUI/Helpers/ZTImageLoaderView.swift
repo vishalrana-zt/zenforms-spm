@@ -7,20 +7,21 @@
 //
 
 import SwiftUI
-internal import SDWebImageSwiftUI
-
+internal import Kingfisher
 struct ZTImageLoaderView: View {
     
-    var urlString:String = ""
-    var resizingMode:ContentMode = .fit
+    var urlString: String = ""
+    var resizingMode: SwiftUI.ContentMode = .fit
     
     var body: some View {
         Rectangle()
             .opacity(0.001)
             .overlay {
-                WebImage(url: URL(string: urlString))
+                KFImage(URL(string: urlString))
+                    .placeholder {
+                        ProgressView()
+                    }
                     .resizable()
-                    .indicator(.activity)
                     .aspectRatio(contentMode: resizingMode)
                     .allowsHitTesting(false)
             }
