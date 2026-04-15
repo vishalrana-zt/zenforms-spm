@@ -115,6 +115,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         let imgViewForDropDown = UIImageView()
         imgViewForDropDown.frame = CGRect(x: 0, y: 0, width: 30, height: 48)
         imgViewForDropDown.image = UIImage(named: "ic_down_arrow_black")
+        // Disable formatting options (Bold, Italic, Underline) in iOS 18+
+        txtFieldSection.allowsEditingTextAttributes = false
         txtFieldSection.rightView = imgViewForDropDown
         txtFieldSection.rightViewMode = .always
         txtFieldSection.delegate = self
