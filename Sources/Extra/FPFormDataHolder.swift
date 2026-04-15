@@ -18,7 +18,14 @@ struct FPFormDataHolder{
     var customForm:FPForms?{
         set {
             if let fPForm = newValue{
+                // Only clear attachedAssetIds if this is a different form (not just an update of the same form)
+                let isDifferentForm = internalForm?.sqliteId != fPForm.sqliteId || 
+                                     internalForm?.objectId != fPForm.objectId ||
+                                     (internalForm == nil)
                 internalForm = fPForm
+                if isDifferentForm {
+                    attachedAssetIds.removeAll() // Clear stale asset IDs from previous forms
+                }
                 let result = fPForm.sections?.reduce(into:([String:[FPSectionDetails]](),
                                                            [FPSectionDetails]())){ partialResult, section in
 
@@ -38,6 +45,22 @@ struct FPFormDataHolder{
                                 attachedAssetIds.append(assetID)
                             }
                         }
+                        
+                        // Also check TABLE fields for assetId columns (for previous forms)
+                        for field in sectionFields {
+                            if field.getUIType() == .TABLE, let arrValue = field.value?.getArray(), !arrValue.isEmpty {
+                                for dictValue in arrValue {
+                                    if let assetIdValue = dictValue[hiddenAssetIdColumnKey] as? String,
+                                       !assetIdValue.isEmpty,
+                                       let assetID = Int(assetIdValue),
+                                       assetID > 0,
+                                       !attachedAssetIds.contains(assetID) {
+                                        attachedAssetIds.append(assetID)
+                                    }
+                                }
+                            }
+                        }
+                        
                         section.fields = sectionFields
                         partialResult.1.append(section)
                         return }
