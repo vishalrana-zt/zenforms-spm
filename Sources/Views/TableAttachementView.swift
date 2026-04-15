@@ -130,9 +130,13 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
         actionOptions.addAction(documentAction)
         actionOptions.addAction(sketchAction)
         actionOptions.addAction(UIAlertAction(title: FPLocalizationHelper.localize("Cancel"), style: .cancel))
-        if let popover = actionOptions.popoverPresentationController {
-            popover.sourceView = sourceView ?? parentViewController?.view
-            popover.sourceRect = sourceView?.bounds ?? CGRect(x: 0, y: 0, width: 1, height: 1)
+        if let popover = actionOptions.popoverPresentationController,
+           let anchor = sourceView ?? parentViewController?.view {
+            // iPad presents the action sheet as a popover; full bounds skew the anchor (e.g. card + landscape).
+            // Center on the anchor view so the popover attaches predictably without edge glitches.
+            popover.sourceView = anchor
+            popover.sourceRect = CGRect(x: anchor.bounds.midX, y: anchor.bounds.midY, width: 1, height: 1)
+            popover.permittedArrowDirections = []
         }
         parentViewController?.present(actionOptions, animated: true)
     }
