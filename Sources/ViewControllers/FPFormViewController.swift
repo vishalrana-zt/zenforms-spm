@@ -115,6 +115,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         let imgViewForDropDown = UIImageView()
         imgViewForDropDown.frame = CGRect(x: 0, y: 0, width: 30, height: 48)
         imgViewForDropDown.image = UIImage(named: "ic_down_arrow_black")
+        // Disable formatting options (Bold, Italic, Underline) in iOS 18+
+        txtFieldSection.allowsEditingTextAttributes = false
         txtFieldSection.rightView = imgViewForDropDown
         txtFieldSection.rightViewMode = .always
         txtFieldSection.delegate = self
@@ -302,6 +304,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             form.objectId = nil
         }
         FPFormDataHolder.shared.resetData()
+        // Use sqliteId as session ID if available, otherwise fallback to UUID for new forms
+        FPFormDataHolder.shared.currentFormSessionId = form.sqliteId?.stringValue ?? UUID().uuidString
         FPFormDataHolder.shared.customForm = form
         if !(form.isSyncedToServer ?? false) {
             FPFormDataHolder.shared.getFilesFromValue(form: form)
@@ -346,8 +350,16 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
     }
     
+    func resetLocalVariables(){
+        // Reset table attachment context to prevent attachments from previous forms/tickets showing up
+        tableAttachementParentIndexPath = nil
+        tableAttachementChildIndexPath = nil
+        tableAttachementcoloumnIndex = nil
+        tableAttachementcoloumnKey = nil
+    }
     
     func initializeView() {
+        resetLocalVariables()
         self.imgEditSectionName.isHidden = false
         FPFormDataHolder.shared.customForm = self.customForm.getCopyOfCustomForm(isTemplate: false)
         if isNew || isFromHistory{
@@ -1234,6 +1246,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { serverForm, error in
                                     self.stopLoadings()
                                     if error == nil {
+                                        // Update session ID to use sqliteId if it became available after save
+                                        FPFormDataHolder.shared.updateSessionIdWithSqliteId()
+                                        
                                         if isDismiss{
                                             DispatchQueue.main.async {
                                                 self.delegate?.formUpdated()
@@ -1287,6 +1302,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         self.stopLoadings()
                                         if error == nil {
                                             FPFormDataHolder.shared.customForm = form
+                                            // Update session ID to use sqliteId if it became available after save
+                                            FPFormDataHolder.shared.updateSessionIdWithSqliteId()
                                             self.customForm = form
                                             self.isNew = false
                                             self.delegate?.refreshListNeeded()
@@ -2626,7 +2643,7 @@ extension FPFormViewController:  FPDrawHelper{
 extension FPFormViewController: AttachmentPickerDelegate{
     
     func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
-        let tableMedia = TableMedia(columnIndex: tableAttachementcoloumnIndex, key: tableAttachementcoloumnKey!, parentTableIndex: tableAttachementParentIndexPath, childTableIndex: tableAttachementChildIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
+        let tableMedia = TableMedia(columnIndex: tableAttachementcoloumnIndex, key: tableAttachementcoloumnKey!, parentTableIndex: tableAttachementParentIndexPath, childTableIndex: tableAttachementChildIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
         FPFormDataHolder.shared.updateTableFieldValue(media: tableMedia)
         hasDataChanges = true
         self.formTableView.reloadData()

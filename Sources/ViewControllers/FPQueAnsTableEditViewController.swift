@@ -154,6 +154,7 @@ class FPQueAnsTableEditViewController: UIViewController {
     
     @objc func cancelButtonClicked() {
         view.endEditing(true)
+        FPFormDataHolder.shared.tableMediaCache = []
         self.navigationController?.popViewController(animated: true)
     }
     
@@ -549,7 +550,7 @@ extension FPQueAnsTableEditViewController: AttachmentPickerDelegate{
             if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent, let attachrow = sortCompnt.rows?[index.section-1], let tblRowIndex = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == attachrow.sortUuid }){
                 let currentMainTblRow = self.tableComponent?.rows?[safe:tblRowIndex]
                 let attachIndexPath  = IndexPath(row: index.row, section: tblRowIndex + 1)
-                let tableMedia = TableMedia(columnIndex: attachIndexPath.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: attachIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
+                let tableMedia = TableMedia(columnIndex: attachIndexPath.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: attachIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
                 FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                 let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
                 if let component  = tableComponent{
@@ -578,7 +579,7 @@ extension FPQueAnsTableEditViewController: AttachmentPickerDelegate{
                     }
                 }
             }else{
-                let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: index, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
+                let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: index, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
                 FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                 let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
                 if let component  = tableComponent{

@@ -18,7 +18,14 @@ struct FPFormDataHolder{
     var customForm:FPForms?{
         set {
             if let fPForm = newValue{
+                // Only clear attachedAssetIds if this is a different form (not just an update of the same form)
+                let isDifferentForm = internalForm?.sqliteId != fPForm.sqliteId || 
+                                     internalForm?.objectId != fPForm.objectId ||
+                                     (internalForm == nil)
                 internalForm = fPForm
+                if isDifferentForm {
+                    attachedAssetIds.removeAll() // Clear stale asset IDs from previous forms
+                }
                 let result = fPForm.sections?.reduce(into:([String:[FPSectionDetails]](),
                                                            [FPSectionDetails]())){ partialResult, section in
 
@@ -38,6 +45,22 @@ struct FPFormDataHolder{
                                 attachedAssetIds.append(assetID)
                             }
                         }
+                        
+                        // Also check TABLE fields for assetId columns (for previous forms)
+                        for field in sectionFields {
+                            if field.getUIType() == .TABLE, let arrValue = field.value?.getArray(), !arrValue.isEmpty {
+                                for dictValue in arrValue {
+                                    if let assetIdValue = dictValue[hiddenAssetIdColumnKey] as? String,
+                                       !assetIdValue.isEmpty,
+                                       let assetID = Int(assetIdValue),
+                                       assetID > 0,
+                                       !attachedAssetIds.contains(assetID) {
+                                        attachedAssetIds.append(assetID)
+                                    }
+                                }
+                            }
+                        }
+                        
                         section.fields = sectionFields
                         partialResult.1.append(section)
                         return }
@@ -76,6 +99,7 @@ struct FPFormDataHolder{
 
     var tableMedia:[TableMedia] = []
     var tableMediaCache:[TableMedia] = [] // This is used hold table tempTable media for edit page Clear before closing edit table page
+    var currentFormSessionId:String = "" // Unique identifier bound to the form (uses sqliteId or UUID fallback) to prevent cache leaking
 
     public static var shared = FPFormDataHolder()
     
@@ -513,7 +537,7 @@ struct FPFormDataHolder{
                                                        updateTableFieldValue(media: tableMedia)
                                                        
                                                    }else{
-                                                       let tableMedia = TableMedia(columnIndex: columnIndex,key:data.key,parentTableIndex: indexPath,childTableIndex:  IndexPath(row: columnIndex, section: rowIndex+1), mediaAdded: mediasAdded, mediaDeleted: [])
+                                                       let tableMedia = TableMedia(columnIndex: columnIndex,key:data.key,parentTableIndex: indexPath,childTableIndex:  IndexPath(row: columnIndex, section: rowIndex+1), mediaAdded: mediasAdded, mediaDeleted: [], formSessionId: currentFormSessionId)
                                                        updateTableFieldValue(media: tableMedia)
                                                    }
                                                }
@@ -726,7 +750,12 @@ struct FPFormDataHolder{
     
     mutating func addUpdateTableMediaCache(media: TableMedia){
         var mediaObject =  media
-        if let index = tableMediaCache.firstIndex(where: {$0.parentTableIndex == media.parentTableIndex && $0.childTableIndex == media.childTableIndex && $0.columnIndex == media.columnIndex}){
+        if let index = tableMediaCache.firstIndex(where: {
+            $0.parentTableIndex == media.parentTableIndex && 
+            $0.childTableIndex == media.childTableIndex && 
+            $0.columnIndex == media.columnIndex &&
+            $0.formSessionId == media.formSessionId // Match session ID to prevent cross-form updates
+        }){
             let tblMedia = tableMediaCache[index]
             if(tblMedia.mediaDeleted.count>0&&mediaObject.mediaDeleted.count == 0){
                 mediaObject.mediaDeleted = tblMedia.mediaDeleted
@@ -933,7 +962,9 @@ struct FPFormDataHolder{
         rows.removeAll()
         tableComponents.removeAll()
         tableMedia.removeAll()
+        tableMediaCache.removeAll() // Clear table media cache to prevent attachments from previous forms showing up
         filesAtIndex.removeAll()
+        // Note: currentFormSessionId is set by FPFormViewController when it opens
     }
     
     mutating func removeMediaAt(indexPath: IndexPath, index: Int){
@@ -1088,7 +1119,59 @@ struct FPFormDataHolder{
         tableComponents = [:]
         tableMedia.removeAll()
         arrLinkingDB.removeAll()
+        // Clear session ID when form view controller is dismissed
+        currentFormSessionId = ""
         //        image = nil
+    }
+    
+    /// Updates the currentFormSessionId to use sqliteId when it becomes available (replacing UUID)
+    /// and updates all existing tableMedia items to use the new session ID
+    mutating func updateSessionIdWithSqliteId() {
+        guard let sqliteId = customForm?.sqliteId?.stringValue else {
+            return // No sqliteId available yet
+        }
+        
+        // Check if current session ID is different from sqliteId (i.e., it's a UUID)
+        guard currentFormSessionId != sqliteId else {
+            return // Already using sqliteId
+        }
+        
+        let oldSessionId = currentFormSessionId
+        currentFormSessionId = sqliteId
+        
+        // Update all tableMedia items with the new session ID
+        tableMedia = tableMedia.map { media in
+            var updatedMedia = media
+            if updatedMedia.formSessionId == oldSessionId {
+                updatedMedia = TableMedia(
+                    columnIndex: media.columnIndex,
+                    key: media.key,
+                    parentTableIndex: media.parentTableIndex,
+                    childTableIndex: media.childTableIndex,
+                    mediaAdded: media.mediaAdded,
+                    mediaDeleted: media.mediaDeleted,
+                    formSessionId: sqliteId
+                )
+            }
+            return updatedMedia
+        }
+        
+        // Update all tableMediaCache items with the new session ID
+        tableMediaCache = tableMediaCache.map { media in
+            var updatedMedia = media
+            if updatedMedia.formSessionId == oldSessionId {
+                updatedMedia = TableMedia(
+                    columnIndex: media.columnIndex,
+                    key: media.key,
+                    parentTableIndex: media.parentTableIndex,
+                    childTableIndex: media.childTableIndex,
+                    mediaAdded: media.mediaAdded,
+                    mediaDeleted: media.mediaDeleted,
+                    formSessionId: sqliteId
+                )
+            }
+            return updatedMedia
+        }
     }
     
     
@@ -1106,6 +1189,7 @@ struct TableMedia{
     var childTableIndex:IndexPath?
     var mediaAdded:[SSMedia]
     var mediaDeleted:[SSMedia]
+    let formSessionId:String // Unique identifier bound to the form (sqliteId or UUID) to prevent cache leaking
 }
 
 class TableOptions: NSObject, Codable, FetchableRecord, PersistableRecord  {
