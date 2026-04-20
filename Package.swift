@@ -37,8 +37,7 @@ let package = Package(
         // MARK: - Utilities
         .package(url: "https://github.com/ashleymills/Reachability.swift", branch: "master"),
         .package(url: "https://github.com/globulus/swiftui-flow-layout", .upToNextMajor(from: "1.0.5")),
-        .package(url: "https://github.com/SDWebImage/SDWebImage.git", .upToNextMajor(from: "5.21.0")),
-        .package(url: "https://github.com/SDWebImage/SDWebImageSwiftUI.git", .upToNextMajor(from: "3.1.4")),
+        .package(url: "https://github.com/onevcat/Kingfisher", .upToNextMajor(from: "8.8.1")),
 
         // MARK: - Internal Libraries
         .package(url: "https://github.com/vishalrana-zt/PPSSignatureView.git", branch: "master"),
@@ -65,8 +64,7 @@ let package = Package(
                 .product(name: "IQKeyboardManagerSwift", package: "IQKeyboardManager"),
                 .product(name: "Reachability", package: "Reachability.swift"),
                 .product(name: "SwiftUIFlowLayout", package: "swiftui-flow-layout"),
-                .product(name: "SDWebImage", package: "SDWebImage"),
-                .product(name: "SDWebImageSwiftUI", package: "SDWebImageSwiftUI"),
+                .product(name: "Kingfisher", package: "Kingfisher"),
                 .product(name: "PPSSignatureView", package: "PPSSignatureView"),
                 .product(name: "RSSelectionMenu", package: "RSSelectionMenu"),
                 .product(name: "SSMediaManager", package: "SSMediaManager"),

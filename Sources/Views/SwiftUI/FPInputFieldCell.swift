@@ -65,10 +65,16 @@ struct FPInputFieldCell: View {
         VStack(alignment: .leading, spacing: 6) {
             if fieldItem.mandatory{
                 SwiftUI.Text(fetchAttributedString())
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }else{
                 SwiftUI.Text(fieldDisplayName)
                     .font(.headline)
                     .foregroundColor(Color("ZT-Black"))
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             
             if showTextNumberAutoPopulateView(){
@@ -104,9 +110,9 @@ struct FPInputFieldCell: View {
     }
     
     func fetchAttributedString() -> AttributedString {
-        let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 17, weight: .semibold), .foregroundColor: UIColor.black]
+        let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.black]
         let baseString =  NSAttributedString(string: " \(fieldDisplayName)", attributes: fontAttributes)
-        let colrattributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.red]
+        let colrattributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.red]
         let starString =  NSAttributedString(string: "*", attributes: colrattributes)
         let mutableString = NSMutableAttributedString(attributedString: starString)
         mutableString.append(baseString)
@@ -119,7 +125,7 @@ struct FPInputFieldCell: View {
                 .focused($isInputFocused)
                 .withClearButton(text: $fieldValue, isFocused: Binding(get: { self.isInputFocused }, set: { self.isInputFocused = $0 }))
                 .padding(.horizontal, 8)
-                .font(.system(size: 14))
+                .font(.subheadline)
                 .foregroundStyle(Color("ZT-Black"))
                 .frame(height: 50)
                 .autocorrectionDisabled(true)
@@ -164,7 +170,7 @@ struct FPInputFieldCell: View {
     private var textAreaInputView: some View {
         TextEditor(text: $fieldValue)
             .frame(height: 100)
-            .font(.system(size: 14, weight: .regular))
+            .font(.subheadline)
             .focused($isInputFocused)
             .autocorrectionDisabled(true)
             .padding(8)
@@ -197,12 +203,13 @@ struct FPInputFieldCell: View {
                 }
                 onFieldInputChanged?(sectionIndex, fieldIndex, nil, date != nil ? FPUtility.getStringWithTZFormat(date!) : "", date, isSectionDuplicationField )
             }
-            .padding(.leading, 10)
+            .padding(.horizontal, 8)
             .frame(height: 50)
             .background(
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .stroke(Color(.systemGray4), lineWidth: 1)
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     private var yearPickerInputView: some View{
@@ -220,10 +227,12 @@ struct FPInputFieldCell: View {
                 }
                 onFieldInputChanged?(sectionIndex, fieldIndex, nil, date != nil ? FPUtility.getStringWithTZFormat(date!) : "", date, isSectionDuplicationField )
             }
+            .frame(height: 50)
             .background(
                 RoundedRectangle(cornerRadius: 4)
                     .stroke(Color(.systemGray4), lineWidth: 1)
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     //MARK: Helper Methods

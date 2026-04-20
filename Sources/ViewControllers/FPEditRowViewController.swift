@@ -535,7 +535,11 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
         let dataObject = column.value.getDictonary()
         var mediaAdded: [SSMedia] = []
         var mediaDeleted: [SSMedia] = []
-        let cached = FPFormDataHolder.shared.tableMediaCache.first(where: { $0.parentTableIndex == tableIndexPath && $0.childTableIndex == index })
+        let cached = FPFormDataHolder.shared.tableMediaCache.first(where: { 
+            $0.parentTableIndex == tableIndexPath && 
+            $0.childTableIndex == index &&
+            $0.formSessionId == FPFormDataHolder.shared.currentFormSessionId
+        })
         mediaAdded = (cached?.mediaAdded ?? []).filter { $0.name != fileName }
         mediaDeleted = cached?.mediaDeleted ?? []
         let wasInMediaAdded = (cached?.mediaAdded.contains(where: { $0.name == fileName })) ?? false
@@ -544,7 +548,7 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
            let id = file["id"] as? String, !id.isEmpty {
             mediaDeleted.append(SSMedia(name: fileName, id: id, mimeType: file["type"] as? String, filePath: file["localPath"] as? String, serverUrl: file["file"] as? String, moduleType: .forms))
         }
-        let tableMedia = TableMedia(columnIndex: index.row, key: columnData.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded, mediaDeleted: mediaDeleted)
+        let tableMedia = TableMedia(columnIndex: index.row, key: columnData.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded, mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
         FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
         guard let result = FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: component.values) else { return }
         component.values = result.valueArray
@@ -602,7 +606,7 @@ extension FPEditRowViewController: AttachmentPickerDelegate{
             let applyAll = columnApplyToAllByKey[data.key] ?? true
             if !applyAll { return }
         }
-        let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded.filter({ $0.id?.isEmpty ?? true }), mediaDeleted: mediaDeleted)
+        let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded.filter({ $0.id?.isEmpty ?? true }), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
         FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
         guard let result = FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values),
               let component = tableComponent,

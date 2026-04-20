@@ -106,7 +106,7 @@ struct FPDeficiencySegmentCell: View {
         TextField(FPLocalizationHelper.localize("lbl_Custom_Reason"), text: $customReason)
             .focused($isFocused)
             .padding(.horizontal, 8)
-            .font(.system(size: 14))
+            .font(.subheadline)
             .foregroundStyle(Color("ZT-Black"))
             .frame(height: 50)
             .disabled(isViewOnly)

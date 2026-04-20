@@ -364,7 +364,11 @@ private extension FPEditRowTableViewCell {
             }
         }
         if let parentTableIndex = parentTableIndex, let childTableIndex = childTableIndex,
-           let cached = FPFormDataHolder.shared.tableMediaCache.first(where: { $0.parentTableIndex == parentTableIndex && $0.childTableIndex == childTableIndex }) {
+           let cached = FPFormDataHolder.shared.tableMediaCache.first(where: { 
+               $0.parentTableIndex == parentTableIndex && 
+               $0.childTableIndex == childTableIndex &&
+               $0.formSessionId == FPFormDataHolder.shared.currentFormSessionId // Match session ID to prevent cross-form leaking
+           }) {
             let cachedNames = cached.mediaAdded.map(\.name).filter { !$0.isEmpty }
             fileNames.append(contentsOf: cachedNames.filter { name in !fileNames.contains(name) })
         }
@@ -381,12 +385,16 @@ private extension FPEditRowTableViewCell {
                     }
                 }
                 if mediasAdded.count > 0 {
-                    if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: { $0.parentTableIndex == parentTableIndex && $0.childTableIndex == childTableIndex }) {
+                    if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: { 
+                        $0.parentTableIndex == parentTableIndex && 
+                        $0.childTableIndex == childTableIndex &&
+                        $0.formSessionId == FPFormDataHolder.shared.currentFormSessionId // Match session ID
+                    }) {
                         var tableMedia = FPFormDataHolder.shared.tableMediaCache[mediaIndex]
                         tableMedia.mediaAdded = mediasAdded
                         FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                     } else {
-                        let tableMedia = TableMedia(columnIndex: childTableIndex.row, key: column.key, parentTableIndex: parentTableIndex, childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [])
+                        let tableMedia = TableMedia(columnIndex: childTableIndex.row, key: column.key, parentTableIndex: parentTableIndex, childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [], formSessionId: FPFormDataHolder.shared.currentFormSessionId)
                         FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                     }
                 }

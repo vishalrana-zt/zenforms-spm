@@ -297,6 +297,7 @@ class FPTableEditViewController: UIViewController {
             FPFormDataHolder.shared.arrLinkingDB.append(contentsOf: otherFieldTableSavedLinkings)
             AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
         }
+        FPFormDataHolder.shared.tableMediaCache = []
         self.navigationController?.popViewController(animated: true)
     }
     
@@ -1203,8 +1204,11 @@ extension FPTableEditViewController: TableContentCellDelegate{
                 }else{
                     self.tableComponent?.deleteRow(at: deletedFullRow)
                 }
-                let childSectionDeleted = deletedFullRow + 1
-                if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: {$0.childTableIndex?.section == childSectionDeleted && $0.childTableIndex?.row == index.row}){
+                if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: {
+                    $0.childTableIndex?.section == (deletedFullRow + 1) &&
+                    $0.childTableIndex?.row == index.row &&
+                    $0.formSessionId == FPFormDataHolder.shared.currentFormSessionId
+                }){
                     let media = FPFormDataHolder.shared.tableMediaCache[mediaIndex]
                     let medias = FPFormDataHolder.shared.tableMediaCache.filter({$0.childTableIndex!.section-1 > media.childTableIndex!.section-1})
                     medias.forEach { mmedia in
@@ -1396,7 +1400,7 @@ extension FPTableEditViewController: AttachmentPickerDelegate{
             if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent, let dRow = dAttach, let attachrow = sortCompnt.rows?[dRow], let tblRowIndex = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == attachrow.sortUuid }){
                 let currentMainTblRow = self.tableComponent?.rows?[safe:tblRowIndex]
                 let attachIndexPath  = IndexPath(row: index.row, section: tblRowIndex + 1)
-                let tableMedia = TableMedia(columnIndex: attachIndexPath.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: attachIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
+                let tableMedia = TableMedia(columnIndex: attachIndexPath.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: attachIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
                 FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                 let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
                 if let component  = tableComponent{
@@ -1426,7 +1430,7 @@ extension FPTableEditViewController: AttachmentPickerDelegate{
                 }
             }else if let fullR = fp_visibleSectionToFullTableRowIndex(index.section) {
                 let childIdx = IndexPath(row: index.row, section: fullR + 1)
-                let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: childIdx, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted)
+                let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: childIdx, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
                 FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                 let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
                 if let component  = tableComponent{

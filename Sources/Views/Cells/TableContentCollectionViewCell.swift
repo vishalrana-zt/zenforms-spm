@@ -176,13 +176,17 @@ class TableContentCollectionViewCell: UICollectionViewCell {
                             }
                         }
                         if mediasAdded.count>0{
-                            if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: {$0.parentTableIndex == parentTableIndex && $0.childTableIndex == childTableIndex}){
+                            if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: {
+                                $0.parentTableIndex == parentTableIndex && 
+                                $0.childTableIndex == childTableIndex &&
+                                $0.formSessionId == FPFormDataHolder.shared.currentFormSessionId
+                            }){
                                 var tableMedia = FPFormDataHolder.shared.tableMediaCache[mediaIndex]
                                 tableMedia.mediaAdded = mediasAdded
                                 FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                                 
                             }else{
-                                let tableMedia = TableMedia(columnIndex:childTableIndex!.row-2,key:column.key,parentTableIndex: parentTableIndex,childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [])
+                                let tableMedia = TableMedia(columnIndex:childTableIndex!.row-2,key:column.key,parentTableIndex: parentTableIndex,childTableIndex: childTableIndex, mediaAdded: mediasAdded, mediaDeleted: [], formSessionId: FPFormDataHolder.shared.currentFormSessionId)
                                 FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                             }
                         }

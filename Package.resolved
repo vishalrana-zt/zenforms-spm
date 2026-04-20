@@ -1,5 +1,5 @@
 {
-  "originHash" : "84ea3ffd6f4224f3ab0f2ecf35d89f9967967f5c33175caf44435b3ec888f659",
+  "originHash" : "b40dbe6bc3ec8effd1a19bcfc0622985687ba192bb4732169b586341040a228e",
   "pins" : [
     {
       "identity" : "acedrawingview",
@@ -119,6 +119,15 @@
       }
     },
     {
+      "identity" : "kingfisher",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/onevcat/Kingfisher",
+      "state" : {
+        "revision" : "c152c1915f60c51e4afa0752656993ee5b3c63db",
+        "version" : "8.8.1"
+      }
+    },
+    {
       "identity" : "kscrash",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kstenerud/KSCrash.git",
@@ -188,24 +197,6 @@
       "state" : {
         "branch" : "master",
         "revision" : "603dc02252ddcd1235978a224d8d3a89e0a4c933"
-      }
-    },
-    {
-      "identity" : "sdwebimage",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SDWebImage/SDWebImage.git",
-      "state" : {
-        "revision" : "2053b120767c42a70bcba21095f34e4cfb54a75d",
-        "version" : "5.21.3"
-      }
-    },
-    {
-      "identity" : "sdwebimageswiftui",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/SDWebImage/SDWebImageSwiftUI.git",
-      "state" : {
-        "revision" : "0e331457ca9af2f0b08bcaa138a91ffb907b004f",
-        "version" : "3.1.4"
       }
     },
     {

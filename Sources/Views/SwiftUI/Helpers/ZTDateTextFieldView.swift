@@ -26,7 +26,9 @@ struct ZTDateTextFieldView: UIViewRepresentable {
         tf.textAlignment = .left
         tf.placeholder = placeholder
         tf.adjustsFontSizeToFitWidth = true
-        tf.minimumFontSize = 6
+        tf.minimumFontSize = 10
+        tf.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        tf.setContentHuggingPriority(.defaultLow, for: .horizontal)
         if showClearButton{
             tf.clearButtonMode = .whileEditing
         }

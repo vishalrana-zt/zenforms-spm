@@ -43,10 +43,10 @@ struct FPRadioCheckboxFieldCell: View {
                                 .padding(.vertical, 4)
 
                             SwiftUI.Text(getLabelText(option: option))
-                                .font(.system(size: 16.0))
+                                .font(.body)
                                 .foregroundStyle(Color("ZT-Black"))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.5)
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color(.systemBackground))
                         }
@@ -68,9 +68,9 @@ struct FPRadioCheckboxFieldCell: View {
     }
         
     func fetchAttributedString() -> AttributedString {
-        let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 17, weight: .semibold), .foregroundColor: UIColor.black]
+        let fontAttributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.black]
         let baseString =  NSAttributedString(string: " \(fieldItem.displayName ?? "")", attributes: fontAttributes)
-        let colrattributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor.red]
+        let colrattributes: [NSAttributedString.Key: Any] = [.font: UIFont.preferredFont(forTextStyle: .headline), .foregroundColor: UIColor.red]
         let starString =  NSAttributedString(string: "*", attributes: colrattributes)
         let mutableString = NSMutableAttributedString(attributedString: starString)
         mutableString.append(baseString)
