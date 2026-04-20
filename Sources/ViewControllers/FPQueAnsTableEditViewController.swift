@@ -373,7 +373,13 @@ extension FPQueAnsTableEditViewController{
             }
         }
         var seen = Set<String>()
-        var menuFilterOptions = arrOptions.compactMap({ generateDynamically ? $0.label.stringValue() :  $0.value.stringValue()}).filter { seen.insert($0).inserted }
+        var menuFilterOptions: [String] = []
+        let sourceOptions = arrOptions.compactMap { generateDynamically ? $0.label.stringValue() : $0.value.stringValue() }
+        for option in sourceOptions {
+            let canonical = qaCanonicalFilterOption(option)
+            guard seen.insert(canonical).inserted else { continue }
+            menuFilterOptions.append(option)
+        }
         menuFilterOptions.append(fileterBlankOptionKey)
         let menu = RSSelectionMenu(selectionStyle: .multiple, dataSource: menuFilterOptions) { (cell, name, indexPath) in
             cell.textLabel?.text = name
@@ -419,6 +425,16 @@ extension FPQueAnsTableEditViewController{
     
     @objc func rightBarButtonTapped() {
         self.dismiss(animated: true)
+    }
+
+    /// Produces a canonical key used only for deduplicating visually equivalent filter options.
+    private func qaCanonicalFilterOption(_ value: String) -> String {
+        let visible = value.handleAndDisplayApostrophe()
+        let noControls = String(visible.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+        let collapsedWhitespace = noControls
+            .replacingOccurrences(of: "\\s+", with: " ", options: String.CompareOptions.regularExpression)
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        return collapsedWhitespace.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale.current)
     }
     
     func applySortingToTable(option:SortColumnOption, completion: @escaping (TableComponent) -> Void){
