@@ -128,7 +128,6 @@ class FPTableCollectionViewCell: UITableViewCell {
         self.titleText = displayName
         self.tableIndexPath = indexPath
         self.btnAddRow.isHidden = !isShowAddRow
-        fpRestorePreviewSearchColumnPrefs()
         fpEnsurePreviewSearchChromeInstalled()
 
         // Ensure viewModel exists before setting cellItem
@@ -447,7 +446,6 @@ private extension FPTableCollectionViewCell {
                 }
             }
             self.fpPreviewSearchColumnNameKeys = keys
-            self.fpPersistPreviewSearchColumnPrefs()
             self.fpUpdatePreviewSearchFilterButtonAppearance()
             self.fpApplyPreviewTextSearchFromField(animated: true)
         }
@@ -496,8 +494,13 @@ private extension FPTableCollectionViewCell {
         fpApplyPreviewTextSearchFromField(animated: false)
     }
 
-    func fpSchedulePreviewSearchDebounce() {
+    func fpSchedulePreviewSearchDebounce(for searchText: String) {
         fpPreviewSearchDebounceWorkItem?.cancel()
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed.count <= 2 {
+            fpApplyPreviewTextSearchFromField(animated: true)
+            return
+        }
         let item = DispatchWorkItem { [weak self] in
             self?.fpApplyPreviewTextSearchFromField(animated: true)
         }
@@ -509,7 +512,7 @@ private extension FPTableCollectionViewCell {
 extension FPTableCollectionViewCell: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         guard searchBar === fpPreviewSearchBar else { return }
-        fpSchedulePreviewSearchDebounce()
+        fpSchedulePreviewSearchDebounce(for: searchText)
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {

@@ -238,7 +238,7 @@ class TableContentCollectionViewCell: UICollectionViewCell {
         }
         let compareOptions: String.CompareOptions = searchHighlightCaseSensitive ? [] : [.caseInsensitive, .diacriticInsensitive]
         let haystack = TableRowTextSearch.searchableText(for: column)
-        guard TableRowTextSearch.containsWordBoundedSubstring(haystack, raw, options: compareOptions) else {
+        guard TableRowTextSearch.containsSearchSubstring(haystack, raw, options: compareOptions) else {
             stripSearchHighlightFormatting()
             return
         }
@@ -297,7 +297,7 @@ class TableContentCollectionViewCell: UICollectionViewCell {
             .font: baseFont,
             .foregroundColor: textColor
         ])
-        for range in TableRowTextSearch.wordBoundedRanges(of: highlight, in: full, options: compareOptions) {
+        for range in TableRowTextSearch.searchRanges(of: highlight, in: full, options: compareOptions) {
             let nsRange = NSRange(range, in: full)
             attributed.addAttribute(.backgroundColor, value: UIColor.systemYellow.withAlphaComponent(0.35), range: nsRange)
         }

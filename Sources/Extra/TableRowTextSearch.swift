@@ -41,7 +41,7 @@ enum TableRowTextSearch {
             var matched = false
             for col in keysToSearch {
                 let haystack = searchableText(for: col)
-                if containsWordBoundedSubstring(haystack, trimmed, options: options) {
+                if containsSearchSubstring(haystack, trimmed, options: options) {
                     matched = true
                     break
                 }
@@ -53,43 +53,27 @@ enum TableRowTextSearch {
         return result
     }
 
-    /// Substring must be bordered by non‑word chars (or string start/end), so e.g. `No` does not match inside `None`.
-    static func containsWordBoundedSubstring(_ haystack: String, _ needle: String, options: String.CompareOptions) -> Bool {
-        guard !needle.isEmpty else { return true }
-        var searchRange = haystack.startIndex..<haystack.endIndex
-        while let r = haystack.range(of: needle, options: options, range: searchRange, locale: nil) {
-            if isWordBoundedRange(full: haystack, range: r) { return true }
-            searchRange = r.upperBound..<haystack.endIndex
-        }
-        return false
+    /// Search strategy: regular substring matching for all query lengths.
+    static func containsSearchSubstring(_ haystack: String, _ needle: String, options: String.CompareOptions) -> Bool {
+        return haystack.range(of: needle, options: options) != nil
     }
 
-    /// Ranges of `needle` in `haystack` that are word-boundary safe (for highlighting).
-    static func wordBoundedRanges(of needle: String, in haystack: String, options: String.CompareOptions) -> [Range<String.Index>] {
+    /// Ranges for highlighting that mirror `containsSearchSubstring` (all substring hits).
+    static func searchRanges(of needle: String, in haystack: String, options: String.CompareOptions) -> [Range<String.Index>] {
+        return allRanges(of: needle, in: haystack, options: options)
+    }
+
+    private static func allRanges(of needle: String, in haystack: String, options: String.CompareOptions) -> [Range<String.Index>] {
         guard !needle.isEmpty else { return [] }
         var found: [Range<String.Index>] = []
         var searchRange = haystack.startIndex..<haystack.endIndex
         while let r = haystack.range(of: needle, options: options, range: searchRange, locale: nil) {
-            if isWordBoundedRange(full: haystack, range: r) { found.append(r) }
+            found.append(r)
             searchRange = r.upperBound..<haystack.endIndex
         }
         return found
     }
 
-    private static func isWordChar(_ c: Character) -> Bool {
-        c.isLetter || c.isNumber || c == "_"
-    }
-
-    private static func isWordBoundedRange(full: String, range: Range<String.Index>) -> Bool {
-        if range.lowerBound > full.startIndex {
-            let before = full.index(before: range.lowerBound)
-            if isWordChar(full[before]) { return false }
-        }
-        if range.upperBound < full.endIndex, isWordChar(full[range.upperBound]) {
-            return false
-        }
-        return true
-    }
 
     static func searchableText(for column: ColumnData) -> String {
         var parts: [String] = []
@@ -97,7 +81,11 @@ enum TableRowTextSearch {
         if !value.isEmpty {
             parts.append(value)
         }
-        parts.append(column.key)
+        if let displayValue = displayFormattedDateValueIfNeeded(for: column, rawValue: value),
+           !displayValue.isEmpty,
+           displayValue != value {
+            parts.append(displayValue)
+        }
         if let opts = column.dropDownOptions {
             for o in opts {
                 let label = o.label.stringValue()
@@ -125,5 +113,42 @@ enum TableRowTextSearch {
             }
         }
         return parts.joined(separator: " ")
+    }
+
+    private static func displayFormattedDateValueIfNeeded(for column: ColumnData, rawValue: String) -> String? {
+        let dateTypes: Set<String> = ["DATE", "TIME", "DATE_TIME", "YEAR"]
+        guard dateTypes.contains(column.dataType), !rawValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        let format = dateDisplayFormat(for: column)
+        if let date = FPUtility.getOPDateFrom(rawValue) {
+            return date.convertUTCToLocalInString(with: format)
+        }
+        if let date = fixDateFormat(rawValue) {
+            return date.convertUTCToLocalInString(with: format)
+        }
+        return nil
+    }
+
+    private static func dateDisplayFormat(for column: ColumnData) -> String {
+        switch column.dataType {
+        case "TIME":
+            return FPFORM_DATE_FORMAT.TIME.rawValue
+        case "DATE_TIME":
+            if let custom = column.dateFormat, !custom.isEmpty {
+                return custom
+            }
+            return FPFORM_DATE_FORMAT.DATE_TIME.rawValue
+        case "YEAR":
+            return FPFORM_DATE_FORMAT.YEAR.rawValue
+        default:
+            return FPFORM_DATE_FORMAT.DATE.rawValue
+        }
+    }
+
+    private static func fixDateFormat(_ dateString: String, format: String = "yyyy-MM-dd'T'HH:mm:ss.SSSZ") -> Date? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = format
+        return formatter.date(from: dateString)
     }
 }

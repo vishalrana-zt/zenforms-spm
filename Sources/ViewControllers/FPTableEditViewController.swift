@@ -185,7 +185,6 @@ class FPTableEditViewController: UIViewController {
         }
         isAutoCalculateEnabled = arrTblFormulas.count > 0
         self.title  = titleText
-        fpRestoreTableSearchColumnPrefs()
         fpInstallTableSearchChrome()
         fp_configureBulkEditToolbarButtonAppearance()
     }
@@ -1856,7 +1855,6 @@ private extension FPTableEditViewController {
                 }
             }
             self.fpTableSearchColumnNameKeys = keys
-            self.fpPersistTableSearchColumnPrefs()
             self.fpUpdateTableSearchFilterButtonAppearance()
             self.fpApplyTableTextSearchFromField(animated: true)
         }
@@ -1919,8 +1917,13 @@ private extension FPTableEditViewController {
         fpApplyTableTextSearchFromField(animated: false)
     }
 
-    func fpScheduleTableSearchDebounce() {
+    func fpScheduleTableSearchDebounce(for searchText: String) {
         fpTableSearchDebounceWorkItem?.cancel()
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed.count <= 2 {
+            fpApplyTableTextSearchFromField(animated: true)
+            return
+        }
         let item = DispatchWorkItem { [weak self] in
             self?.fpApplyTableTextSearchFromField(animated: true)
         }
@@ -1932,7 +1935,7 @@ private extension FPTableEditViewController {
 extension FPTableEditViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         guard searchBar === fpTableSearchBar else { return }
-        fpScheduleTableSearchDebounce()
+        fpScheduleTableSearchDebounce(for: searchText)
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {

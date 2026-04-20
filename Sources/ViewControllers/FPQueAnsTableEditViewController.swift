@@ -103,7 +103,6 @@ class FPQueAnsTableEditViewController: UIViewController {
         viewModel = FPQueAnsCollectionViewModel()
         viewModel?.widthQuesColumn = WIDTH_QUES_COLUMN
         self.title  = titleText
-        qaRestoreTableSearchColumnPrefs()
         qaInstallTableSearchChrome()
     }
     
@@ -807,7 +806,6 @@ private extension FPQueAnsTableEditViewController {
                 }
             }
             self.qaTableSearchColumnNameKeys = keys
-            self.qaPersistTableSearchColumnPrefs()
             self.qaUpdateTableSearchFilterButtonAppearance()
             self.qaApplyTableTextSearchFromField(animated: true)
         }
@@ -869,8 +867,13 @@ private extension FPQueAnsTableEditViewController {
         qaApplyTableTextSearchFromField(animated: false)
     }
 
-    func qaScheduleTableSearchDebounce() {
+    func qaScheduleTableSearchDebounce(for searchText: String) {
         qaTableSearchDebounceWorkItem?.cancel()
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed.count <= 2 {
+            qaApplyTableTextSearchFromField(animated: true)
+            return
+        }
         let item = DispatchWorkItem { [weak self] in
             self?.qaApplyTableTextSearchFromField(animated: true)
         }
@@ -882,7 +885,7 @@ private extension FPQueAnsTableEditViewController {
 extension FPQueAnsTableEditViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         guard searchBar === qaTableSearchBar else { return }
-        qaScheduleTableSearchDebounce()
+        qaScheduleTableSearchDebounce(for: searchText)
     }
 
     func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
