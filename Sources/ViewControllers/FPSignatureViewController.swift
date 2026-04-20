@@ -23,10 +23,12 @@ internal import PPSSignatureView
     @objc var del: FPSignatureDelegate?
     @objc var signature: FPMedia?
     @IBOutlet weak var signWidhConst: NSLayoutConstraint!
-    
+    @IBOutlet weak var signPhoneWidthConst: NSLayoutConstraint!
+
     private var clearButton: UIBarButtonItem?
     private var saveButton: UIBarButtonItem?
-    
+    private var strokeWidthSlider: UISlider?
+
 
     var screenHeight: CGFloat {
         return UIScreen.main.bounds.height
@@ -40,9 +42,11 @@ internal import PPSSignatureView
         outerSignatureView.layer.borderWidth = 1.0
         outerSignatureView.layer.borderColor = UIColor(red: 64 / 255.0, green: 164 / 255.0, blue: 28 / 255.0, alpha: 1.0).cgColor
         navigationItem.title = FPLocalizationHelper.localize("lbl_Signature")
-        if UIDevice.current.userInterfaceIdiom == .phone{
-            signWidhConst.changeFPMultiplier(multiplier: 0.85)
-        }
+        
+        let isRegular = traitCollection.horizontalSizeClass == .regular
+        signPhoneWidthConst.isActive = !isRegular
+        signWidhConst.isActive = isRegular
+        
         if (signature != nil) {
             saveButton?.isEnabled = false
             savedSignatureImageView.isHidden = false
@@ -55,6 +59,10 @@ internal import PPSSignatureView
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        // Setup slider after view has appeared and layout is complete
+        if strokeWidthSlider == nil {
+            setupStrokeWidthSlider()
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -66,9 +74,15 @@ internal import PPSSignatureView
         super.viewWillDisappear(animated)
     }
     
+    
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-        updateSignViewConstraints()
+        coordinator.animate(alongsideTransition: nil) { _ in
+            // Recreate slider after rotation is complete
+            self.setupStrokeWidthSlider()
+            self.updateSignViewConstraints()
+        }
+        self.view.layoutIfNeeded()
     }
     
     func updateSignViewConstraints() {
@@ -101,26 +115,46 @@ internal import PPSSignatureView
         navigationController?.popViewController(animated: true)
     }
     
-}
+    private func setupStrokeWidthSlider() {
+        // Remove existing slider if any
+        strokeWidthSlider?.removeFromSuperview()
+        
+        let slider = UISlider()
+        slider.minimumValue = 1.0
+        slider.maximumValue = 5.0
+        slider.value = strokeWidthSlider?.value ?? 1.0
+        slider.isContinuous = true
+        slider.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Style the slider
+        slider.minimumTrackTintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        slider.maximumTrackTintColor = .lightGray
+        slider.thumbTintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        
+        // Rotate to vertical
+        slider.transform = CGAffineTransform(rotationAngle: -CGFloat.pi / 2)
+        
+        slider.addTarget(self, action: #selector(strokeWidthChanged(_:)), for: .valueChanged)
+        
+        // Add as subview to main view
+        view.addSubview(slider)
+        view.bringSubviewToFront(slider)
+        
+        // Position just to the right of the signature box - works on all screen sizes
+        let sliderHeight = signatureImageBackgroundView.bounds.height * 0.9
+        NSLayoutConstraint.activate([
+            slider.centerXAnchor.constraint(equalTo: outerSignatureView.trailingAnchor, constant: UIDevice.current.userInterfaceIdiom == .pad ? 32 : 12),
+            slider.centerYAnchor.constraint(equalTo: signatureImageBackgroundView.centerYAnchor),
+            slider.heightAnchor.constraint(equalToConstant: 32),
+            slider.widthAnchor.constraint(equalToConstant: sliderHeight)
+        ])
 
-
-extension NSLayoutConstraint {
-
-  func changeFPMultiplier(multiplier: CGFloat) -> NSLayoutConstraint {
-    let newConstraint = NSLayoutConstraint(
-      item: firstItem,
-      attribute: firstAttribute,
-      relatedBy: relation,
-      toItem: secondItem,
-      attribute: secondAttribute,
-      multiplier: multiplier,
-      constant: constant)
-    newConstraint.priority = priority
-
-      NSLayoutConstraint.deactivate([self])
-      NSLayoutConstraint.activate([newConstraint])
-
-    return newConstraint
-  }
-
+        strokeWidthSlider = slider
+        signatureImageBackgroundView.strokeWidth = CGFloat(slider.value)
+    }
+    
+    @objc private func strokeWidthChanged(_ slider: UISlider) {
+        signatureImageBackgroundView.strokeWidth = CGFloat(slider.value)
+    }
+    
 }

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="24506" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="ipad10_9rounded" orientation="portrait" layout="fullscreen" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22685"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24504"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -14,6 +14,7 @@
                 <outlet property="outerSignatureView" destination="xfe-xQ-O0D" id="LOH-Tc-BDx"/>
                 <outlet property="savedSignatureImageView" destination="cwS-7y-PUH" id="qXG-j8-TxH"/>
                 <outlet property="signHightConst" destination="zmm-D6-Zus" id="X58-NL-QT8"/>
+                <outlet property="signPhoneWidthConst" destination="uaD-nJ-tt6" id="nZw-oR-d5H"/>
                 <outlet property="signWidhConst" destination="XBr-B7-9HC" id="zRE-6I-bOy"/>
                 <outlet property="signatureImageBackgroundView" destination="QuG-Ty-tws" id="NIm-4I-B40"/>
                 <outlet property="view" destination="pFW-pH-C7b" id="kob-Mi-0ft"/>
@@ -99,10 +100,16 @@
                 <constraint firstItem="xfe-xQ-O0D" firstAttribute="trailing" secondItem="QuG-Ty-tws" secondAttribute="trailing" constant="1" id="hLh-L0-6O7"/>
                 <constraint firstItem="8Z3-LF-dfR" firstAttribute="trailing" secondItem="QuG-Ty-tws" secondAttribute="trailing" id="nhV-Is-oW2"/>
                 <constraint firstItem="Ica-Yj-gNu" firstAttribute="trailing" secondItem="xfe-xQ-O0D" secondAttribute="trailing" id="rw7-QR-72v"/>
+                <constraint firstItem="cwS-7y-PUH" firstAttribute="width" secondItem="pFW-pH-C7b" secondAttribute="width" multiplier="0.8" id="uaD-nJ-tt6"/>
                 <constraint firstItem="8Z3-LF-dfR" firstAttribute="top" secondItem="QuG-Ty-tws" secondAttribute="bottom" constant="20" id="wLZ-Kq-pvi"/>
                 <constraint firstItem="xfe-xQ-O0D" firstAttribute="leading" secondItem="QuG-Ty-tws" secondAttribute="leading" constant="-1" id="yU8-Sc-cuO"/>
             </constraints>
-            <point key="canvasLocation" x="-657" y="-658"/>
+            <variation key="default">
+                <mask key="constraints">
+                    <exclude reference="uaD-nJ-tt6"/>
+                </mask>
+            </variation>
+            <point key="canvasLocation" x="-743" y="-783"/>
         </view>
     </objects>
     <resources>
