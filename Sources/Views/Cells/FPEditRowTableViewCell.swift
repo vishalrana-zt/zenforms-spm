@@ -270,58 +270,33 @@ private extension FPEditRowTableViewCell {
         applyBulkInputLockState()
     }
 
-    /// When the bulk “apply to all” switch is off, lock inputs so this column is not edited in this screen.
+    /// Applies visual state based on bulk edit mode. Fields remain enabled regardless of toggle state.
+    /// The toggle only controls whether changes are applied to all rows on save, not field editability.
     private func applyBulkInputLockState() {
         guard let column = data else { return }
-        let showBulkSwitch = showsBulkApplyToAllToggle && !(column.readonly ?? false)
-        let lockedForBulk = showBulkSwitch && !bulkApplyToAllIsOn
         let readOnly = column.readonly ?? false
-        let inputsEnabled = !readOnly && !lockedForBulk
 
-        tblTextField.isUserInteractionEnabled = inputsEnabled
-        tblTextView.isUserInteractionEnabled = inputsEnabled
-        tblDropdownField.isUserInteractionEnabled = inputsEnabled
-        btnAddAttachment.isEnabled = inputsEnabled
-        btnBarcode.isEnabled = inputsEnabled
-        viewBarcode.isUserInteractionEnabled = inputsEnabled
-        tagListView?.enableRemoveButton = inputsEnabled
-        tagListView?.isUserInteractionEnabled = inputsEnabled
+        // Fields are always enabled (except for readonly columns)
+        tblTextField.isUserInteractionEnabled = !readOnly
+        tblTextView.isUserInteractionEnabled = !readOnly
+        tblDropdownField.isUserInteractionEnabled = !readOnly
+        btnAddAttachment.isEnabled = !readOnly
+        btnBarcode.isEnabled = !readOnly
+        viewBarcode.isUserInteractionEnabled = !readOnly
+        tagListView?.enableRemoveButton = !readOnly
+        tagListView?.isUserInteractionEnabled = !readOnly
 
-        if !showBulkSwitch {
-            stackViewInput?.alpha = 1
-            tagListView?.alpha = 1
-            btnAddAttachment.alpha = 1
-            viewBarcode.alpha = 1
-            tblTextField.textColor = .label
-            tblTextView.textColor = .label
-            tblDropdownField.textColor = .label
-            tblTextView.backgroundColor = .clear
-            tblTextField.backgroundColor = .clear
-            tblDropdownField.backgroundColor = .clear
-            return
-        }
-
-        let dim: CGFloat = lockedForBulk ? 0.5 : 1.0
-        stackViewInput?.alpha = dim
-        tagListView?.alpha = dim
-        btnAddAttachment.alpha = dim
-        viewBarcode.alpha = dim
-
-        if lockedForBulk {
-            tblTextField.textColor = .tertiaryLabel
-            tblTextView.textColor = .tertiaryLabel
-            tblDropdownField.textColor = .tertiaryLabel
-            tblTextView.backgroundColor = .secondarySystemFill
-            tblTextField.backgroundColor = .secondarySystemFill
-            tblDropdownField.backgroundColor = .secondarySystemFill
-        } else {
-            tblTextField.textColor = .label
-            tblTextView.textColor = .label
-            tblDropdownField.textColor = .label
-            tblTextView.backgroundColor = .clear
-            tblTextField.backgroundColor = .clear
-            tblDropdownField.backgroundColor = .clear
-        }
+        // Reset visual state - no dimming based on toggle state
+        stackViewInput?.alpha = 1
+        tagListView?.alpha = 1
+        btnAddAttachment.alpha = 1
+        viewBarcode.alpha = 1
+        tblTextField.textColor = .label
+        tblTextView.textColor = .label
+        tblDropdownField.textColor = .label
+        tblTextView.backgroundColor = .clear
+        tblTextField.backgroundColor = .clear
+        tblDropdownField.backgroundColor = .clear
     }
     
     private func configureDropdown(_ column: ColumnData) {

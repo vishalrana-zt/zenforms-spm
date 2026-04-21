@@ -30,6 +30,10 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     @IBOutlet weak var lblRowTitle: UILabel!
     @IBOutlet weak var btnBulkRowInfo: UIButton!
     @IBOutlet weak var viewBulkEditHeaderSpacer: UIView!
+    @IBOutlet weak var viewMasterToggle: UIView!
+    @IBOutlet weak var switchMasterToggle: UISwitch!
+    @IBOutlet weak var constraintTableTopToToggle: NSLayoutConstraint!
+    @IBOutlet weak var constraintTableTopToHeader: NSLayoutConstraint!
 
     var tableComponent:TableComponent?
     var currentRowNo:Int = 0
@@ -41,8 +45,11 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     var bulkSelectedFullRowIndices: [Int] = []
     /// Column key → apply edited value to all selected rows (default true when key absent).
     var columnApplyToAllByKey: [String: Bool] = [:]
-    /// Snapshot of visible column values on the base row when bulk edit opens (used to leave “switch off” columns unchanged on save).
+    /// Snapshot of visible column values on the base row when bulk edit opens (used to leave "switch off" columns unchanged on save).
     private var bulkEditBaselineColumnValuesByKey: [String: String] = [:]
+
+    /// Master toggle state for bulk edit - when true, all column toggles are ON
+    private var masterToggleIsOn: Bool = true
 
     private var defaultRowTitleText: String?
 
@@ -62,6 +69,51 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         tblRows.dataSource = self
         tblRows.rowHeight = UITableView.automaticDimension
         tblRows.estimatedRowHeight = 200
+
+        // Show/hide master toggle view based on bulk edit mode
+        viewMasterToggle?.isHidden = !isBulkEditMode
+        switchMasterToggle?.isOn = masterToggleIsOn
+
+        // Manage table top constraints based on bulk edit mode
+        // In bulk mode: table connects to master toggle bottom
+        // In normal mode: table connects directly to header row bottom
+        constraintTableTopToToggle?.isActive = isBulkEditMode
+        constraintTableTopToHeader?.isActive = !isBulkEditMode
+    }
+
+    /// Called when the master toggle switch value changes (connected via XIB)
+    @IBAction func masterToggleChanged(_ sender: UISwitch) {
+        masterToggleIsOn = sender.isOn
+
+        // Get all visible (non-hidden) column keys
+        let visibleColumns = tableComponent?.rows?[safe: currentRowNo]?.columns.filter { $0.getUIType() != .HIDDEN } ?? []
+
+        // Update all column toggle states
+        for column in visibleColumns {
+            // Only update non-readonly columns
+            if column.readonly != true {
+                columnApplyToAllByKey[column.key] = sender.isOn
+            }
+        }
+
+        // Reload table to reflect changes in all cells
+        tblRows.reloadData()
+    }
+
+    /// Called by individual cell toggles to sync master toggle state
+    func syncMasterToggleState() {
+        guard isBulkEditMode else { return }
+
+        let visibleColumns = tableComponent?.rows?[safe: currentRowNo]?.columns.filter { $0.getUIType() != .HIDDEN && $0.readonly != true } ?? []
+
+        // Check if all toggles are ON
+        let allOn = visibleColumns.allSatisfy { column in
+            columnApplyToAllByKey[column.key] ?? true
+        }
+
+        // Update master toggle state without triggering action
+        masterToggleIsOn = allOn
+        switchMasterToggle?.setOn(allOn, animated: true)
     }
     
     override func viewDidLoad() {
@@ -259,7 +311,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     @objc private func bulkRowInfoTapped() {
         _ = FPUtility.showAlertController(
             title: FPLocalizationHelper.localize("lbl_Bulk_edit_info_alert_title"),
-            andMessage: FPLocalizationHelper.localize("msg_bulk_edit_toggle_help_detail"),
+            andMessage: FPLocalizationHelper.localize("msg4_bulk_edit_toggle_help_detail"),
             completion: nil,
             withPositiveAction: FPLocalizationHelper.localize("lbl_Ok"),
             style: .default,
@@ -397,6 +449,7 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
         cell.bulkApplyToAllIsOn = columnApplyToAllByKey[column?.key ?? ""] ?? true
         cell.onBulkApplyToAllChanged = { [weak self] key, isOn in
             self?.columnApplyToAllByKey[key] = isOn
+            self?.syncMasterToggleState()
         }
         // Use 1-based section so TableMedia matches FPFormDataHolder convention (valueArray[section - 1])
         cell.childTableIndex = IndexPath(row: indexPath.row, section: currentRowNo + 1)

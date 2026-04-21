@@ -190,3 +190,6 @@
 "lbl_After_Original_Row" = "Después de la fila original";
 "msg_SectionCreateConfirmation" = "Esta sección recién añadida no se puede eliminar posteriormente. ¿Desea continuar?";
 "lbl_Proceed" = "Proceder";
+"lbl_Apply_all_columns" = "Aplicar a todas las columnas";
+"lbl_Toggle_all_columns" = "Activar o desactivar todas las columnas";
+"lbl_Toggle_all_columns_hint" = "Cuando está activado, todos los interruptores de columna están encendidos. Cuando está desactivado, todos los interruptores de columna están apagados.";

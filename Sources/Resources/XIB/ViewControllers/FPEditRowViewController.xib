@@ -23,6 +23,10 @@
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
                 <outlet property="viewBottom" destination="H66-Ta-4Mw" id="Jcf-9x-lyV"/>
                 <outlet property="viewBulkEditHeaderSpacer" destination="23d-8s-LIR" id="out-bulk-hdr-spacer"/>
+                <outlet property="viewMasterToggle" destination="view-master-toggle" id="out-view-master-toggle"/>
+                <outlet property="switchMasterToggle" destination="switch-master-toggle" id="out-switch-master-toggle"/>
+                <outlet property="constraintTableTopToToggle" destination="c-tbl-top-to-toggle" id="out-c-tbl-top-to-toggle"/>
+                <outlet property="constraintTableTopToHeader" destination="c-tbl-top-to-header" id="out-c-tbl-top-to-header"/>
             </connections>
         </placeholder>
         <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
@@ -114,6 +118,49 @@
                                         <constraint firstItem="lfE-nb-Ifr" firstAttribute="centerY" secondItem="2Eh-rT-npI" secondAttribute="centerY" id="Syv-aT-c4b"/>
                                     </constraints>
                                 </view>
+                                <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="view-master-toggle">
+                                    <rect key="frame" x="0.0" y="40" width="393" height="44"/>
+                                    <subviews>
+                                        <stackView opaque="NO" contentMode="scaleToFill" spacing="12" translatesAutoresizingMaskIntoConstraints="NO" id="stack-master-toggle">
+                                            <rect key="frame" x="16" y="4" width="361" height="36"/>
+                                            <subviews>
+                                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Apply to all columns" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-master-toggle">
+                                                    <rect key="frame" x="0.0" y="0.0" width="300" height="36"/>
+                                                    <fontDescription key="fontDescription" type="system" weight="medium" pointSize="15"/>
+                                                    <color key="textColor" systemColor="secondaryLabelColor"/>
+                                                    <nil key="highlightedColor"/>
+                                                    <userDefinedRuntimeAttributes>
+                                                        <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Apply_all_columns"/>
+                                                    </userDefinedRuntimeAttributes>
+                                                </label>
+                                                <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="switch-master-toggle">
+                                                    <rect key="frame" x="312" y="2" width="51" height="31"/>
+                                                    <color key="onTintColor" name="BT-Primary"/>
+                                                    <connections>
+                                                        <action selector="masterToggleChanged:" destination="-1" eventType="valueChanged" id="action-master-toggle"/>
+                                                    </connections>
+                                                </switch>
+                                            </subviews>
+                                        </stackView>
+                                        <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="separator-master-toggle">
+                                            <rect key="frame" x="0.0" y="43.5" width="393" height="0.5"/>
+                                            <color key="backgroundColor" systemColor="separatorColor"/>
+                                            <constraints>
+                                                <constraint firstAttribute="height" constant="0.5" id="c-separator-h"/>
+                                            </constraints>
+                                        </view>
+                                    </subviews>
+                                    <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                    <constraints>
+                                        <constraint firstItem="stack-master-toggle" firstAttribute="leading" secondItem="view-master-toggle" secondAttribute="leading" constant="16" id="c-mt-stack-lead"/>
+                                        <constraint firstAttribute="trailing" secondItem="stack-master-toggle" secondAttribute="trailing" constant="16" id="c-mt-stack-trail"/>
+                                        <constraint firstItem="stack-master-toggle" firstAttribute="centerY" secondItem="view-master-toggle" secondAttribute="centerY" id="c-mt-stack-centery"/>
+                                        <constraint firstItem="separator-master-toggle" firstAttribute="leading" secondItem="view-master-toggle" secondAttribute="leading" id="c-mt-sep-lead"/>
+                                        <constraint firstAttribute="trailing" secondItem="separator-master-toggle" secondAttribute="trailing" id="c-mt-sep-trail"/>
+                                        <constraint firstAttribute="bottom" secondItem="separator-master-toggle" secondAttribute="bottom" id="c-mt-sep-bottom"/>
+                                        <constraint firstAttribute="height" constant="44" id="c-mt-height"/>
+                                    </constraints>
+                                </view>
                                 <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" keyboardDismissMode="onDrag" style="plain" separatorStyle="none" allowsSelection="NO" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="Ehb-JK-Sqi">
                                     <rect key="frame" x="10" y="48" width="373" height="538"/>
                                     <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -125,9 +172,13 @@
                                 <constraint firstItem="Ehb-JK-Sqi" firstAttribute="leading" secondItem="pXX-hI-Kks" secondAttribute="leading" constant="10" id="BJb-w7-Pde"/>
                                 <constraint firstAttribute="trailing" secondItem="2Eh-rT-npI" secondAttribute="trailing" id="Haj-4g-4up"/>
                                 <constraint firstAttribute="bottom" secondItem="Ehb-JK-Sqi" secondAttribute="bottom" id="cOK-0T-Hgd"/>
-                                <constraint firstItem="Ehb-JK-Sqi" firstAttribute="top" secondItem="2Eh-rT-npI" secondAttribute="bottom" constant="8" id="dcY-0t-Tlq"/>
+                                <constraint firstItem="Ehb-JK-Sqi" firstAttribute="top" secondItem="view-master-toggle" secondAttribute="bottom" constant="8" id="c-tbl-top-to-toggle"/>
+                                <constraint firstItem="Ehb-JK-Sqi" firstAttribute="top" secondItem="2Eh-rT-npI" secondAttribute="bottom" constant="8" id="c-tbl-top-to-header"/>
                                 <constraint firstItem="2Eh-rT-npI" firstAttribute="top" secondItem="pXX-hI-Kks" secondAttribute="top" id="kw3-ds-FGJ"/>
                                 <constraint firstAttribute="trailing" secondItem="Ehb-JK-Sqi" secondAttribute="trailing" constant="10" id="yuK-xs-On1"/>
+                                <constraint firstItem="view-master-toggle" firstAttribute="leading" secondItem="pXX-hI-Kks" secondAttribute="leading" id="c-mt-view-lead"/>
+                                <constraint firstAttribute="trailing" secondItem="view-master-toggle" secondAttribute="trailing" id="c-mt-view-trail"/>
+                                <constraint firstItem="view-master-toggle" firstAttribute="top" secondItem="2Eh-rT-npI" secondAttribute="bottom" id="c-mt-view-top"/>
                             </constraints>
                         </view>
                         <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="H66-Ta-4Mw">
@@ -215,6 +266,12 @@
         <namedColor name="BT-Primary">
             <color red="0.20000000000000001" green="0.396078431372549" blue="0.71764705882352942" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
+        <systemColor name="secondaryLabelColor">
+            <color red="0.23529411764705882" green="0.23529411764705882" blue="0.2627450980392157" alpha="0.6" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="separatorColor">
+            <color red="0.23529411764705882" green="0.23529411764705882" blue="0.2627450980392157" alpha="0.29" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
