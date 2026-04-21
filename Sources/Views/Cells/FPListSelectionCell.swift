@@ -12,20 +12,15 @@ class FPListSelectionCell: MultiuseTableViewCell {
 
     @IBOutlet weak var titleLabel: UILabel!
     @IBOutlet weak var checkIcon: UIButton!
-    var selectionModel:FPSelectionModel?
     @IBOutlet weak var lblDescription: UILabel!
     
+    var selectionModel:FPSelectionModel?
     var checkboxTapped: ((Int) -> Void)?
+    
     override func awakeFromNib() {
         super.awakeFromNib()
-        self.setCheckBoxButton()
     }
-    
-    private func setCheckBoxButton() {
-        self.checkIcon.setImage(#imageLiteral(resourceName: "selectUncheck"), for: .normal)
-        self.checkIcon.setImage(#imageLiteral(resourceName: "selectCheck"), for: .selected)
-    }
-    
+        
     func setListSelectionCell(model: FPSelectionModel, index: Int) {
         self.titleLabel.text = model.titleString
         self.checkIcon.isSelected = model.isChecked
