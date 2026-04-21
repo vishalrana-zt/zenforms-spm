@@ -7,7 +7,7 @@ internal protocol FPIBLocalizable {
 }
 
 extension UILabel: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var localizedKey: String? {
         get { nil }
         set(key) {
             if let key = key { text = FPLocalizationHelper.localize(key) }
@@ -16,7 +16,7 @@ extension UILabel: FPIBLocalizable {
 }
 
 extension UIButton: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var localizedKey: String? {
         get { nil }
         set(key) {
             if let key = key {
@@ -45,7 +45,7 @@ extension UIButton: FPIBLocalizable {
 }
 
 extension UINavigationItem: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var localizedKey: String? {
         get { nil }
         set(key) {
             if let key = key { title = FPLocalizationHelper.localize(key) }
@@ -54,7 +54,7 @@ extension UINavigationItem: FPIBLocalizable {
 }
 
 extension UIBarItem: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var localizedKey: String? {
         get { nil }
         set(key) {
             if let key = key { title = FPLocalizationHelper.localize(key) }
@@ -63,7 +63,7 @@ extension UIBarItem: FPIBLocalizable {
 }
 
 extension UITextField: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var localizedKey: String? {
         get { nil }
         set(key) {
             if let key = key {
