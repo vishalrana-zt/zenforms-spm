@@ -1,5 +1,5 @@
 {
-  "originHash" : "8fdc3761336a72b8028e74f80e8cd26f35effbe859e059909f43f78ba6c62d7c",
+  "originHash" : "b40dbe6bc3ec8effd1a19bcfc0622985687ba192bb4732169b586341040a228e",
   "pins" : [
     {
       "identity" : "acedrawingview",
@@ -177,8 +177,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vishalrana-zt/PPSSignatureView.git",
       "state" : {
-        "branch" : "stroke-width-impv",
-        "revision" : "2f944e2d4fe71cc2528c1628f74da07676705f47"
+        "branch" : "master",
+        "revision" : "a953435d33ef5242476ff08509d5fbd46771d7fa"
       }
     },
     {
