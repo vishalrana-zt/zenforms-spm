@@ -31,7 +31,7 @@
                             <color key="textColor" name="ZT-Black"/>
                             <nil key="highlightedColor"/>
                             <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Dupilcate_row_header"/>
+                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Dupilcate_row_header"/>
                             </userDefinedRuntimeAttributes>
                         </label>
                         <stackView opaque="NO" tag="8" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kCq-f4-ELl">
@@ -56,7 +56,7 @@
                                     <color key="textColor" name="ZT-Black"/>
                                     <nil key="highlightedColor"/>
                                     <userDefinedRuntimeAttributes>
-                                        <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_case_sensitive_search"/>
+                                        <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_case_sensitive_search"/>
                                     </userDefinedRuntimeAttributes>
                                 </label>
                                 <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" horizontalCompressionResistancePriority="751" verticalCompressionResistancePriority="751" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3Sw-cs-Sw0"/>

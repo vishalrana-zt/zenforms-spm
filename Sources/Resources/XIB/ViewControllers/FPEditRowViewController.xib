@@ -58,7 +58,7 @@
                                                                     <color key="textColor" systemColor="systemGray4Color"/>
                                                                     <nil key="highlightedColor"/>
                                                                     <userDefinedRuntimeAttributes>
-                                                                        <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Row"/>
+                                                                        <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Row"/>
                                                                     </userDefinedRuntimeAttributes>
                                                                     <variation key="heightClass=regular-widthClass=compact">
                                                                         <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="16"/>
@@ -130,7 +130,7 @@
                                                     <color key="textColor" systemColor="secondaryLabelColor"/>
                                                     <nil key="highlightedColor"/>
                                                     <userDefinedRuntimeAttributes>
-                                                        <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Apply_all_columns"/>
+                                                        <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Apply_all_columns"/>
                                                     </userDefinedRuntimeAttributes>
                                                 </label>
                                                 <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="switch-master-toggle">
@@ -199,7 +199,7 @@
                                                 <color key="titleColor" name="BT-Primary"/>
                                             </state>
                                             <userDefinedRuntimeAttributes>
-                                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Previous"/>
+                                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Previous"/>
                                             </userDefinedRuntimeAttributes>
                                             <variation key="heightClass=regular-widthClass=compact">
                                                 <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="16"/>
@@ -222,7 +222,7 @@
                                                 <color key="titleColor" name="BT-Primary"/>
                                             </state>
                                             <userDefinedRuntimeAttributes>
-                                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Next"/>
+                                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Next"/>
                                             </userDefinedRuntimeAttributes>
                                             <variation key="heightClass=regular-widthClass=compact">
                                                 <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="16"/>

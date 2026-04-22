@@ -60,7 +60,7 @@
                                                                     <color key="textColor" name="ZT-Gray"/>
                                                                     <nil key="highlightedColor"/>
                                                                     <userDefinedRuntimeAttributes>
-                                                                        <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Section"/>
+                                                                        <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Section"/>
                                                                     </userDefinedRuntimeAttributes>
                                                                     <variation key="heightClass=regular-widthClass=compact">
                                                                         <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="16"/>
@@ -180,7 +180,7 @@
                                                 <color key="titleColor" name="BT-Primary"/>
                                             </state>
                                             <userDefinedRuntimeAttributes>
-                                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Previous"/>
+                                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Previous"/>
                                             </userDefinedRuntimeAttributes>
                                             <variation key="heightClass=regular-widthClass=compact">
                                                 <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="16"/>
@@ -197,7 +197,7 @@
                                             <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
                                             <textInputTraits key="textInputTraits"/>
                                             <userDefinedRuntimeAttributes>
-                                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Select_Section"/>
+                                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Select_Section"/>
                                             </userDefinedRuntimeAttributes>
                                         </textField>
                                         <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZTG-rr-T9n" customClass="ZTLIBLoaderButton">
@@ -212,7 +212,7 @@
                                                 <color key="titleColor" name="BT-Primary"/>
                                             </state>
                                             <userDefinedRuntimeAttributes>
-                                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Next"/>
+                                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Next"/>
                                             </userDefinedRuntimeAttributes>
                                             <variation key="heightClass=regular-widthClass=compact">
                                                 <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="16"/>

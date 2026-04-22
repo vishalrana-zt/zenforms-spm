@@ -82,7 +82,7 @@
                     <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                     <nil key="highlightedColor"/>
                     <userDefinedRuntimeAttributes>
-                        <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="msg_pls_sign_green_box"/>
+                        <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="msg_pls_sign_green_box"/>
                     </userDefinedRuntimeAttributes>
                 </label>
             </subviews>

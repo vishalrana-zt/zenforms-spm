@@ -156,22 +156,22 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
     @IBAction func colorChange(_ sender:UIButton) {
         let alert = UIAlertController(title: FPLocalizationHelper.localize("lbl_Selet_color"), message: "", preferredStyle: .actionSheet)
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Black"), style: .default , handler:{ action in
-            self.colorButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Black"))
+            self.colorButton.setTitle(FPLocalizationHelper.localize("lbl_Black"), for: .normal)
             self.drawingView.lineColor = .black
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Red"), style: .default , handler:{ action in
-            self.colorButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Red"))
+            self.colorButton.setTitle(FPLocalizationHelper.localize("lbl_Red"), for: .normal)
             self.drawingView.lineColor = .red
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Green"), style: .default , handler:{ action in
-            self.colorButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Green"))
+            self.colorButton.setTitle(FPLocalizationHelper.localize("lbl_Green"), for: .normal)
             self.drawingView.lineColor = .green
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Blue"), style: .default , handler:{ action in
-            self.colorButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Blue"))
+            self.colorButton.setTitle(FPLocalizationHelper.localize("lbl_Blue"), for: .normal)
             self.drawingView.lineColor = .blue
         }))
         
@@ -195,63 +195,63 @@ class FPDrawViewController: UIViewController, UIActionSheetDelegate, ACEDrawingV
         let alert = UIAlertController(title:FPLocalizationHelper.localize("lbl_Select_tool"), message: "", preferredStyle: .actionSheet)
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Pen"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Pen"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Pen"))
             self.drawingView.drawTool = ACEDrawingToolTypePen
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Line"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Line"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Line"))
             self.drawingView.drawTool = ACEDrawingToolTypeLine
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Arrow"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Arrow"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Arrow"))
             self.drawingView.drawTool = ACEDrawingToolTypeArrow
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Rect_Stroke"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Rect_Stroke"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Rect_Stroke"))
             self.drawingView.drawTool = ACEDrawingToolTypeRectagleStroke
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Rect_Fill"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Rect_Fill"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Rect_Fill"))
             self.drawingView.drawTool = ACEDrawingToolTypeRectagleFill
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Ellipse_Stroke"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Ellipse_Stroke"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Ellipse_Stroke"))
             self.drawingView.drawTool = ACEDrawingToolTypeEllipseStroke
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Ellipse_Fill"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Ellipse_Fill"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Ellipse_Fill"))
             self.drawingView.drawTool = ACEDrawingToolTypeEllipseFill
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Eraser"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Eraser"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Eraser"))
             self.drawingView.drawTool = ACEDrawingToolTypeEraser
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled
         }))
         
         alert.addAction(UIAlertAction(title:FPLocalizationHelper.localize("lbl_Draggable_Text"), style: .default , handler:{ action in
-            self.toolButton.updateButtonTitle(title: FPLocalizationHelper.localize("lbl_Draggable_Text"))
+            self.toolButton.fpUpdateButtonTitle(title: FPLocalizationHelper.localize("lbl_Draggable_Text"))
             self.drawingView.drawTool = ACEDrawingToolTypeDraggableText
             self.alphaButton.isEnabled = true
             self.colorButton.isEnabled = self.alphaButton.isEnabled

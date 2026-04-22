@@ -57,7 +57,7 @@
                                             <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
                                                 <real key="value" value="2"/>
                                             </userDefinedRuntimeAttribute>
-                                            <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_ViewEdit"/>
+                                            <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_ViewEdit"/>
                                         </userDefinedRuntimeAttributes>
                                         <connections>
                                             <action selector="didAddRowTapped:" destination="f18-Wv-Cxo" eventType="touchUpInside" id="Mgf-3o-Hfi"/>
