@@ -121,7 +121,7 @@ internal import PPSSignatureView
         
         let slider = UISlider()
         slider.minimumValue = 1.0
-        slider.maximumValue = 5.0
+        slider.maximumValue = 10.0
         slider.value = strokeWidthSlider?.value ?? 1.0
         slider.isContinuous = true
         slider.translatesAutoresizingMaskIntoConstraints = false
