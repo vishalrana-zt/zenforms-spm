@@ -377,7 +377,7 @@ public class FPForms : NSObject{
     
     // MARK: - Offline helper methods
     
-    public func formNameWithState() -> NSAttributedString {
+    public func formNameWithState() -> String {
         var tempName: String
         if let displayName = self.displayName {
             tempName = displayName
@@ -385,14 +385,14 @@ public class FPForms : NSObject{
             tempName = self.name ?? ""
         }
         
-        let string = NSMutableAttributedString(string: tempName)
-        if shouldShowSyncOption() {
-            let attributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor(named: "ZT-Primary") ?? .white]
-            let subString = NSAttributedString(string: " (\(FPLocalizationHelper.localize("lbl_Not_Synced")))", attributes: attributes)
-            string.append(subString)
-        }
+//        let string = NSMutableAttributedString(string: tempName)
+//        if shouldShowSyncOption() {
+//            let attributes: [NSAttributedString.Key: Any] = [.foregroundColor: UIColor(named: "ZT-Primary") ?? .white]
+//            let subString = NSAttributedString(string: " (\(FPLocalizationHelper.localize("lbl_Not_Synced")))", attributes: attributes)
+//            string.append(subString)
+//        }
         
-        return string
+        return tempName
     }
     
     public func shouldShowSyncOption() -> Bool {
