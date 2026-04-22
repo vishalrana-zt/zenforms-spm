@@ -355,6 +355,30 @@ extension FPUtility {
         return alert
     }
     
+    class func showAlertController1(title:String?, andMessage detail:String?, completion alertPresentCompletion: (()->Void)?, withPositiveAction positiveButton:String?, style positiveButtonStyle:UIAlertAction.Style, andHandler positiveHandler: ((UIAlertAction?)->Void)?, withNegativeAction negativeButton:String?, style negativeButtonStyle:UIAlertAction.Style, andHandler negativeHandler: ((UIAlertAction?)->Void)?) -> UIAlertController {
+        let alert = UIAlertController(title: title, message:detail, preferredStyle:.alert)
+        
+
+        if let negativeButton = negativeButton{
+            let cancel = UIAlertAction(title: negativeButton,
+                                       style:negativeButtonStyle,
+                                       handler:negativeHandler)
+            
+            alert.addAction(cancel)
+        }
+        
+        if let positiveButton = positiveButton{
+            let ok = UIAlertAction(title: positiveButton,
+                                   style:positiveButtonStyle,
+                                   handler:positiveHandler)
+            alert.addAction(ok)
+        }
+        
+        alert.applyLegacyActionSheetStyle()
+        self.topViewController()?.present(alert, animated:true, completion:alertPresentCompletion)
+        return alert
+    }
+    
     class func errorAlertController(title:String?, message:String?) -> UIAlertController {
         let alert = FPUtility.createAlertController(title: title,
                                                   andMessage:message,

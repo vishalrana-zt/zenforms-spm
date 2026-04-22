@@ -388,7 +388,7 @@ class FPTableEditViewController: UIViewController {
             return
         }
         UserDefaults.standard.set(true, forKey: bulkEditInfoShownPrefsKey)
-        FPUtility.showAlertController(
+        FPUtility.showAlertController1(
             title: FPLocalizationHelper.localize("lbl_Bulk_Edit"),
             andMessage: FPLocalizationHelper.localize("msg_bulk_edit_confirm_detail"),
             completion: nil,

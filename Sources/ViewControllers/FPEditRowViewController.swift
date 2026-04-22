@@ -180,7 +180,11 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     func setupNavBar() {
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style: .plain, target: self, action: #selector(saveButtonAction))
-        self.navigationItem.leftBarButtonItem = nil
+        if isBulkEditMode {
+            self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelButtonAction))
+        } else {
+            self.navigationItem.leftBarButtonItem = nil
+        }
     }
     
     //MARK: - ViewController button actions
