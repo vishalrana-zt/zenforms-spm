@@ -26,7 +26,7 @@
 "lbl_Bulk_edit_info_a11y" = "How toggles work in bulk edit";
 "lbl_Ok" = "Ok";
 "msg_bulk_edit_confirm_detail" = "You can now update several rows at the same time to save repeated work.\n\nEach column has a toggle switch. When it's turned on, any value you enter applies to every row you selected. If it's off, nothing will change for that column.";
-"msg_bulk_edit_toggle_help_detail" = "This form shows data from your first selected row. Use the switches to control which fields are updated:\n\n• Switch ON: Changes apply to all selected rows.\n\n• Switch OFF: This field will not be changed for any row.\n\nTip: Turn switches off for fields you want to keep exactly as they are.";
+"msg_bulk_edit_toggle_help_detail" = "This form shows data from your first selected row. Use the switches to control which fields are updated:\n\n• Switch ON: Changes apply to all selected rows.\n\n• Switch OFF: This field will not be changed for any row.\n\n• Attachment editing is not available in bulk edit mode.\n\nTip: Turn switches off for fields you want to keep exactly as they are.";
 "lbl_Apply_column_to_all_rows" = "On: copy this field to every selected row when you finish";
 "lbl_Apply_column_to_all_rows_hint" = "When on, saving applies this field’s value to every selected row. When off, this field is not changed on any row.";
 "lbl_Edit_Row" = "Edit Row";
@@ -193,4 +193,3 @@
 "lbl_Apply_all_columns" = "Apply to all columns";
 "lbl_Toggle_all_columns" = "Toggle all columns on or off";
 "lbl_Toggle_all_columns_hint" = "When on, all column toggles are turned on. When off, all column toggles are turned off.";
-

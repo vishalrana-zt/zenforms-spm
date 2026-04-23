@@ -86,14 +86,11 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         masterToggleIsOn = sender.isOn
 
         // Get all visible (non-hidden) column keys
-        let visibleColumns = tableComponent?.rows?[safe: currentRowNo]?.columns.filter { $0.getUIType() != .HIDDEN } ?? []
+        let visibleColumns = editorColumnsForCurrentRow().filter { $0.readonly != true }
 
         // Update all column toggle states
         for column in visibleColumns {
-            // Only update non-readonly columns
-            if column.readonly != true {
-                columnApplyToAllByKey[column.key] = sender.isOn
-            }
+            columnApplyToAllByKey[column.key] = sender.isOn
         }
 
         // Reload table to reflect changes in all cells
@@ -104,7 +101,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     func syncMasterToggleState() {
         guard isBulkEditMode else { return }
 
-        let visibleColumns = tableComponent?.rows?[safe: currentRowNo]?.columns.filter { $0.getUIType() != .HIDDEN && $0.readonly != true } ?? []
+        let visibleColumns = editorColumnsForCurrentRow().filter { $0.readonly != true }
 
         // Check if all toggles are ON
         let allOn = visibleColumns.allSatisfy { column in
@@ -131,8 +128,16 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     private func captureBulkEditColumnBaseline() {
         bulkEditBaselineColumnValuesByKey = [:]
         guard let row = tableComponent?.rows?[safe: currentRowNo] else { return }
-        for col in row.columns where col.getUIType() != .HIDDEN {
+        for col in row.columns where col.getUIType() != .HIDDEN && !(isBulkEditMode && col.uiType == "ATTACHMENT") {
             bulkEditBaselineColumnValuesByKey[col.key] = col.value
+        }
+    }
+
+    private func editorColumnsForCurrentRow() -> [ColumnData] {
+        let columns = tableComponent?.rows?[safe: currentRowNo]?.columns ?? []
+        return columns.filter {
+            $0.getUIType() != .HIDDEN &&
+            !(isBulkEditMode && $0.uiType == "ATTACHMENT")
         }
     }
     override func viewWillAppear(_ animated: Bool) {
@@ -355,7 +360,9 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         guard baseRow >= 0, baseRow < rowsIn.count else { return }
 
         var rows = rowsIn
-        let visibleColumns = rows[baseRow].columns.filter { $0.getUIType() != .HIDDEN }
+        let visibleColumns = rows[baseRow].columns.filter {
+            $0.getUIType() != .HIDDEN && $0.uiType != "ATTACHMENT"
+        }
 
         for columnKey in visibleColumns.map(\.key) {
             let applyAll = columnApplyToAllByKey[columnKey] ?? true
@@ -376,17 +383,10 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
             guard let sourceColumn = rows[baseRow].columns.first(where: { $0.key == columnKey }),
                   sourceColumn.readonly != true else { continue }
 
-            let isAttachment = sourceColumn.uiType == "ATTACHMENT"
-
             for targetIdx in bulkSelectedFullRowIndices where targetIdx != baseRow && targetIdx < rows.count {
                 guard let tci = rows[targetIdx].columns.firstIndex(where: { $0.key == columnKey }) else { continue }
                 if rows[targetIdx].columns[tci].readonly == true { continue }
                 rows[targetIdx].columns[tci].value = sourceColumn.value
-            }
-
-            if isAttachment {
-                let targets = bulkSelectedFullRowIndices.filter { $0 != baseRow }
-                replicateAttachmentMediaCacheFromBase(columnKey: columnKey, baseRow: baseRow, targetRows: targets)
             }
         }
 
@@ -402,24 +402,6 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         tableComponent = comp
     }
 
-    private func replicateAttachmentMediaCacheFromBase(columnKey: String, baseRow: Int, targetRows: [Int]) {
-        guard let parentIdx = tableIndexPath else { return }
-        let baseSection = baseRow + 1
-        let caches = FPFormDataHolder.shared.tableMediaCache.filter {
-            $0.parentTableIndex == parentIdx && $0.childTableIndex?.section == baseSection && $0.key == columnKey
-        }
-        guard !caches.isEmpty else { return }
-        for target in targetRows {
-            let targetSection = target + 1
-            for tm in caches {
-                var copy = tm
-                let rowPart = tm.childTableIndex?.row ?? 0
-                copy.childTableIndex = IndexPath(row: rowPart, section: targetSection)
-                FPFormDataHolder.shared.addUpdateTableMediaCache(media: copy)
-            }
-        }
-    }
-    
     func stopLoadings(){
         DispatchQueue.main.async {
             self.btnNext.isLoading = false
@@ -437,7 +419,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
 
 extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN}).count ?? 0
+        return editorColumnsForCurrentRow().count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -447,7 +429,7 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
             for: indexPath
         ) as! FPEditRowTableViewCell
 
-        let filtered = self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN}) ?? []
+        let filtered = editorColumnsForCurrentRow()
         let column = filtered[safe: indexPath.row]
         cell.showsBulkApplyToAllToggle = isBulkEditMode
         cell.bulkApplyToAllIsOn = columnApplyToAllByKey[column?.key ?? ""] ?? true
@@ -479,7 +461,7 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
     
     /// Reloads only the attachment column row so the table does not scroll to top.
     fileprivate func reloadAttachmentRowOnly(columnKey: String) {
-        let filtered = tableComponent?.rows?[safe: currentRowNo]?.columns.filter { $0.getUIType() != .HIDDEN } ?? []
+        let filtered = editorColumnsForCurrentRow()
         guard let rowIndex = filtered.firstIndex(where: { $0.key == columnKey }) else { return }
         let indexPath = IndexPath(row: rowIndex, section: 0)
         let maxRows = tblRows.numberOfRows(inSection: 0)
@@ -562,10 +544,7 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     
     
     func showRowAttachment(at index:IndexPath,with data:ColumnData){
-        if isBulkEditMode {
-            let applyAll = columnApplyToAllByKey[data.key] ?? true
-            if !applyAll { return }
-        }
+        guard !isBulkEditMode else { return }
         self.view.endEditing(true)
         self.attachmentIndex = index
         self.attachmentColumnData = data
@@ -577,10 +556,7 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     }
     
     func didRemoveAttachment(at index: IndexPath, columnData: ColumnData, fileName: String) {
-        if isBulkEditMode {
-            let applyAll = columnApplyToAllByKey[columnData.key] ?? true
-            if !applyAll { return }
-        }
+        guard !isBulkEditMode else { return }
         guard let tableIndexPath = tableIndexPath,
               let component = tableComponent,
               let rows = component.rows,
@@ -658,11 +634,8 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
 //MARK: Attachment picker delegate
 extension FPEditRowViewController: AttachmentPickerDelegate{
     func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
+        guard !isBulkEditMode else { return }
         guard let index = attachmentIndex, let data = attachmentColumnData, let tableIndexPath = tableIndexPath else { return }
-        if isBulkEditMode {
-            let applyAll = columnApplyToAllByKey[data.key] ?? true
-            if !applyAll { return }
-        }
         let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded.filter({ $0.id?.isEmpty ?? true }), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
         FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
         guard let result = FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values),
