@@ -143,7 +143,7 @@ internal import PPSSignatureView
         // Position just to the right of the signature box - works on all screen sizes
         let sliderHeight = signatureImageBackgroundView.bounds.height * 0.9
         NSLayoutConstraint.activate([
-            slider.centerXAnchor.constraint(equalTo: outerSignatureView.trailingAnchor, constant: UIDevice.current.userInterfaceIdiom == .pad ? 32 : 12),
+            slider.centerXAnchor.constraint(equalTo: outerSignatureView.trailingAnchor, constant: UIDevice.current.userInterfaceIdiom == .pad ? 32 : 16),
             slider.centerYAnchor.constraint(equalTo: signatureImageBackgroundView.centerYAnchor),
             slider.heightAnchor.constraint(equalToConstant: 32),
             slider.widthAnchor.constraint(equalToConstant: sliderHeight)
