@@ -65,6 +65,20 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         """
     }
     
+    // Create indexes for optimized query performance
+    static func getCreateIndexQueries() -> [String] {
+        return [
+            """
+            CREATE INDEX IF NOT EXISTS idx_forms_ticket_module 
+            ON \(FPFormsDatabaseManager.getTableName())(\(FPColumn.parentTicketId), \(FPColumn.moduleId), \(FPColumn.isDeleted), \(FPColumn.companyId))
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_forms_objectid 
+            ON \(FPFormsDatabaseManager.getTableName())(\(FPColumn.id), \(FPColumn.companyId))
+            """
+        ]
+    }
+    
     func getDeleteQuery() -> String {
         return """
         DELETE FROM \(FPFormsDatabaseManager.getTableName())\n
@@ -571,27 +585,70 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         completion(true)
     }
     
+    func xfetchFPFormTemplatesFromLocal( completion: @escaping fetchFormsCompletionHandler) {
+            FPLocalDatabaseManager.shared.executeQuery(self.getFetchTemplateQuery(moduleId: FPFormTemplateModuleId), dbManager: self) { results in
+                var formsArray = [FPForms]()
+                for dict in results {
+                    let form = FPForms(dict: dict, isForLocal: false)
+                    form.sections = [FPSectionDetails]()
+                    if let strId = form.objectId{
+                        let sections = FPSectionDetailsTemplateDatabaseManager().fetchSectionDetails(for: strId)
+                        form.sections?.append(contentsOf: sections)
+                        if let sections = form.sections, sections.count > 0 {
+                            formsArray.append(form)
+                        }
+                    }
+                }
+                completion(formsArray)
+            }
+            
+        }
     
     func fetchFPFormTemplatesFromLocal( completion: @escaping fetchFormsCompletionHandler) {
         FPLocalDatabaseManager.shared.executeQuery(self.getFetchTemplateQuery(moduleId: FPFormTemplateModuleId), dbManager: self) { results in
+            // Optimized batch fetch for templates
             var formsArray = [FPForms]()
+            var templateObjectIds = [String]()
+            var templateIdMap = [String: FPForms]()
+            
+            // Step 1: Parse all templates and collect objectIds
             for dict in results {
                 let form = FPForms(dict: dict, isForLocal: false)
-                form.sections = [FPSectionDetails]()
-                if let strId = form.objectId{
-                    let sections = FPSectionDetailsTemplateDatabaseManager().fetchSectionDetails(for: strId)
-                    form.sections?.append(contentsOf: sections)
-                    if let sections = form.sections, sections.count > 0 {
-                        formsArray.append(form)
-                    }
+                form.sections = []
+                if let objectId = form.objectId {
+                    templateObjectIds.append(objectId)
+                    templateIdMap[objectId] = form
                 }
             }
-            completion(formsArray)
+            
+            guard !templateObjectIds.isEmpty else {
+                completion([])
+                return
+            }
+            
+            // Step 2: Fetch ALL template sections in ONE batch query
+            FPSectionDetailsTemplateDatabaseManager().fetchSectionDetailsForTemplates(templateIds: templateObjectIds) { sectionsDict in
+                // Step 3: Assign sections to templates
+                for (templateId, sections) in sectionsDict {
+                    if let form = templateIdMap[templateId] {
+                        form.sections = sections
+                    }
+                }
+                
+                // Step 4: Filter templates with sections and maintain order
+                formsArray = templateObjectIds.compactMap { templateId in
+                    guard let form = templateIdMap[templateId], (form.sections?.count ?? 0) > 0 else {
+                        return nil
+                    }
+                    return form
+                }
+                
+                completion(formsArray)
+            }
         }
-        
     }
  
-    func fetchFormsFromLocal(ticketId: NSNumber, moduleId: Int, completion: @escaping fetchFormsCompletionHandler) {
+    func xfetchFormsFromLocal(ticketId: NSNumber, moduleId: Int, completion: @escaping fetchFormsCompletionHandler) {
         FPLocalDatabaseManager.shared.executeQuery(self.getFetchQuery(ticketId: ticketId, moduleId: moduleId), dbManager: self) { results in
             var formArray = [FPForms]()
             for item in results {
@@ -607,7 +664,6 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
                 }else if moduleId == FPFormTemplateModuleId {
                     var sections:[FPSectionDetails]?
                     if let objectId = form.objectId {
-                        // for template
                         sections = FPSectionDetailsTemplateDatabaseManager().fetchSectionDetails(for: objectId)
                     }
                     if let sections = sections, sections.count > 0 {
@@ -616,7 +672,79 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
                     }
                 }
             }
-            completion(formArray)
+        }
+    }
+    
+    func fetchFormsFromLocal(ticketId: NSNumber, moduleId: Int, completion: @escaping fetchFormsCompletionHandler) {
+        FPLocalDatabaseManager.shared.executeQuery(self.getFetchQuery(ticketId: ticketId, moduleId: moduleId), dbManager: self) { results in
+            
+            if moduleId == FPFormMduleId {
+                // Optimized batch fetch for non-template forms
+                var formArray = [FPForms]()
+                var formIds = [NSNumber]()
+                var formObjectIds = [String]()
+                var formIdMap = [NSNumber: FPForms]()
+                
+                // Step 1: Parse all forms and collect both sqliteIds and objectIds
+                for item in results {
+                    let form = FPForms(dict: item, isForLocal: false)
+                    form.sections = []
+                    if let sqliteId = form.sqliteId {
+                        formIds.append(sqliteId)
+                        formIdMap[sqliteId] = form
+                        
+                        // Also collect objectId for OR query
+                        if let objectId = form.objectId {
+                            formObjectIds.append(objectId)
+                        } else {
+                            formObjectIds.append("0") // Default value if objectId is nil
+                        }
+                    }
+                }
+                
+                guard !formIds.isEmpty else {
+                    completion([])
+                    return
+                }
+                
+                // Step 2: Fetch ALL sections in ONE batch query (handles both sqliteId OR objectId)
+                FPSectionDetailsDatabaseManager().fetchSectionDetailsForForms(formIds: formIds, formObjectIds: formObjectIds, moduleId: moduleId) { sectionsDict in
+                    // Step 3: Assign sections to forms
+                    for (formId, sections) in sectionsDict {
+                        if let form = formIdMap[formId] {
+                            form.sections = sections
+                        }
+                    }
+                    
+                    // Step 4: Filter forms with sections and maintain order
+                    formArray = formIds.compactMap { formId in
+                        guard let form = formIdMap[formId], (form.sections?.count ?? 0) > 0 else {
+                            return nil
+                        }
+                        return form
+                    }
+                    
+                    completion(formArray)
+                }
+                
+            } else if moduleId == FPFormTemplateModuleId {
+                // Template forms - keep existing logic
+                var formArray = [FPForms]()
+                for item in results {
+                    let form = FPForms(dict: item, isForLocal: false)
+                    var sections: [FPSectionDetails]?
+                    if let objectId = form.objectId {
+                        sections = FPSectionDetailsTemplateDatabaseManager().fetchSectionDetails(for: objectId)
+                    }
+                    if let sections = sections, sections.count > 0 {
+                        form.sections = sections
+                        formArray.append(form)
+                    }
+                }
+                completion(formArray)
+            } else {
+                completion([])
+            }
         }
     }
     
