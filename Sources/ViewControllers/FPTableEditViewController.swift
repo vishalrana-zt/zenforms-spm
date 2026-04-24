@@ -453,7 +453,7 @@ class FPTableEditViewController: UIViewController {
         vc.isBulkEditMode = isBulkMode
         vc.bulkSelectedFullRowIndices = isBulkMode ? sorted : []
         vc.columnApplyToAllByKey = [:]
-        vc.tableComponent = tableComponent
+        vc.tableComponent = tableComponent?.makeCopy()
         vc.arrTblFormulas = arrTblFormulas
         vc.isAutoCalculateEnabled = isAutoCalculateEnabled
         vc.didEditedRows = { [weak self] tableComponent in
