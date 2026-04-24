@@ -472,10 +472,14 @@ class FPTableEditViewController: UIViewController {
             nav.modalPresentationStyle = .custom
             nav.transitioningDelegate = cardTransitionDelegate
         } else {
-            nav.modalPresentationStyle = .pageSheet
-            if let sheet = nav.sheetPresentationController {
-                sheet.detents = [.large()]
-                sheet.prefersGrabberVisible = true
+            if isBulkMode {
+                nav.modalPresentationStyle = .fullScreen
+            } else {
+                nav.modalPresentationStyle = .pageSheet
+                if let sheet = nav.sheetPresentationController {
+                    sheet.detents = [.large()]
+                    sheet.prefersGrabberVisible = true
+                }
             }
         }
         present(nav, animated: true, completion: completion)
