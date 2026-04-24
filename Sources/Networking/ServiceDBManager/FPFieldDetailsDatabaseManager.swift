@@ -345,7 +345,7 @@ struct FPFieldDetailsDatabaseManager: FPDataBaseQueries {
             updateQuery += "\(FPColumn.sortPosition)= NULL,"
         }
         if let value = item.options {
-            updateQuery += "\(FPColumn.options)='\(value)',"
+            updateQuery += "\(FPColumn.options)='\(value.processApostrophe())',"
         }else {
             updateQuery += "\(FPColumn.options)= NULL,"
         }
