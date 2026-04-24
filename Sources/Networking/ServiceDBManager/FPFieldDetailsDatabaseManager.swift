@@ -53,6 +53,16 @@ struct FPFieldDetailsDatabaseManager: FPDataBaseQueries {
         """
     }
     
+    // Create indexes for optimized batch query performance
+    static func getCreateIndexQueries() -> [String] {
+        return [
+            """
+            CREATE INDEX IF NOT EXISTS idx_fields_section_module 
+            ON \(FPFieldDetailsDatabaseManager.getTableName())(\(FPColumn.sectionLocalId), \(FPColumn.moduleId), \(FPColumn.sortPosition))
+            """
+        ]
+    }
+    
     func getLastInsertQuery() -> String {
         return "SELECT MAX(\(FPColumn.sqliteId)) as lastInsertedId FROM \(FPFieldDetailsDatabaseManager.getTableName())"
     }
@@ -250,6 +260,40 @@ struct FPFieldDetailsDatabaseManager: FPDataBaseQueries {
             }
         })
         return array
+    }
+    
+    // Optimized batch fetch for multiple sections
+    func fetchFieldDetailsForSections(sectionIds: [NSNumber], moduleId: Int, completion: @escaping ([NSNumber: [FPFieldDetails]]) -> Void) {
+        guard !sectionIds.isEmpty else {
+            completion([:])
+            return
+        }
+        
+        let idsString = sectionIds.map { "\($0)" }.joined(separator: ",")
+        let batchQuery = """
+        SELECT * FROM \(FPFieldDetailsDatabaseManager.getTableName())
+        WHERE \(FPColumn.sectionLocalId) IN (\(idsString))
+        AND \(FPColumn.moduleId) = \(moduleId)
+        ORDER BY \(FPColumn.sectionLocalId), \(FPColumn.sortPosition) ASC
+        """
+        
+        FPLocalDatabaseManager.shared.executeQuery(batchQuery, dbManager: self) { results in
+            var fieldsDict = [NSNumber: [FPFieldDetails]]()
+            
+            for item in results {
+                let field = FPFieldDetails(json: item, isForLocal: false)
+                
+                // Group by section ID (sectionLocalId from DB maps to sectionId property)
+                if let sectionLocalId = item["sectionLocalId"] as? NSNumber {
+                    if fieldsDict[sectionLocalId] == nil {
+                        fieldsDict[sectionLocalId] = []
+                    }
+                    fieldsDict[sectionLocalId]?.append(field)
+                }
+            }
+            
+            completion(fieldsDict)
+        }
     }
     func getFetchQuery(_ sectionLocalId:NSNumber, _ moduleId: Int) -> String {
         return """

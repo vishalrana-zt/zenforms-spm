@@ -46,6 +46,20 @@ struct FPSectionDetailsDatabaseManager: FPDataBaseQueries {
         """
     }
     
+    // Create indexes for optimized batch query performance
+    static func getCreateIndexQueries() -> [String] {
+        return [
+            """
+            CREATE INDEX IF NOT EXISTS idx_sections_entity_module 
+            ON \(FPSectionDetailsDatabaseManager.getTableName())(\(FPColumn.moduleEntityLocalId), \(FPColumn.moduleId), \(FPColumn.sortPosition))
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_sections_entity_id 
+            ON \(FPSectionDetailsDatabaseManager.getTableName())(\(FPColumn.moduleEntityId), \(FPColumn.moduleId))
+            """
+        ]
+    }
+    
   
     func getLastInsertQuery() -> String {
         return "SELECT MAX(\(FPColumn.sqliteId)) as lastInsertedId FROM \(FPSectionDetailsDatabaseManager.getTableName())"
@@ -247,6 +261,70 @@ struct FPSectionDetailsDatabaseManager: FPDataBaseQueries {
             }
             completion(array)
         })
+    }
+    
+    // Optimized batch fetch for multiple forms - handles both sqliteId and objectId
+    func fetchSectionDetailsForForms(formIds: [NSNumber], formObjectIds: [String], moduleId: Int, completion: @escaping ([NSNumber: [FPSectionDetails]]) -> Void) {
+        guard !formIds.isEmpty else {
+            completion([:])
+            return
+        }
+        
+        let idsString = formIds.map { "\($0)" }.joined(separator: ",")
+        let objectIdsString = formObjectIds.map { "'\($0)'" }.joined(separator: ",")
+        
+        // Query matches both sqliteId OR objectId, just like fetchSectionDetailsOR
+        let batchQuery = """
+        SELECT * FROM \(FPSectionDetailsDatabaseManager.getTableName())
+        WHERE (
+            \(FPColumn.moduleEntityLocalId) IN (\(idsString))
+            OR \(FPColumn.moduleEntityId) IN (\(objectIdsString))
+        )
+        AND \(FPColumn.moduleId) = \(moduleId)
+        ORDER BY \(FPColumn.moduleEntityLocalId), \(FPColumn.sortPosition) ASC
+        """
+        
+        FPLocalDatabaseManager.shared.executeQuery(batchQuery, dbManager: self) { results in
+            var sectionsDict = [NSNumber: [FPSectionDetails]]()
+            var sectionIds = [NSNumber]()
+            var sectionIdMap = [NSNumber: FPSectionDetails]()
+            
+            // Step 1: Parse all sections and collect IDs
+            for item in results {
+                let section = FPSectionDetails(json: item, isForLocal: false)
+                section.fields = [] // Initialize empty fields array
+                
+                if let sectionId = section.sqliteId {
+                    sectionIds.append(sectionId)
+                    sectionIdMap[sectionId] = section
+                }
+                
+                // Group by form ID
+                if let formId = section.moduleEntityLocalId {
+                    if sectionsDict[formId] == nil {
+                        sectionsDict[formId] = []
+                    }
+                    sectionsDict[formId]?.append(section)
+                }
+            }
+            
+            guard !sectionIds.isEmpty else {
+                completion(sectionsDict)
+                return
+            }
+            
+            // Step 2: Fetch ALL fields in ONE batch query
+            FPFieldDetailsDatabaseManager().fetchFieldDetailsForSections(sectionIds: sectionIds, moduleId: moduleId) { fieldsDict in
+                // Step 3: Assign fields to sections
+                for (sectionId, fields) in fieldsDict {
+                    if let section = sectionIdMap[sectionId] {
+                        section.fields = fields
+                    }
+                }
+                
+                completion(sectionsDict)
+            }
+        }
     }
     
     
