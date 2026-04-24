@@ -25,8 +25,8 @@ protocol FPCollectionCellDelegate{
 
 
 public protocol ZenFormsDelegate: NSObject {
-    func formUpdated()
-    func refreshListNeeded()
+    func formUpdated()//reload locally
+    func refreshListNeeded()//refresh list from server
     func newFormCancelClicked()
     func addQuickNoteClicked()
     func mixpanelEvent(eventName: String, properties:[String:Any]?)
@@ -164,98 +164,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     func registerKeyBoardNotification() {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name:UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide), name:UIResponder.keyboardWillHideNotification, object: nil)
-    }
-    
-    private func registerAppLifecycleNotifications() {
-        NotificationCenter.default.addObserver(self, selector: #selector(handleApplicationDidEnterBackground(_:)), name: UIApplication.didEnterBackgroundNotification, object: nil)
-    }
-    
-    private func persistActiveSectionIfNeeded() {
-        guard !isFromHistory else { return }
-        guard let form = FPFormDataHolder.shared.customForm else { return }
-        guard !self.isNew else { return }
-        let sectionCount = FPFormDataHolder.shared.getSectionCount()
-        guard sectionCount > 0 else { return }
-        let activeSectionIndex = min(max(section, 0), sectionCount - 1)
-        guard activeSectionIndex >= 0 else { return }
-        view.endEditing(true)
-        
-        if backgroundSaveTask != .invalid {
-            UIApplication.shared.endBackgroundTask(backgroundSaveTask)
-            backgroundSaveTask = .invalid
-        }
-        backgroundSaveTask = UIApplication.shared.beginBackgroundTask(withName: "ZenFormsBackgroundSave") { [weak self] in
-            guard let self else { return }
-            if self.backgroundSaveTask != .invalid {
-                UIApplication.shared.endBackgroundTask(self.backgroundSaveTask)
-                self.backgroundSaveTask = .invalid
-            }
-        }
-        
-        saveToOfflineDatabaseOnly(form: form, sectionIndex: activeSectionIndex) { [weak self] success in
-            guard let self else { return }
-            if self.backgroundSaveTask != .invalid {
-                UIApplication.shared.endBackgroundTask(self.backgroundSaveTask)
-                self.backgroundSaveTask = .invalid
-            }
-            if success {
-                self.hasDataChanges = false
-            } else {
-            }
-        }
-    }
-    
-    private func saveToOfflineDatabaseOnly(form: FPForms, sectionIndex: Int, completion: @escaping FPFormsServiceManager.successCompletionHandler) {
-        FPFormsServiceManager.uploadMediasAttachedForCurrentSection(section: sectionIndex) { [weak self] status in
-            guard let self = self else {
-                completion(false)
-                return
-            }
-            if status {
-                FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: sectionIndex) { [weak self] isTableAttachmentUploaded in
-                    guard let self = self else {
-                        completion(false)
-                        return
-                    }
-                    if isTableAttachmentUploaded {
-                        guard let formSection = FPFormDataHolder.shared.getProcessedSection(sectionIndex: sectionIndex) else {
-                            completion(false)
-                            return
-                        }
-                        FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(
-                            ticketId: self.ticketId ?? 0,
-                            section: formSection,
-                            form: form
-                        ) { [weak self] form, error in
-                            guard let self = self else {
-                                completion(false)
-                                return
-                            }
-                            if error == nil {
-                                DispatchQueue.main.async {
-                                    FPFormDataHolder.shared.customForm?.isSyncedToServer = false
-                                    self.delegate?.refreshListNeeded()
-                                }
-                                completion(true)
-                            } else {
-                                completion(false)
-                            }
-                        }
-                    } else {
-                        completion(false)
-                    }
-                }
-            } else {
-                completion(false)
-            }
-        }
-    }
-    
-    @objc private func handleApplicationDidEnterBackground(_ notification: Notification) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self, self.hasDataChanges else { return }
-            self.persistActiveSectionIfNeeded()
-        }
     }
     
     //MARK: - Handle localNotification listeners
@@ -1097,7 +1005,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         }
                         self.isNew = false
                         FPFormDataHolder.shared.customForm = nfpform
-                        self.delegate?.refreshListNeeded()
+                        self.delegate?.formUpdated()
                         self.stopLoadings()
                     }
                     completion(true)
@@ -1236,7 +1144,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                     if error == nil {
                                         if isDismiss{
                                             DispatchQueue.main.async {
-                                                self.delegate?.formUpdated()
+                                                self.delegate?.refreshListNeeded()
                                                 self.dismiss()
                                             }
                                         }
@@ -1485,19 +1393,15 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.deleteFormLocally(form: form, ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId) { form, error in
                         DispatchQueue.main.async {
                             AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
-                            self.dismiss()
+                            self.dismiss(isRefreshNeeded: true)
                         }
                     }
                 }else{
                     AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
-                    self.dismiss()
+                    self.dismiss(isRefreshNeeded: true)
                 }
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
         }else{
-            var isRefreshNeeded:Bool = false
-            if !FPUtility.isConnectedToNetwork(){
-                isRefreshNeeded = true
-            }
             if isStaffTechnician{
                 FPFormsServiceManager
                     .preComileFPForm(
@@ -1506,7 +1410,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     ) { }
             }
             AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
-            self.dismiss(isRefreshNeeded: true)
+            self.dismiss()
         }
     }
     
@@ -1524,7 +1428,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         self.navigationController?.dismiss(animated: true) {
             if isRefreshNeeded{
-                self.delegate?.refreshListNeeded()
+                self.delegate?.formUpdated()
             }
         }
     }
