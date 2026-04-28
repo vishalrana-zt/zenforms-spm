@@ -231,6 +231,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         if let ticketID = self.ticketId?.stringValue{
             FPFormsServiceManager.getComputedFields(ticketID: ticketID)
         }
+        
+        // Capture initial form state for change detection
+        FPFormDataHolder.shared.captureInitialFormState()
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -1124,6 +1127,12 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             if FPUtility.isConnectedToNetwork(), FPFormDataHolder.shared.customForm?.objectId == nil{
                 self.saveForm()
             }else{
+                // For existing forms, check if there are any changes
+                if !FPFormDataHolder.shared.hasFormChanged() {
+                    // No changes detected - just dismiss without saving
+                    self.dismiss(isRefreshNeeded: false)
+                    return
+                }
                 saveCurrentSection(isDismiss: true)
             }
         }
@@ -1133,6 +1142,23 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         self.view.endEditing(true)
         guard self.validateToSave() else {
             stopLoadings()
+            return
+        }
+        
+        // Check if form has actually changed before making API call
+        if !self.isNew && !FPFormDataHolder.shared.hasFormChanged() {
+            // No changes detected - skip API call and dismiss directly without refreshing list
+            stopLoadings()
+            if isDismiss {
+                // Clear session ID immediately
+                FPFormDataHolder.shared.currentFormSessionId = ""
+                // Don't call formUpdated() or refreshListNeeded() - no changes to refresh
+                self.navigationController?.dismiss(animated: true) {
+                    // Clean up after dismiss
+                    FPFormDataHolder.shared.reset()
+                }
+            }
+            completion?(true)
             return
         }
 
@@ -1194,6 +1220,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     func saveEmptyForm(completion:@escaping(_ status:Bool)->Void){
         self.view.endEditing(true)
+        
+        // Check if form has actually changed before making API call
+        if !self.isNew && !FPFormDataHolder.shared.hasFormChanged() {
+            // No changes detected - skip API call
+            completion(true)
+            return
+        }
+        
         isSaveRefreshing = true
         DispatchQueue.main.asyncAfter(deadline: .now()+0.25, execute: {
             FPFormsServiceManager.uploadMediasAttached { status in
@@ -1419,15 +1453,30 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 }
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
         }else{
-            if isStaffTechnician{
-                FPFormsServiceManager
-                    .preComileFPForm(
-                        form: self.customForm,
-                        ticketID: self.ticketId?.stringValue ?? ""
-                    ) { }
+            // For existing forms, check if there are unsaved changes
+            if FPFormDataHolder.shared.hasFormChanged() {
+                // Show alert about unsaved changes
+                _ = FPUtility.showAlertController(
+                    title: FPLocalizationHelper.localize("alert_dialog_title"),
+                    andMessage: FPLocalizationHelper.localize("msg_are_sure_data_lost"),
+                    completion: nil,
+                    withPositiveAction: FPLocalizationHelper.localize("Yes"),
+                    style: .default,
+                    andHandler: { (action) in
+                        AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
+                        // Dismiss without saving - no refresh needed
+                        self.dismiss(isRefreshNeeded: false)
+                    },
+                    withNegativeAction: FPLocalizationHelper.localize("Cancel"),
+                    style: .default,
+                    andHandler: nil
+                )
+            } else {
+                // No changes detected - dismiss directly without alert or refresh
+                AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
+                // Dismiss without refresh since nothing changed
+                self.dismiss(isRefreshNeeded: false)
             }
-            AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
-            self.dismiss()
         }
     }
     
@@ -1435,6 +1484,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     func dismiss(isRefreshNeeded:Bool = false)  {
         stopLoadings()
         self.resignFirstResponder()
+        // Clear session ID immediately when dismissing
+        FPFormDataHolder.shared.currentFormSessionId = ""
         DispatchQueue.main.asyncAfter(
             deadline:.now()+0.2,
             execute: {

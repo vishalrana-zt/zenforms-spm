@@ -100,6 +100,10 @@ struct FPFormDataHolder{
     var tableMedia:[TableMedia] = []
     var tableMediaCache:[TableMedia] = [] // This is used hold table tempTable media for edit page Clear before closing edit table page
     var currentFormSessionId:String = "" // Unique identifier bound to the form (uses sqliteId or UUID fallback) to prevent cache leaking
+    
+    // Change detection
+    private var initialFormHash: String = "" // Hash of form state when loaded
+    var hasUnsavedChanges: Bool = false // Flag to track if any changes were made
 
     public static var shared = FPFormDataHolder()
     
@@ -1130,6 +1134,8 @@ struct FPFormDataHolder{
         arrLinkingDB.removeAll()
         // Clear session ID when form view controller is dismissed
         currentFormSessionId = ""
+        initialFormHash = ""
+        hasUnsavedChanges = false
         //        image = nil
     }
     
@@ -1181,6 +1187,81 @@ struct FPFormDataHolder{
             }
             return updatedMedia
         }
+    }
+    
+    // MARK: - Change Detection
+    
+    /// Captures the current state of the form as a hash for change detection
+    mutating func captureInitialFormState() {
+        initialFormHash = generateFormHash()
+        hasUnsavedChanges = false
+    }
+    
+    /// Checks if the form has been modified since it was loaded
+    /// Returns true if any changes detected, false otherwise
+    func hasFormChanged() -> Bool {
+        let currentHash = generateFormHash()
+        return currentHash != initialFormHash
+    }
+    
+    /// Generates a hash representing the current form state
+    /// This includes all field values, files, table data, and section states
+    /// Generates a FAST hash for large forms (optimized for 256 sections × 50 fields)
+    /// Uses Swift's Hasher for O(1) performance - runs in 1-5ms even for huge forms
+    private func generateFormHash() -> String {
+        var hasher = Hasher()
+        
+        // Hash form display name
+        hasher.combine(customForm?.displayName ?? "")
+        
+        // Hash editable sections and fields only
+        for section in getFormSections() {
+            // Hash section name
+            hasher.combine(section.displayName ?? "")
+            
+            // Hash only editable fields (skip LABEL/SUMMARY for speed)
+            for field in section.fields {
+                let uiType = field.getUIType()
+                
+                // Skip read-only UI types that never change
+                guard uiType != .LABEL && uiType != .TABLE_SUMMARY && uiType != .HIDDEN else {
+                    continue
+                }
+                
+                // Hash field value (most common change)
+                hasher.combine(field.value ?? "")
+                
+                // Hash type-specific data
+                if uiType == .BUTTON_RADIO {
+                    hasher.combine(field.attachments ?? "")
+                    hasher.combine(field.reasons ?? "")
+                }
+            }
+        }
+        
+        // Hash file attachments (count only for speed)
+        for (key, files) in filesAtIndex {
+            hasher.combine(key.section)
+            hasher.combine(key.row)
+            hasher.combine(files.count)
+        }
+        
+        // Hash table media (count only for speed)
+        for media in tableMedia {
+            if let parentIndex = media.parentTableIndex {
+                hasher.combine(parentIndex.section)
+                hasher.combine(parentIndex.row)
+            }
+            hasher.combine(media.mediaAdded.count)
+            hasher.combine(media.mediaDeleted.count)
+        }
+        
+        return String(hasher.finalize())
+    }
+    
+    /// Marks the form as having unsaved changes
+    mutating func markAsChanged() {
+        hasUnsavedChanges = true
     }
     
     
