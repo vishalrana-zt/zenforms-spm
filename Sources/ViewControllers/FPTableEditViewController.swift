@@ -1263,6 +1263,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
     func deleteMultipleRows(_ arrRows:[Rows]){
         self.view.endEditing(true)
         FPUtility.showHUDWithLoadingMessage()
+        let hasActiveSearch = !(self.fpTableSearchBar?.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
         if self.isSelectedAll{
             self.addEmptyRowToTable()
         }
@@ -1294,11 +1295,20 @@ extension FPTableEditViewController: TableContentCellDelegate{
         }
         group.notify(queue: DispatchQueue.main) {
             if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
-                layout.removeRow(nRow: arrRows.count)
-                layout.invalidateLayout()
+                if hasActiveSearch {
+                    layout.isNew = true
+                } else {
+                    layout.removeRow(nRow: arrRows.count)
+                    layout.invalidateLayout()
+                }
             }
+            if hasActiveSearch {
+                self.fpApplyTableTextSearchFromField(animated: false)
+            } else {
+                self.collectionView.reloadData()
+            }
+            self.collectionView.layoutIfNeeded()
             FPUtility.hideHUD()
-            self.collectionView.reloadData()
         }
     }
     
