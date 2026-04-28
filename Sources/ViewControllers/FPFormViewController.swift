@@ -1144,23 +1144,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             stopLoadings()
             return
         }
-        
-        // Check if form has actually changed before making API call
-        if !self.isNew && !FPFormDataHolder.shared.hasFormChanged() {
-            // No changes detected - skip API call and dismiss directly without refreshing list
-            stopLoadings()
-            if isDismiss {
-                // Clear session ID immediately
-                FPFormDataHolder.shared.currentFormSessionId = ""
-                // Don't call formUpdated() or refreshListNeeded() - no changes to refresh
-                self.navigationController?.dismiss(animated: true) {
-                    // Clean up after dismiss
-                    FPFormDataHolder.shared.reset()
-                }
-            }
-            completion?(true)
-            return
-        }
 
         isSaveRefreshing = true
         
@@ -1220,13 +1203,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     func saveEmptyForm(completion:@escaping(_ status:Bool)->Void){
         self.view.endEditing(true)
-        
-        // Check if form has actually changed before making API call
-        if !self.isNew && !FPFormDataHolder.shared.hasFormChanged() {
-            // No changes detected - skip API call
-            completion(true)
-            return
-        }
         
         isSaveRefreshing = true
         DispatchQueue.main.asyncAfter(deadline: .now()+0.25, execute: {
