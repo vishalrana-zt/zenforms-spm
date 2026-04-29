@@ -45,7 +45,7 @@
                                                 <color key="baseForegroundColor" name="BT-Primary"/>
                                             </buttonConfiguration>
                                             <userDefinedRuntimeAttributes>
-                                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Attach_file"/>
+                                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Attach_file"/>
                                             </userDefinedRuntimeAttributes>
                                             <connections>
                                                 <action selector="attachTap:" destination="-1" eventType="touchUpInside" id="Nvi-QL-7Ed"/>
@@ -99,7 +99,7 @@
                                                 <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
                                                     <integer key="value" value="5"/>
                                                 </userDefinedRuntimeAttribute>
-                                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="Cancel"/>
+                                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="Cancel"/>
                                             </userDefinedRuntimeAttributes>
                                             <connections>
                                                 <action selector="didTapCancel:" destination="-1" eventType="touchUpInside" id="Qn2-dG-WDM"/>
@@ -117,7 +117,7 @@
                                                 <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
                                                     <integer key="value" value="5"/>
                                                 </userDefinedRuntimeAttribute>
-                                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="SAVE"/>
+                                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="SAVE"/>
                                             </userDefinedRuntimeAttributes>
                                             <connections>
                                                 <action selector="didTapSave:" destination="-1" eventType="touchUpInside" id="jTO-aH-fhf"/>

@@ -14,6 +14,7 @@
             <connections>
                 <outlet property="btnAddMultipleRows" destination="1QL-P1-3Rz" id="4Z3-GM-3E6"/>
                 <outlet property="btnAssetLink" destination="RBp-da-QRR" id="rcp-Km-KeA"/>
+                <outlet property="btnBulkEdit" destination="Zk9-blk-edt" id="out-blk-edt-btn"/>
                 <outlet property="btnDuplicate" destination="Qky-yD-S6s" id="CcM-Eo-9k5"/>
                 <outlet property="btnEditRow" destination="Bxg-e2-jC0" id="38L-99-L5s"/>
                 <outlet property="btnMultipleDeleteRows" destination="mmW-zz-ubg" id="z3E-B8-fvL"/>
@@ -32,7 +33,7 @@
             <rect key="frame" x="0.0" y="0.0" width="430" height="932"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
-                <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="sGu-Id-5Sn" customClass="TPKeyboardAvoidingScrollView">
+                <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" scrollEnabled="NO" translatesAutoresizingMaskIntoConstraints="NO" id="sGu-Id-5Sn" customClass="TPKeyboardAvoidingScrollView">
                     <rect key="frame" x="10" y="128" width="410" height="726"/>
                     <subviews>
                         <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="4" translatesAutoresizingMaskIntoConstraints="NO" id="KYt-8U-ySR">
@@ -98,6 +99,7 @@
                                                                     <color key="backgroundColor" name="BT-Primary"/>
                                                                     <constraints>
                                                                         <constraint firstAttribute="width" secondItem="Bxg-e2-jC0" secondAttribute="height" multiplier="1:1" id="6Nl-Lx-R92"/>
+                                                                        <constraint firstAttribute="width" secondItem="Bxg-e2-jC0" secondAttribute="height" multiplier="1:1" id="F8w-JG-3XG"/>
                                                                     </constraints>
                                                                     <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                                     <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
@@ -128,6 +130,24 @@
                                                                         <action selector="btnDuplicateDidTap:" destination="-1" eventType="touchUpInside" id="rMZ-C4-sOd"/>
                                                                     </connections>
                                                                 </button>
+                                                                <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Zk9-blk-edt">
+                                                                    <rect key="frame" x="58" y="0.0" width="48" height="48"/>
+                                                                    <color key="backgroundColor" name="BT-Primary"/>
+                                                                    <constraints>
+                                                                        <constraint firstAttribute="width" secondItem="Zk9-blk-edt" secondAttribute="height" multiplier="1:1" id="c-blk-edt-wh"/>
+                                                                    </constraints>
+                                                                    <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                                                    <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
+                                                                    <state key="normal" image="square.and.pencil" catalog="system"/>
+                                                                    <userDefinedRuntimeAttributes>
+                                                                        <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
+                                                                            <real key="value" value="5"/>
+                                                                        </userDefinedRuntimeAttribute>
+                                                                    </userDefinedRuntimeAttributes>
+                                                                    <connections>
+                                                                        <action selector="btnBulkEditDidTap:" destination="-1" eventType="touchUpInside" id="act-blk-edt"/>
+                                                                    </connections>
+                                                                </button>
                                                                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="mmW-zz-ubg">
                                                                     <rect key="frame" x="68" y="0.0" width="48" height="48"/>
                                                                     <color key="backgroundColor" name="Table-Red"/>
@@ -147,7 +167,6 @@
                                                                 </button>
                                                             </subviews>
                                                             <constraints>
-                                                                <constraint firstItem="Bxg-e2-jC0" firstAttribute="width" secondItem="Bxg-e2-jC0" secondAttribute="height" multiplier="1:1" id="F8w-JG-3XG"/>
                                                                 <constraint firstAttribute="height" constant="48" id="S5X-Ru-mu5"/>
                                                             </constraints>
                                                         </stackView>
@@ -289,6 +308,7 @@
         <image name="icn_open" width="30" height="30"/>
         <image name="icn_row-delete" width="32" height="32"/>
         <image name="icn_row_duplicate" width="31" height="31"/>
+        <image name="square.and.pencil" catalog="system" width="128" height="121"/>
         <namedColor name="BT-Primary">
             <color red="0.20000000000000001" green="0.396078431372549" blue="0.71764705882352942" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>

@@ -36,7 +36,7 @@
                                 <color key="textColor" name="textcolorPrimary"/>
                                 <nil key="highlightedColor"/>
                                 <userDefinedRuntimeAttributes>
-                                    <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Reasons"/>
+                                    <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Reasons"/>
                                 </userDefinedRuntimeAttributes>
                             </label>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="0qy-7l-2tG">
@@ -63,7 +63,7 @@
                                             <userDefinedRuntimeAttribute type="number" keyPath="cornerRadius">
                                                 <real key="value" value="2"/>
                                             </userDefinedRuntimeAttribute>
-                                            <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Add_Image"/>
+                                            <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Add_Image"/>
                                         </userDefinedRuntimeAttributes>
                                         <connections>
                                             <action selector="addImage:" destination="KGk-i7-Jjw" eventType="touchUpInside" id="fJW-J7-oJF"/>

@@ -37,6 +37,14 @@ class FPEditRowTableViewCell: UITableViewCell {
     // MARK: - IBOutlets
 
     @IBOutlet weak var lblColumnName: UILabel!
+    @IBOutlet weak var switchApplyToAllRows: UISwitch!
+
+    /// When true, shows the per-column "apply to all selected rows" switch (bulk edit mode).
+    var showsBulkApplyToAllToggle: Bool = false
+    /// Default ON: user can edit and changes may apply to every selected row on save. OFF: field is read-only and that column is left unchanged for every row on save.
+    var bulkApplyToAllIsOn: Bool = true
+    var onBulkApplyToAllChanged: ((String, Bool) -> Void)?
+
     @IBOutlet weak var btnAddAttachment: UIButton!
     @IBOutlet weak var tblTextField: UITextField!
     @IBOutlet weak var tblDropdownField: ZTDropDown!
@@ -124,10 +132,27 @@ class FPEditRowTableViewCell: UITableViewCell {
         tblTextView.layer.masksToBounds = true
         tblTextView.textContainerInset = UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5)
         tagListView?.delegate = self
+        switchApplyToAllRows?.addTarget(self, action: #selector(bulkApplySwitchChanged(_:)), for: .valueChanged)
+        switchApplyToAllRows?.isHidden = true
+        switchApplyToAllRows?.accessibilityLabel = FPLocalizationHelper.localize("lbl_Apply_column_to_all_rows")
+        switchApplyToAllRows?.accessibilityHint = FPLocalizationHelper.localize("lbl_Apply_column_to_all_rows_hint")
+        applyBulkApplySwitchPlatformTint()
+    }
+
+    /// Uses system accent blue for the “apply to all rows” switch (on state track).
+    private func applyBulkApplySwitchPlatformTint() {
+        guard let sw = switchApplyToAllRows else { return }
+        let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+        sw.onTintColor = primary
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
+
+        showsBulkApplyToAllToggle = false
+        bulkApplyToAllIsOn = true
+        onBulkApplyToAllChanged = nil
+        switchApplyToAllRows?.isHidden = true
 
         tblTextField.text = nil
         tblTextView.text = nil
@@ -140,6 +165,21 @@ class FPEditRowTableViewCell: UITableViewCell {
         tagListView?.removeAllTags()
         tagListView?.isHidden = true
         stackViewInput?.isHidden = false
+        stackViewInput?.alpha = 1
+        tagListView?.alpha = 1
+        viewBarcode.alpha = 1
+        btnAddAttachment.alpha = 1
+        btnAddAttachment.isEnabled = true
+        btnBarcode.isEnabled = true
+        viewBarcode.isUserInteractionEnabled = true
+        tagListView?.enableRemoveButton = true
+        tblTextField.textColor = .label
+        tblTextView.textColor = .label
+        tblDropdownField.textColor = .label
+        tblTextView.backgroundColor = .clear
+        tblTextField.backgroundColor = .clear
+        tblDropdownField.backgroundColor = .clear
+        applyBulkApplySwitchPlatformTint()
     }
     
     private func resolveMode(_ column: ColumnData) -> CellInputMode {
@@ -175,6 +215,13 @@ class FPEditRowTableViewCell: UITableViewCell {
         endEditing(true)
     }
 
+    @objc private func bulkApplySwitchChanged(_ sender: UISwitch) {
+        guard let key = data?.key else { return }
+        bulkApplyToAllIsOn = sender.isOn
+        onBulkApplyToAllChanged?(key, sender.isOn)
+        applyBulkInputLockState()
+    }
+
     @IBAction func didTapAddAttachments(_ sender: Any) {
         guard let childTableIndex, let data else { return }
         delegate?.showRowAttachment(at: childTableIndex, with: data)
@@ -198,6 +245,11 @@ private extension FPEditRowTableViewCell {
         self.tblTextField.isUserInteractionEnabled = !(column.readonly ?? false)
         self.tblDropdownField.isUserInteractionEnabled = !(column.readonly ?? false)
         self.lblColumnName.text = column.key.handleAndDisplayApostrophe()
+        let showBulkSwitch = showsBulkApplyToAllToggle && !(column.readonly ?? false)
+        self.switchApplyToAllRows?.isHidden = !showBulkSwitch
+        if showBulkSwitch {
+            self.switchApplyToAllRows?.isOn = bulkApplyToAllIsOn
+        }
         self.tblDropdownField.isHidden = true
         self.tagListView?.isHidden = true
         self.stackViewInput?.isHidden = false
@@ -215,6 +267,36 @@ private extension FPEditRowTableViewCell {
         default:
             configureTextInput(column)
         }
+        applyBulkInputLockState()
+    }
+
+    /// Applies visual state based on bulk edit mode. Fields remain enabled regardless of toggle state.
+    /// The toggle only controls whether changes are applied to all rows on save, not field editability.
+    private func applyBulkInputLockState() {
+        guard let column = data else { return }
+        let readOnly = column.readonly ?? false
+
+        // Fields are always enabled (except for readonly columns)
+        tblTextField.isUserInteractionEnabled = !readOnly
+        tblTextView.isUserInteractionEnabled = !readOnly
+        tblDropdownField.isUserInteractionEnabled = !readOnly
+        btnAddAttachment.isEnabled = !readOnly
+        btnBarcode.isEnabled = !readOnly
+        viewBarcode.isUserInteractionEnabled = !readOnly
+        tagListView?.enableRemoveButton = !readOnly
+        tagListView?.isUserInteractionEnabled = !readOnly
+
+        // Reset visual state - no dimming based on toggle state
+        stackViewInput?.alpha = 1
+        tagListView?.alpha = 1
+        btnAddAttachment.alpha = 1
+        viewBarcode.alpha = 1
+        tblTextField.textColor = .label
+        tblTextView.textColor = .label
+        tblDropdownField.textColor = .label
+        tblTextView.backgroundColor = .clear
+        tblTextField.backgroundColor = .clear
+        tblDropdownField.backgroundColor = .clear
     }
     
     private func configureDropdown(_ column: ColumnData) {

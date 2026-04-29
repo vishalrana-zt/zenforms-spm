@@ -3,11 +3,11 @@ import Foundation
 import UIKit
 
 internal protocol FPIBLocalizable {
-    var localizedKey: String? { get set }
+    var fpLocalizedKey: String? { get set }
 }
 
 extension UILabel: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var fpLocalizedKey: String? {
         get { nil }
         set(key) {
             if let key = key { text = FPLocalizationHelper.localize(key) }
@@ -16,7 +16,7 @@ extension UILabel: FPIBLocalizable {
 }
 
 extension UIButton: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var fpLocalizedKey: String? {
         get { nil }
         set(key) {
             if let key = key {
@@ -24,20 +24,20 @@ extension UIButton: FPIBLocalizable {
                 setTitle(FPLocalizationHelper.localize(key), for: .highlighted)
                 setTitle(FPLocalizationHelper.localize(key), for: .selected)
                 setTitle(FPLocalizationHelper.localize(key), for: .disabled)
-                makeTitleAdjustAutomatically()
+                fpMakeTitleAdjustAutomatically()
             }
 
         }
     }
-    
-    func updateButtonTitle(title:String){
+
+    func fpUpdateButtonTitle(title: String) {
         setTitle(title, for: .normal)
         setTitle(title, for: .highlighted)
         setTitle(title, for: .selected)
         setTitle(title, for: .disabled)
     }
-    
-    func makeTitleAdjustAutomatically() {
+
+    func fpMakeTitleAdjustAutomatically() {
         self.titleLabel?.adjustsFontSizeToFitWidth = true
         self.titleLabel?.minimumScaleFactor = 0.5
         self.titleLabel?.lineBreakMode = .byTruncatingTail
@@ -45,7 +45,7 @@ extension UIButton: FPIBLocalizable {
 }
 
 extension UINavigationItem: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var fpLocalizedKey: String? {
         get { nil }
         set(key) {
             if let key = key { title = FPLocalizationHelper.localize(key) }
@@ -54,7 +54,7 @@ extension UINavigationItem: FPIBLocalizable {
 }
 
 extension UIBarItem: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var fpLocalizedKey: String? {
         get { nil }
         set(key) {
             if let key = key { title = FPLocalizationHelper.localize(key) }
@@ -63,7 +63,7 @@ extension UIBarItem: FPIBLocalizable {
 }
 
 extension UITextField: FPIBLocalizable {
-    var localizedKey: String? {
+    @objc var fpLocalizedKey: String? {
         get { nil }
         set(key) {
             if let key = key {
@@ -74,4 +74,3 @@ extension UITextField: FPIBLocalizable {
         }
     }
 }
-

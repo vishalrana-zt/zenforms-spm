@@ -43,7 +43,7 @@
                                             <color key="titleColor" name="BT-Primary"/>
                                         </state>
                                         <userDefinedRuntimeAttributes>
-                                            <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Attach_file"/>
+                                            <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Attach_file"/>
                                         </userDefinedRuntimeAttributes>
                                         <connections>
                                             <action selector="attachFileDidTap:" destination="KGk-i7-Jjw" eventType="touchUpInside" id="Jou-Ch-Dv5"/>

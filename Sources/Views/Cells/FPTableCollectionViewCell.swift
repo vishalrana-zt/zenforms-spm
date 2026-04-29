@@ -7,6 +7,7 @@
 //
 
 import UIKit
+internal import RSSelectionMenu
 
 class FPTableCollectionViewCell: UITableViewCell {
     
@@ -78,6 +79,18 @@ class FPTableCollectionViewCell: UITableViewCell {
     private let headerCellReuseIdentifier = "TableHeaderCollectionViewCell"
     private let contentCellReuseIdentifier = "TableContentCollectionViewCell"
 
+    private var fpPreviewSearchBar: UISearchBar?
+    private var fpPreviewSearchEmptyLabel: UILabel?
+    private var fpPreviewSearchFilterButton: UIButton?
+    private var fpPreviewSearchDebounceWorkItem: DispatchWorkItem?
+    private var fpPreviewSearchColumnNameKeys: Set<String> = []
+    private var fpPreviewSearchHighlightQuery: String = ""
+    private var fpPreviewSearchChromeInstalled = false
+
+    private var fpPreviewSearchColumnPrefsKey: String {
+        "ZenForms.FPTableCell.textSearch.columns.\(fieldDetails?.templateId ?? "0")"
+    }
+
     override func awakeFromNib() {
         super.awakeFromNib()
         self.setNeedsLayout()
@@ -97,6 +110,11 @@ class FPTableCollectionViewCell: UITableViewCell {
     
     override func prepareForReuse() {
         super.prepareForReuse()
+        fpPreviewSearchDebounceWorkItem?.cancel()
+        fpPreviewSearchBar?.text = ""
+        fpPreviewSearchEmptyLabel?.isHidden = true
+        fpPreviewSearchHighlightQuery = ""
+        fpPreviewSearchColumnNameKeys = []
         self.viewModel = nil
         self.viewModel = FPQueAnsCollectionViewModel()
     }
@@ -110,7 +128,8 @@ class FPTableCollectionViewCell: UITableViewCell {
         self.titleText = displayName
         self.tableIndexPath = indexPath
         self.btnAddRow.isHidden = !isShowAddRow
-        
+        fpEnsurePreviewSearchChromeInstalled()
+
         // Ensure viewModel exists before setting cellItem
         if viewModel == nil {
             viewModel = FPQueAnsCollectionViewModel()
@@ -228,6 +247,7 @@ class FPTableCollectionViewCell: UITableViewCell {
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: tableComponent)
             }
             self.updateTableData()
+            self.fpReapplyPreviewTextSearchIfNeeded()
             self.collMain.reloadData()
             self.collMain.layoutIfNeeded()
         }
@@ -257,6 +277,7 @@ class FPTableCollectionViewCell: UITableViewCell {
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: tableComponent)
             }
             self.updateTableData()
+            self.fpReapplyPreviewTextSearchIfNeeded()
             self.collMain.reloadData()
             self.collMain.layoutIfNeeded()
         }
@@ -287,12 +308,228 @@ class FPTableCollectionViewCell: UITableViewCell {
   
 }
 
+private extension FPTableCollectionViewCell {
+
+    func fpRestorePreviewSearchColumnPrefs() {
+        if let saved = UserDefaults.standard.array(forKey: fpPreviewSearchColumnPrefsKey) as? [String] {
+            fpPreviewSearchColumnNameKeys = Set(saved)
+        }
+    }
+
+    func fpPersistPreviewSearchColumnPrefs() {
+        UserDefaults.standard.set(Array(fpPreviewSearchColumnNameKeys), forKey: fpPreviewSearchColumnPrefsKey)
+    }
+
+    func fpEnsurePreviewSearchChromeInstalled() {
+        guard let stack = collMain.superview?.superview as? UIStackView else { return }
+        if fpPreviewSearchChromeInstalled {
+            fpUpdatePreviewSearchFilterButtonAppearance()
+            return
+        }
+        fpPreviewSearchChromeInstalled = true
+        let searchBar = UISearchBar()
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        searchBar.placeholder = FPLocalizationHelper.localize("lbl_table_search_placeholder")
+        searchBar.searchBarStyle = .minimal
+        searchBar.delegate = self
+        searchBar.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        searchBar.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
+        searchBar.searchTextField.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
+        let filterBtn = UIButton(type: .system)
+        filterBtn.setImage(UIImage(systemName: "line.3.horizontal.decrease.circle"), for: .normal)
+        filterBtn.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        filterBtn.translatesAutoresizingMaskIntoConstraints = false
+        filterBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        filterBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        filterBtn.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_columns")
+        filterBtn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
+        filterBtn.addAction(UIAction { [weak self] _ in
+            guard let self, let base = self.fpViewController else { return }
+            self.fpPresentPreviewColumnPicker(from: filterBtn, presenting: base)
+        }, for: .touchUpInside)
+
+        let row = UIStackView(arrangedSubviews: [searchBar, filterBtn])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 4
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        let emptyLabel = UILabel()
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        emptyLabel.font = .preferredFont(forTextStyle: .subheadline)
+        emptyLabel.textColor = .secondaryLabel
+        emptyLabel.textAlignment = .center
+        emptyLabel.numberOfLines = 0
+        emptyLabel.text = FPLocalizationHelper.localize("msg_table_search_no_results")
+        emptyLabel.accessibilityLabel = FPLocalizationHelper.localize("msg_table_search_no_results")
+        emptyLabel.isHidden = true
+
+        let outer = UIStackView(arrangedSubviews: [row, emptyLabel])
+        outer.axis = .vertical
+        outer.spacing = 6
+        outer.translatesAutoresizingMaskIntoConstraints = false
+        stack.insertArrangedSubview(outer, at: 0)
+
+        fpPreviewSearchBar = searchBar
+        fpPreviewSearchFilterButton = filterBtn
+        fpPreviewSearchEmptyLabel = emptyLabel
+        fpUpdatePreviewSearchFilterButtonAppearance()
+    }
+
+    private func fpPreviewTableSearchColumnScopeIsRestricted() -> Bool {
+        let cols = cellItem?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+        guard !cols.isEmpty else { return false }
+        if fpPreviewSearchColumnNameKeys.isEmpty { return false }
+        return fpPreviewSearchColumnNameKeys.count < cols.count
+    }
+
+    private func fpUpdatePreviewSearchFilterButtonAppearance() {
+        guard let btn = fpPreviewSearchFilterButton else { return }
+        let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+        let restricted = fpPreviewTableSearchColumnScopeIsRestricted()
+        let symbol = restricted ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+        btn.setImage(UIImage(systemName: symbol), for: .normal)
+        btn.tintColor = primary
+        btn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
+        btn.accessibilityTraits = restricted ? [.button, .selected] : .button
+        if restricted {
+            let cols = cellItem?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+            let n = min(fpPreviewSearchColumnNameKeys.count, cols.count)
+            btn.accessibilityValue = String.localizedStringWithFormat(
+                FPLocalizationHelper.localize("msg_table_search_scope_active_a11y"),
+                n,
+                cols.count
+            )
+        } else {
+            btn.accessibilityValue = FPLocalizationHelper.localize("msg_table_search_scope_all_a11y")
+        }
+    }
+
+    func fpPresentPreviewColumnPicker(from sender: UIView, presenting: UIViewController) {
+        fpViewController?.view.endEditing(true)
+        let cols = cellItem?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+        guard !cols.isEmpty else { return }
+        let labels: [String] = cols.map {
+            ($0.displayName.isEmpty ? $0.name : $0.displayName).handleAndDisplayApostrophe()
+        }
+        var nameByLabel: [String: String] = [:]
+        for (i, col) in cols.enumerated() {
+            let label = labels[i]
+            if nameByLabel[label] == nil {
+                nameByLabel[label] = col.name
+            }
+        }
+        let menu = RSSelectionMenu(selectionStyle: .multiple, dataSource: labels) { cell, name, _ in
+            cell.textLabel?.text = name
+            cell.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        }
+        menu.tableView?.configureRSSelectionMenuTable()
+        menu.setNavigationBar(title: FPLocalizationHelper.localize("lbl_table_search_columns"), attributes: [NSAttributedString.Key.foregroundColor: UIColor.black], barTintColor: UIColor(named: "BT-Primary"), tintColor: UIColor.black)
+
+        let preselected: [String]
+        if fpPreviewSearchColumnNameKeys.isEmpty {
+            preselected = labels
+        } else {
+            preselected = cols.filter { fpPreviewSearchColumnNameKeys.contains($0.name) }.map {
+                ($0.displayName.isEmpty ? $0.name : $0.displayName).handleAndDisplayApostrophe()
+            }
+        }
+        menu.setSelectedItems(items: preselected) { _, _, _, _ in }
+
+        menu.setRightBarButton(title: FPLocalizationHelper.localize("Done")) { [weak self] selectedItems in
+            menu.dismiss(animated: true)
+            guard let self else { return }
+            var keys = Set<String>()
+            for item in selectedItems {
+                if let n = nameByLabel[item] {
+                    keys.insert(n)
+                }
+            }
+            self.fpPreviewSearchColumnNameKeys = keys
+            self.fpUpdatePreviewSearchFilterButtonAppearance()
+            self.fpApplyPreviewTextSearchFromField(animated: true)
+        }
+        menu.cellSelectionStyle = .checkbox
+        menu.show(style: .popover(sourceView: sender, size: nil, arrowDirection: .any), from: presenting)
+    }
+
+    func fpApplyPreviewTextSearchFromField(animated: Bool) {
+        let raw = fpPreviewSearchBar?.text ?? ""
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rows = cellItem?.rows ?? []
+        if trimmed.isEmpty {
+            viewModel?.textSearchVisibleRowIndices = nil
+            fpPreviewSearchHighlightQuery = ""
+            fpPreviewSearchEmptyLabel?.isHidden = true
+        } else {
+            let indices = TableRowTextSearch.matchingRowIndices(
+                rows: rows,
+                query: trimmed,
+                columnKeys: fpPreviewSearchColumnNameKeys,
+                caseSensitive: TableRowTextSearch.userPrefersCaseSensitiveSearch
+            )
+            viewModel?.textSearchVisibleRowIndices = indices
+            fpPreviewSearchHighlightQuery = trimmed
+            fpPreviewSearchEmptyLabel?.isHidden = !indices.isEmpty
+        }
+        if let layout = collMain.collectionViewLayout as? FPQueAnsCollectionViewLayout {
+            layout.invalidateLayout()
+        }
+        if animated {
+            UIView.transition(with: collMain, duration: 0.12, options: .transitionCrossDissolve) {
+                self.collMain.reloadData()
+            }
+        } else {
+            collMain.reloadData()
+        }
+    }
+
+    func fpReapplyPreviewTextSearchIfNeeded() {
+        guard let raw = fpPreviewSearchBar?.text, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            viewModel?.textSearchVisibleRowIndices = nil
+            fpPreviewSearchHighlightQuery = ""
+            fpPreviewSearchEmptyLabel?.isHidden = true
+            return
+        }
+        fpApplyPreviewTextSearchFromField(animated: false)
+    }
+
+    func fpSchedulePreviewSearchDebounce(for searchText: String) {
+        fpPreviewSearchDebounceWorkItem?.cancel()
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed.count <= 2 {
+            fpApplyPreviewTextSearchFromField(animated: true)
+            return
+        }
+        let item = DispatchWorkItem { [weak self] in
+            self?.fpApplyPreviewTextSearchFromField(animated: true)
+        }
+        fpPreviewSearchDebounceWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: item)
+    }
+}
+
+extension FPTableCollectionViewCell: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        guard searchBar === fpPreviewSearchBar else { return }
+        fpSchedulePreviewSearchDebounce(for: searchText)
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+        fpPreviewSearchDebounceWorkItem?.cancel()
+        fpApplyPreviewTextSearchFromField(animated: true)
+    }
+}
 
 extension FPTableCollectionViewCell: FPQueAnsCollectionViewModelDataSource {
     func configure(_ cell: UICollectionViewCell, with content: String, column: ColumnData?, indexPath: IndexPath, isHideMore: Bool, isHideCHeckBoxHeader:Bool) {
         if let contentcell = cell as? TableContentCollectionViewCell {
             contentcell.parentTableIndex = tableIndexPath
             contentcell.childTableIndex = indexPath
+            contentcell.searchHighlightCaseSensitive = TableRowTextSearch.userPrefersCaseSensitiveSearch
+            contentcell.searchHighlightColumnKeys = fpPreviewSearchColumnNameKeys
+            contentcell.searchHighlightQuery = fpPreviewSearchHighlightQuery.isEmpty ? nil : fpPreviewSearchHighlightQuery
             contentcell.data = column
             contentcell.viewBarcode.isHidden = true
             contentcell.isUserInteractionEnabled = false

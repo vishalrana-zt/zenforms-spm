@@ -27,10 +27,31 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     @IBOutlet weak var btnNext: ZTLIBLoaderButton!
     @IBOutlet weak var txtRow: UITextField!
     @IBOutlet weak var lblCurrentRow: UILabel!
-   
+    @IBOutlet weak var lblRowTitle: UILabel!
+    @IBOutlet weak var btnBulkRowInfo: UIButton!
+    @IBOutlet weak var viewBulkEditHeaderSpacer: UIView!
+    @IBOutlet weak var viewMasterToggle: UIView!
+    @IBOutlet weak var switchMasterToggle: UISwitch!
+    @IBOutlet weak var constraintTableTopToToggle: NSLayoutConstraint!
+    @IBOutlet weak var constraintTableTopToHeader: NSLayoutConstraint!
+
     var tableComponent:TableComponent?
     var currentRowNo:Int = 0
     var tableIndexPath:IndexPath?
+
+    /// When true, uses `bulkSelectedFullRowIndices` and per-column apply switches; hides row navigation chrome.
+    var isBulkEditMode: Bool = false
+    /// Full table row indices (0-based), sorted ascending. Base row is `currentRowNo` (smallest index).
+    var bulkSelectedFullRowIndices: [Int] = []
+    /// Column key → apply edited value to all selected rows (default true when key absent).
+    var columnApplyToAllByKey: [String: Bool] = [:]
+    /// Snapshot of visible column values on the base row when bulk edit opens (used to leave "switch off" columns unchanged on save).
+    private var bulkEditBaselineColumnValuesByKey: [String: String] = [:]
+
+    /// Master toggle state for bulk edit - when true, all column toggles are ON
+    private var masterToggleIsOn: Bool = true
+
+    private var defaultRowTitleText: String?
 
     var attachmentIndex:IndexPath?
     var attachmentColumnData: ColumnData?
@@ -48,11 +69,76 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         tblRows.dataSource = self
         tblRows.rowHeight = UITableView.automaticDimension
         tblRows.estimatedRowHeight = 200
+
+        // Show/hide master toggle view based on bulk edit mode
+        viewMasterToggle?.isHidden = !isBulkEditMode
+        switchMasterToggle?.isOn = masterToggleIsOn
+
+        // Manage table top constraints based on bulk edit mode
+        // In bulk mode: table connects to master toggle bottom
+        // In normal mode: table connects directly to header row bottom
+        constraintTableTopToToggle?.isActive = isBulkEditMode
+        constraintTableTopToHeader?.isActive = !isBulkEditMode
+    }
+
+    /// Called when the master toggle switch value changes (connected via XIB)
+    @IBAction func masterToggleChanged(_ sender: UISwitch) {
+        masterToggleIsOn = sender.isOn
+
+        // Get all visible (non-hidden) column keys
+        let visibleColumns = editorColumnsForCurrentRow().filter { $0.readonly != true }
+
+        // Update all column toggle states
+        for column in visibleColumns {
+            columnApplyToAllByKey[column.key] = sender.isOn
+        }
+
+        // Reload table to reflect changes in all cells
+        tblRows.reloadData()
+    }
+
+    /// Called by individual cell toggles to sync master toggle state
+    func syncMasterToggleState() {
+        guard isBulkEditMode else { return }
+
+        let visibleColumns = editorColumnsForCurrentRow().filter { $0.readonly != true }
+
+        // Check if all toggles are ON
+        let allOn = visibleColumns.allSatisfy { column in
+            columnApplyToAllByKey[column.key] ?? true
+        }
+
+        // Update master toggle state without triggering action
+        masterToggleIsOn = allOn
+        switchMasterToggle?.setOn(allOn, animated: true)
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        defaultRowTitleText = lblRowTitle?.text
+        viewBulkEditHeaderSpacer?.setContentHuggingPriority(UILayoutPriority(1), for: .horizontal)
+        viewBulkEditHeaderSpacer?.setContentCompressionResistancePriority(UILayoutPriority(1), for: .horizontal)
+        if isBulkEditMode {
+            captureBulkEditColumnBaseline()
+        }
+        configureBulkRowInfoButton()
         initializeView()
+    }
+
+    private func captureBulkEditColumnBaseline() {
+        bulkEditBaselineColumnValuesByKey = [:]
+        guard let row = tableComponent?.rows?[safe: currentRowNo] else { return }
+        for col in row.columns where col.getUIType() != .HIDDEN && !(isBulkEditMode && col.uiType == "ATTACHMENT") {
+            bulkEditBaselineColumnValuesByKey[col.key] = col.value
+        }
+    }
+
+    private func editorColumnsForCurrentRow() -> [ColumnData] {
+        let columns = tableComponent?.rows?[safe: currentRowNo]?.columns ?? []
+        return columns.filter {
+            $0.getUIType() != .HIDDEN &&
+            !(isBulkEditMode && $0.uiType == "ATTACHMENT")
+        }
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -99,7 +185,11 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     func setupNavBar() {
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(title: FPLocalizationHelper.localize("Done"), style: .plain, target: self, action: #selector(saveButtonAction))
-        self.navigationItem.leftBarButtonItem = nil
+        if isBulkEditMode {
+            self.navigationItem.leftBarButtonItem = UIBarButtonItem(title: FPLocalizationHelper.localize("Cancel"), style: .plain, target: self, action: #selector(cancelButtonAction))
+        } else {
+            self.navigationItem.leftBarButtonItem = nil
+        }
     }
     
     //MARK: - ViewController button actions
@@ -140,6 +230,16 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     func handleSectionControlUI(){
         self.stopLoadings()
         DispatchQueue.main.async {
+            if self.isBulkEditMode {
+                self.btnPrevious.isHidden = true
+                self.btnNext.isHidden = true
+                self.txtRow.isHidden = true
+                self.viewBottom.isHidden = true
+                self.tblRows.reloadData()
+                return
+            }
+            self.viewBottom.isHidden = false
+            self.txtRow.isHidden = false
             let rows = self.tableComponent?.rows ?? []
             if rows.count == 1{
                 self.btnPrevious.isHidden = true
@@ -164,8 +264,71 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     }
     
     func reflectCurrentRowOnUI(){
+        if isBulkEditMode {
+            let count = bulkSelectedFullRowIndices.count
+            let nums = bulkSelectedFullRowIndices.map { "\($0 + 1)" }.joined(separator: ", ")
+            let prefix = FPLocalizationHelper.localizeWith(args: [count], key: "msg_bulk_edit_row_summary_prefix")
+            let font = lblRowTitle?.font ?? .systemFont(ofSize: 17, weight: .semibold)
+            let summaryGrey = UIColor(red: 0.22, green: 0.22, blue: 0.24, alpha: 1)
+            let rowNumberBlue = UIColor(named: "BT-Primary") ?? .systemBlue
+            let muted = NSMutableAttributedString(string: prefix, attributes: [
+                .font: font,
+                .foregroundColor: summaryGrey
+            ])
+            muted.append(NSAttributedString(string: nums, attributes: [
+                .font: font,
+                .foregroundColor: rowNumberBlue
+            ]))
+            lblRowTitle?.attributedText = muted
+            lblRowTitle?.accessibilityLabel = FPLocalizationHelper.localizeWith(args: [count, nums], key: "msg_bulk_edit_row_summary")
+            lblRowTitle?.adjustsFontSizeToFitWidth = true
+            lblRowTitle?.minimumScaleFactor = 0.72
+            lblRowTitle?.textAlignment = .natural
+            lblRowTitle?.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            lblCurrentRow.isHidden = true
+            btnBulkRowInfo?.isHidden = false
+            return
+        }
+        btnBulkRowInfo?.isHidden = true
+        lblCurrentRow.isHidden = false
+        lblRowTitle?.attributedText = nil
+        lblRowTitle?.accessibilityLabel = nil
+        lblRowTitle?.adjustsFontSizeToFitWidth = false
+        lblRowTitle?.minimumScaleFactor = 1.0
+        lblRowTitle?.textAlignment = .natural
+        lblRowTitle?.setContentCompressionResistancePriority(.required, for: .horizontal)
+        if let t = defaultRowTitleText {
+            lblRowTitle?.text = t
+        }
         lblCurrentRow.text = "\(currentRowNo + 1)"
         txtRow.text = "\(currentRowNo + 1)"
+    }
+
+    private func configureBulkRowInfoButton() {
+        guard let btn = btnBulkRowInfo else { return }
+        let base = UIImage(systemName: "info.circle")
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold, scale: .medium)
+        if let img = base?.applyingSymbolConfiguration(config) {
+            btn.setImage(img, for: .normal)
+        }
+        btn.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        btn.accessibilityLabel = FPLocalizationHelper.localize("lbl_Bulk_edit_info_a11y")
+        btn.addTarget(self, action: #selector(bulkRowInfoTapped), for: .touchUpInside)
+        btn.isHidden = !isBulkEditMode
+    }
+
+    @objc private func bulkRowInfoTapped() {
+        _ = FPUtility.showAlertController(
+            title: FPLocalizationHelper.localize("lbl_Bulk_edit_info_alert_title"),
+            andMessage: FPLocalizationHelper.localize("msg_bulk_edit_toggle_help_detail"),
+            completion: nil,
+            withPositiveAction: FPLocalizationHelper.localize("lbl_Ok"),
+            style: .default,
+            andHandler: nil,
+            withNegativeAction: nil,
+            style: .default,
+            andHandler: nil
+        )
     }
     
     
@@ -173,11 +336,72 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
     
     @objc func saveButtonAction() {
         self.view.endEditing(true)
+        if isBulkEditMode {
+            applyBulkEditsToSelectedRows()
+            synchronizeTableComponentValuesFromRows()
+        }
         self.navigationController?.dismiss(animated: true) {
             self.didEditedRows?(self.tableComponent)
         }
     }
-    
+
+    private func synchronizeTableComponentValuesFromRows() {
+        guard var comp = tableComponent else { return }
+        comp.values = comp.getValuesObject()
+        tableComponent = comp
+    }
+
+    /// Copies values from the base row (`currentRowNo`) to other selected rows per-column when the column toggle is ON.
+    private func applyBulkEditsToSelectedRows() {
+        guard var comp = tableComponent,
+              let rowsIn = comp.rows,
+              !bulkSelectedFullRowIndices.isEmpty else { return }
+        let baseRow = currentRowNo
+        guard baseRow >= 0, baseRow < rowsIn.count else { return }
+
+        var rows = rowsIn
+        let visibleColumns = rows[baseRow].columns.filter {
+            $0.getUIType() != .HIDDEN && $0.uiType != "ATTACHMENT"
+        }
+
+        for columnKey in visibleColumns.map(\.key) {
+            let applyAll = columnApplyToAllByKey[columnKey] ?? true
+            if !applyAll {
+                if let baseline = bulkEditBaselineColumnValuesByKey[columnKey],
+                   let idx = rows[baseRow].columns.firstIndex(where: { $0.key == columnKey }) {
+                    rows[baseRow].columns[idx].value = baseline
+                }
+                if let parentIdx = tableIndexPath {
+                    FPFormDataHolder.shared.removeTableMediaCacheForCell(
+                        parentTableIndex: parentIdx,
+                        childTableSection: baseRow + 1,
+                        columnKey: columnKey
+                    )
+                }
+                continue
+            }
+            guard let sourceColumn = rows[baseRow].columns.first(where: { $0.key == columnKey }),
+                  sourceColumn.readonly != true else { continue }
+
+            for targetIdx in bulkSelectedFullRowIndices where targetIdx != baseRow && targetIdx < rows.count {
+                guard let tci = rows[targetIdx].columns.firstIndex(where: { $0.key == columnKey }) else { continue }
+                if rows[targetIdx].columns[tci].readonly == true { continue }
+                rows[targetIdx].columns[tci].value = sourceColumn.value
+            }
+        }
+
+        if isAutoCalculateEnabled, !arrTblFormulas.isEmpty {
+            for idx in bulkSelectedFullRowIndices where idx < rows.count {
+                if let col = rows[idx].columns.first {
+                    rows[idx] = processAutoCalculationFor(row: rows[idx], with: col)
+                }
+            }
+        }
+
+        comp.rows = rows
+        tableComponent = comp
+    }
+
     func stopLoadings(){
         DispatchQueue.main.async {
             self.btnNext.isLoading = false
@@ -195,7 +419,7 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
 
 extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN}).count ?? 0
+        return editorColumnsForCurrentRow().count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -204,11 +428,19 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
             withIdentifier: "FPEditRowTableViewCell",
             for: indexPath
         ) as! FPEditRowTableViewCell
-        
+
+        let filtered = editorColumnsForCurrentRow()
+        let column = filtered[safe: indexPath.row]
+        cell.showsBulkApplyToAllToggle = isBulkEditMode
+        cell.bulkApplyToAllIsOn = columnApplyToAllByKey[column?.key ?? ""] ?? true
+        cell.onBulkApplyToAllChanged = { [weak self] key, isOn in
+            self?.columnApplyToAllByKey[key] = isOn
+            self?.syncMasterToggleState()
+        }
         // Use 1-based section so TableMedia matches FPFormDataHolder convention (valueArray[section - 1])
         cell.childTableIndex = IndexPath(row: indexPath.row, section: currentRowNo + 1)
         cell.parentTableIndex = tableIndexPath
-        cell.data = self.tableComponent?.rows?[safe:currentRowNo]?.columns.filter({ $0.getUIType() != .HIDDEN})[safe: indexPath.row]
+        cell.data = column
         cell.delegate = self
         return cell
     }
@@ -229,7 +461,7 @@ extension FPEditRowViewController: UITableViewDataSource,UITableViewDelegate{
     
     /// Reloads only the attachment column row so the table does not scroll to top.
     fileprivate func reloadAttachmentRowOnly(columnKey: String) {
-        let filtered = tableComponent?.rows?[safe: currentRowNo]?.columns.filter { $0.getUIType() != .HIDDEN } ?? []
+        let filtered = editorColumnsForCurrentRow()
         guard let rowIndex = filtered.firstIndex(where: { $0.key == columnKey }) else { return }
         let indexPath = IndexPath(row: rowIndex, section: 0)
         let maxRows = tblRows.numberOfRows(inSection: 0)
@@ -278,6 +510,10 @@ extension FPEditRowViewController:UITextFieldDelegate{
 
 extension FPEditRowViewController: FPEditRowCellDelegate{
     func updateRow(with data: ColumnData) {
+        if isBulkEditMode {
+            let applyAll = columnApplyToAllByKey[data.key] ?? true
+            if !applyAll { return }
+        }
         if let tblCompnt = tableComponent, let _ = tableIndexPath{
             if var row = tblCompnt.rows?[safe:currentRowNo]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
@@ -308,6 +544,7 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     
     
     func showRowAttachment(at index:IndexPath,with data:ColumnData){
+        guard !isBulkEditMode else { return }
         self.view.endEditing(true)
         self.attachmentIndex = index
         self.attachmentColumnData = data
@@ -319,6 +556,7 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
     }
     
     func didRemoveAttachment(at index: IndexPath, columnData: ColumnData, fileName: String) {
+        guard !isBulkEditMode else { return }
         guard let tableIndexPath = tableIndexPath,
               let component = tableComponent,
               let rows = component.rows,
@@ -396,6 +634,7 @@ extension FPEditRowViewController: FPEditRowCellDelegate{
 //MARK: Attachment picker delegate
 extension FPEditRowViewController: AttachmentPickerDelegate{
     func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
+        guard !isBulkEditMode else { return }
         guard let index = attachmentIndex, let data = attachmentColumnData, let tableIndexPath = tableIndexPath else { return }
         let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex: tableIndexPath, childTableIndex: index, mediaAdded: mediaAdded.filter({ $0.id?.isEmpty ?? true }), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
         FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
@@ -518,6 +757,7 @@ final class CardPresentationController: UIPresentationController {
     override func containerViewDidLayoutSubviews() {
         super.containerViewDidLayoutSubviews()
 
+        dimmingView.frame = containerView?.bounds ?? .zero
         presentedView?.frame = frameOfPresentedViewInContainerView
         presentedView?.layer.cornerRadius = 20
         presentedView?.clipsToBounds = true
@@ -529,6 +769,7 @@ final class CardPresentationController: UIPresentationController {
     
     override func containerViewWillLayoutSubviews() {
         super.containerViewWillLayoutSubviews()
+        dimmingView.frame = containerView?.bounds ?? .zero
         presentedView?.frame = frameOfPresentedViewInContainerView
     }
 }

@@ -13,6 +13,7 @@
         <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="DuplicateRowPrefrenceViewController" customModule="ZenForms">
             <connections>
                 <outlet property="dropDownPreference" destination="jmA-5e-dBd" id="Ifp-2w-TEU"/>
+                <outlet property="switchCaseSensitiveSearch" destination="3Sw-cs-Sw0" id="out-sw-case"/>
                 <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
             </connections>
         </placeholder>
@@ -30,7 +31,7 @@
                             <color key="textColor" name="ZT-Black"/>
                             <nil key="highlightedColor"/>
                             <userDefinedRuntimeAttributes>
-                                <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Dupilcate_row_header"/>
+                                <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Dupilcate_row_header"/>
                             </userDefinedRuntimeAttributes>
                         </label>
                         <stackView opaque="NO" tag="8" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="kCq-f4-ELl">
@@ -44,6 +45,21 @@
                                     <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                     <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
                                 </textField>
+                            </subviews>
+                        </stackView>
+                        <stackView opaque="NO" contentMode="scaleToFill" alignment="center" spacing="12" translatesAutoresizingMaskIntoConstraints="NO" id="7Nk-cs-Hst">
+                            <rect key="frame" x="0.0" y="86.333333333333314" width="361" height="31"/>
+                            <subviews>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="249" verticalHuggingPriority="251" verticalCompressionResistancePriority="751" text="Case sensitive search" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9Qw-cs-Lbl">
+                                    <rect key="frame" x="0.0" y="5.6666666666666679" width="298" height="20.333333333333332"/>
+                                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                    <color key="textColor" name="ZT-Black"/>
+                                    <nil key="highlightedColor"/>
+                                    <userDefinedRuntimeAttributes>
+                                        <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_case_sensitive_search"/>
+                                    </userDefinedRuntimeAttributes>
+                                </label>
+                                <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" horizontalCompressionResistancePriority="751" verticalCompressionResistancePriority="751" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="NO" translatesAutoresizingMaskIntoConstraints="NO" id="3Sw-cs-Sw0"/>
                             </subviews>
                         </stackView>
                     </subviews>

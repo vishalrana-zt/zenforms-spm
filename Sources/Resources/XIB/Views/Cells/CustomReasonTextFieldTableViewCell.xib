@@ -29,7 +29,7 @@
                             <userDefinedRuntimeAttribute type="number" keyPath="layer.borderWidth">
                                 <integer key="value" value="1"/>
                             </userDefinedRuntimeAttribute>
-                            <userDefinedRuntimeAttribute type="string" keyPath="localizedKey" value="lbl_Custom_Reason"/>
+                            <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Custom_Reason"/>
                         </userDefinedRuntimeAttributes>
                     </textField>
                 </subviews>

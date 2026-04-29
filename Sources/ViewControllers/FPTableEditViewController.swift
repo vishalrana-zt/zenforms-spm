@@ -47,6 +47,7 @@ class FPTableEditViewController: UIViewController {
     @IBOutlet weak var stkOptions: UIStackView!
     
     @IBOutlet weak var btnEditRow: UIButton!
+    @IBOutlet weak var btnBulkEdit: UIButton!
     @IBOutlet weak var btnAssetLink: UIButton!
     @IBOutlet weak var btnDuplicate: UIButton!
     @IBOutlet weak var btnMultipleDeleteRows: UIButton!
@@ -136,7 +137,19 @@ class FPTableEditViewController: UIViewController {
             return false
         }
     }
-   
+
+    private var fpTableSearchBar: UISearchBar?
+    private var fpTableSearchFilterButton: UIButton?
+    private var fpTableSearchEmptyLabel: UILabel?
+    private var fpTableSearchDebounceWorkItem: DispatchWorkItem?
+    /// Empty set = search all non-hidden columns.
+    private var fpTableSearchColumnNameKeys: Set<String> = []
+    private var fpTableSearchHighlightQuery: String = ""
+    private var fpTableSearchColumnPrefsKey: String {
+        "ZenForms.FPTableEdit.textSearch.columns.\(fieldDetails?.templateId ?? "0")"
+    }
+    private let bulkEditInfoShownPrefsKey = "ZenForms.FPTableEdit.bulkEdit.confirmation.shown"
+
     override func viewDidLoad() {
         super.viewDidLoad()
         rowCount = 1
@@ -172,6 +185,18 @@ class FPTableEditViewController: UIViewController {
         }
         isAutoCalculateEnabled = arrTblFormulas.count > 0
         self.title  = titleText
+        fpInstallTableSearchChrome()
+        fp_configureBulkEditToolbarButtonAppearance()
+    }
+
+    /// Heavier SF Symbol weight so the bulk edit control matches the visual weight of adjacent toolbar icons.
+    private func fp_configureBulkEditToolbarButtonAppearance() {
+        guard let btn = btnBulkEdit else { return }
+        let base = UIImage(systemName: "square.and.pencil")
+        let config = UIImage.SymbolConfiguration(pointSize: 19, weight: .bold, scale: .medium)
+        if let img = base?.applyingSymbolConfiguration(config) {
+            btn.setImage(img, for: .normal)
+        }
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -182,6 +207,7 @@ class FPTableEditViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.registerAssetObservers()
+        fpReapplyTableTextSearchIfNeeded()
         IQKeyboardManager.shared.isEnabled = true
         IQKeyboardToolbarManager.shared.isEnabled = true
         IQKeyboardToolbarManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_left_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
@@ -308,6 +334,7 @@ class FPTableEditViewController: UIViewController {
         DispatchQueue.main.async {
             FPUtility.hideHUD()
             self.collectionView.reloadData()
+            self.fpReapplyTableTextSearchIfNeeded()
         }
     }
     
@@ -321,6 +348,7 @@ class FPTableEditViewController: UIViewController {
             layout.addRow(nRow: 1)
         }
         self.collectionView.reloadData()
+        self.fpReapplyTableTextSearchIfNeeded()
     }
     
     @IBAction func btnDuplicateDidTap(_ sender: UIButton) {
@@ -349,31 +377,83 @@ class FPTableEditViewController: UIViewController {
         }
     }
 
+    @IBAction func btnBulkEditDidTap(_ sender: UIButton) {
+        let indices = uniqueSelectedFullRowIndices()
+        guard indices.count >= 2 else { return }
+        let alreadyShownInfo = UserDefaults.standard.bool(forKey: bulkEditInfoShownPrefsKey)
+        if alreadyShownInfo {
+            openBulkEditFromCurrentSelection {
+                self.resetMultipleSeletion()
+            }
+            return
+        }
+        UserDefaults.standard.set(true, forKey: bulkEditInfoShownPrefsKey)
+        FPUtility.showAlertController1(
+            title: FPLocalizationHelper.localize("lbl_Bulk_Edit"),
+            andMessage: FPLocalizationHelper.localize("msg_bulk_edit_confirm_detail"),
+            completion: nil,
+            withPositiveAction: FPLocalizationHelper.localize("lbl_Continue"),
+            style: .default,
+            andHandler: { _ in
+                self.openBulkEditFromCurrentSelection {
+                    self.resetMultipleSeletion()
+                }
+            },
+            withNegativeAction: FPLocalizationHelper.localize("Cancel"),
+            style: .default,
+            andHandler: nil
+        )
+    }
+
+    /// Maps a collection view data section to a 0-based index in `tableComponent.rows` (sort/filter/text search).
+    func fullRowIndex(fromVisibleSection section: Int) -> Int? {
+        fp_visibleSectionToFullTableRowIndex(section)
+    }
+
+    /// Unique selected data rows as full-table indices (0-based), sorted ascending.
+    func uniqueSelectedFullRowIndices() -> [Int] {
+        var set = Set<Int>()
+        for ip in arrSelectedIndexes where ip.section >= 1 {
+            if let idx = fullRowIndex(fromVisibleSection: ip.section) {
+                set.insert(idx)
+            }
+        }
+        return set.sorted()
+    }
+
+    /// Opens bulk edit when at least two distinct rows are selected; uses smallest row index as the base row.
+    func openBulkEditFromCurrentSelection(completion: (() -> Void)? = nil) {
+        let indices = uniqueSelectedFullRowIndices()
+        guard indices.count >= 2 else { return }
+        presentRowEditor(fullRowIndices: indices, isBulkMode: true, completion: completion)
+    }
+
     /// Opens FPEditRowViewController for the given collection view section (section 1 = first data row).
     /// When sort/filter is applied, maps the visible section to the correct row index in the full table.
     func openEditRow(forSection section: Int, completion: (() -> Void)? = nil) {
-        guard section >= 1 else { return }
-        let rowCount = tableComponent?.rows?.count ?? 0
-        let rowNo: Int
-        if isSortFilterApplied {
-            guard let filteredRow = sortFilteredTableComponent?.rows?[section - 1],
-                  let indexInFull = tableComponent?.rows?.firstIndex(where: { $0.sortUuid == filteredRow.sortUuid }),
-                  indexInFull >= 0, indexInFull < rowCount else {
-                return
-            }
-            rowNo = indexInFull
-        } else {
-            rowNo = section - 1
-            guard rowNo < rowCount else { return }
-        }
+        guard let rowNo = fullRowIndex(fromVisibleSection: section) else { return }
+        presentRowEditor(fullRowIndices: [rowNo], isBulkMode: false, completion: completion)
+    }
+
+    private func presentRowEditor(fullRowIndices: [Int], isBulkMode: Bool, completion: (() -> Void)? = nil) {
+        let sorted = fullRowIndices.sorted()
+        guard let baseRow = sorted.first,
+              let last = sorted.last,
+              let rowCount = tableComponent?.rows?.count,
+              baseRow >= 0,
+              last < rowCount else { return }
+
         let vc = FPEditRowViewController(
             nibName: "FPEditRowViewController",
             bundle: ZenFormsBundle.bundle
         )
-        vc.title = "Edit Row"
+        vc.title = isBulkMode ? FPLocalizationHelper.localize("lbl_Bulk_Edit") : FPLocalizationHelper.localize("lbl_Edit_Row")
         vc.tableIndexPath = tableIndexPath
-        vc.currentRowNo = rowNo
-        vc.tableComponent = tableComponent
+        vc.currentRowNo = baseRow
+        vc.isBulkEditMode = isBulkMode
+        vc.bulkSelectedFullRowIndices = isBulkMode ? sorted : []
+        vc.columnApplyToAllByKey = [:]
+        vc.tableComponent = tableComponent?.makeCopy()
         vc.arrTblFormulas = arrTblFormulas
         vc.isAutoCalculateEnabled = isAutoCalculateEnabled
         vc.didEditedRows = { [weak self] tableComponent in
@@ -392,10 +472,14 @@ class FPTableEditViewController: UIViewController {
             nav.modalPresentationStyle = .custom
             nav.transitioningDelegate = cardTransitionDelegate
         } else {
-            nav.modalPresentationStyle = .pageSheet
-            if let sheet = nav.sheetPresentationController {
-                sheet.detents = [.large()]
-                sheet.prefersGrabberVisible = true
+            if isBulkMode {
+                nav.modalPresentationStyle = .fullScreen
+            } else {
+                nav.modalPresentationStyle = .pageSheet
+                if let sheet = nav.sheetPresentationController {
+                    sheet.detents = [.large()]
+                    sheet.prefersGrabberVisible = true
+                }
             }
         }
         present(nav, animated: true, completion: completion)
@@ -406,6 +490,7 @@ class FPTableEditViewController: UIViewController {
         guard !arrAppliedFilters.isEmpty, tableComponent != nil else {
             DispatchQueue.main.async { [weak self] in
                 self?.collectionView.reloadData()
+                self?.fpReapplyTableTextSearchIfNeeded()
             }
             return
         }
@@ -419,21 +504,31 @@ class FPTableEditViewController: UIViewController {
                 if let filterFilter = filterFilter, let items = filterFilter.filterItems, !items.isEmpty, let col = self.sortFilterColumn {
                     sortedtbl.filterData(component: sortedtbl, arrSelected: items, filterColumn: col) { filteredComponent in
                         self.sortFilteredTableComponent = filteredComponent
-                        DispatchQueue.main.async { self.collectionView.reloadData() }
+                        DispatchQueue.main.async {
+                            self.collectionView.reloadData()
+                            self.fpReapplyTableTextSearchIfNeeded()
+                        }
                     }
                 } else {
-                    DispatchQueue.main.async { self.collectionView.reloadData() }
+                    DispatchQueue.main.async {
+                        self.collectionView.reloadData()
+                        self.fpReapplyTableTextSearchIfNeeded()
+                    }
                 }
             }
         } else if let filterFilter = filterFilter, let items = filterFilter.filterItems, !items.isEmpty, let column = sortFilterColumn, let tbl = tableComponent {
             tbl.filterData(component: tbl, arrSelected: items, filterColumn: column) { [weak self] filteredComponent in
                 self?.sortFilteredTableComponent = filteredComponent
-                DispatchQueue.main.async { self?.collectionView.reloadData() }
+                DispatchQueue.main.async {
+                    self?.collectionView.reloadData()
+                    self?.fpReapplyTableTextSearchIfNeeded()
+                }
             }
         } else {
             sortFilteredTableComponent = nil
             DispatchQueue.main.async { [weak self] in
                 self?.collectionView.reloadData()
+                self?.fpReapplyTableTextSearchIfNeeded()
             }
         }
     }
@@ -444,6 +539,9 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         if let contentcell = cell as? TableContentCollectionViewCell {
             contentcell.parentTableIndex = tableIndexPath
             contentcell.childTableIndex = indexPath
+            contentcell.searchHighlightCaseSensitive = TableRowTextSearch.userPrefersCaseSensitiveSearch
+            contentcell.searchHighlightColumnKeys = fpTableSearchColumnNameKeys
+            contentcell.searchHighlightQuery = fpTableSearchHighlightQuery.isEmpty ? nil : fpTableSearchHighlightQuery
             contentcell.data = column
             contentcell.delegate = self
             contentcell.btnAction.isSelected = self.isSelectedAll || self.arrSelectedIndexes.contains(indexPath)
@@ -528,7 +626,7 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         if  let sortedIndexPth = sortFilterColumnIndexPath, let shownColumns = self.tableComponent?.tableOptions?.columns?.filter({$0.uiType != "HIDDEN"}), let column = shownColumns[safe:sortedIndexPth.row - 2]{
             sortFilterColumn = column
         }
-        if sortFilterColumn?.uiType == "DROPDOWN"{
+        if sortFilterColumn?.uiType == "DROPDOWN" || sortFilterColumn?.uiType == "DEFICIENCY"{
             displayOptionsPopUp(sender)
         }else{
             displaySortingPopUp(sender)
@@ -550,10 +648,11 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         let btnPosition = sender.convert(CGPoint.zero, to: self.collectionView)
         if let indexPath = self.collectionView.indexPathForItem(at: btnPosition){
             var selectedRow:Rows?
+            guard let dRow = fp_visibleSectionToDisplayRowIndex(indexPath.section) else { return }
             if self.isSortFilterApplied{
-                selectedRow =  self.sortFilteredTableComponent?.rows?[safe:indexPath.section-1]
+                selectedRow =  self.sortFilteredTableComponent?.rows?[safe:dRow]
             }else{
-                selectedRow =  self.tableComponent?.rows?[safe:indexPath.section-1]
+                selectedRow =  self.tableComponent?.rows?[safe:dRow]
             }
             if let rowIndex = self.arrSelectedRows.firstIndex(where: { $0.sortUuid == selectedRow?.sortUuid }){
                 self.arrSelectedRows.remove(at: rowIndex)
@@ -603,6 +702,10 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
             shouldShowDuplicate = false
         }
 
+        let shouldShowBulkEdit = uniqueSelectedFullRowIndices().count >= 2
+            && !isAnalysed
+            && !isFromHistory
+
         updateVisibility(
             view: stkOptions,
             hidden: !hasSelection,
@@ -612,6 +715,12 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         updateVisibility(
             view: btnEditRow,
             hidden: !shouldShowEditRow,
+            animated: animated
+        )
+
+        updateVisibility(
+            view: btnBulkEdit,
+            hidden: !shouldShowBulkEdit,
             animated: animated
         )
 
@@ -660,18 +769,19 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
     func selectALLRows(){
         self.arrSelectedIndexes = []
         self.arrSelectedRows = []
-        (0..<collectionView.numberOfSections).indices.forEach { sectionIndex in
+        (1..<collectionView.numberOfSections).forEach { sectionIndex in
             var selectedRow:Rows?
+            guard let dRow = fp_visibleSectionToDisplayRowIndex(sectionIndex) else { return }
             if self.isSortFilterApplied{
-                selectedRow =  self.sortFilteredTableComponent?.rows?[safe:sectionIndex-1]
+                selectedRow =  self.sortFilteredTableComponent?.rows?[safe:dRow]
             }else{
-                selectedRow =  self.tableComponent?.rows?[safe:sectionIndex-1]
+                selectedRow =  self.tableComponent?.rows?[safe:dRow]
             }
             if let selectedRow = selectedRow{
                 self.arrSelectedRows.append(selectedRow)
-            }           
+            }
         }
-        
+
         (1..<collectionView.numberOfSections).indices.forEach { sectionIndex in
             //fixed BB-13681
             let indexPath = IndexPath(item: 1, section: sectionIndex)
@@ -786,6 +896,7 @@ extension FPTableEditViewController{
         self.sortFilteredTableComponent = nil
         self.resetMultipleSeletion()
         self.collectionView.reloadData()
+        self.fpReapplyTableTextSearchIfNeeded()
     }
     
     
@@ -835,11 +946,26 @@ extension FPTableEditViewController{
     func displayFilterPopUp(_ sender:UIButton){
         var arrOptions = [DropdownOptions]()
         var generateDynamically = false
-        if let column = sortFilterColumn, column.uiType == "DROPDOWN", let options = column.columnOptions?.dropdownOptions{
+        if let column = sortFilterColumn, (column.uiType == "DROPDOWN" || column.uiType == "DEFICIENCY") {
             generateDynamically = column.columnOptions?.generateDynamically ?? false
-            arrOptions.append(contentsOf: options)
+            if let options = column.columnOptions?.dropdownOptions, !options.isEmpty {
+                arrOptions.append(contentsOf: options)
+            } else if column.uiType == "DEFICIENCY" {
+                arrOptions.append(contentsOf: [
+                    DropdownOptions(key: .string(FPLocalizationHelper.localize("Yes")), value: .string(FPLocalizationHelper.localize("Yes")), label: .string(FPLocalizationHelper.localize("Yes"))),
+                    DropdownOptions(key: .string(FPLocalizationHelper.localize("No")), value: .string(FPLocalizationHelper.localize("No")), label: .string(FPLocalizationHelper.localize("No"))),
+                    DropdownOptions(key: .string("NA"), value: .string("NA"), label: .string("NA"))
+                ])
+            }
         }
-        var menuFilterOptions = arrOptions.compactMap({ generateDynamically ? $0.label.stringValue() :  $0.value.stringValue()})
+        var seen = Set<String>()
+        var menuFilterOptions: [String] = []
+        let sourceOptions = arrOptions.compactMap { generateDynamically ? $0.label.stringValue() : $0.value.stringValue() }
+        for option in sourceOptions {
+            let canonical = fpCanonicalFilterOption(option)
+            guard seen.insert(canonical).inserted else { continue }
+            menuFilterOptions.append(option)
+        }
         menuFilterOptions.append(fileterBlankOptionKey)
         let menu = RSSelectionMenu(selectionStyle: .multiple, dataSource: menuFilterOptions) { (cell, name, indexPath) in
             cell.textLabel?.text = name
@@ -885,6 +1011,16 @@ extension FPTableEditViewController{
     
     @objc func rightBarButtonTapped() {
         self.dismiss(animated: true)
+    }
+
+    /// Produces a canonical key used only for deduplicating visually equivalent filter options.
+    private func fpCanonicalFilterOption(_ value: String) -> String {
+        let visible = value.handleAndDisplayApostrophe()
+        let noControls = String(visible.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+        let collapsedWhitespace = noControls
+            .replacingOccurrences(of: "\\s+", with: " ", options: String.CompareOptions.regularExpression)
+            .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+        return collapsedWhitespace.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale.current)
     }
     
     func applySortingToTable(option:SortColumnOption, completion: @escaping (TableComponent) -> Void){
@@ -982,6 +1118,7 @@ extension FPTableEditViewController{
             }else{
                 self.collectionView.reloadData()
             }
+            self.fpReapplyTableTextSearchIfNeeded()
         }
     }
 }
@@ -994,29 +1131,31 @@ extension FPTableEditViewController: TableContentCellDelegate{
         DispatchQueue.main.async{
             
             _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: FPLocalizationHelper.localizeWith(args: ["\(index.section)"], key: "msg_duplicate_row"), completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
-                if self.isSortFilterApplied,  var duplicaterow =  self.sortFilteredTableComponent?.rows?[safe:index.section-1]{
+                guard let dRow = self.fp_visibleSectionToDisplayRowIndex(index.section) else { return }
+                let insertAtDisplay = dRow + 1
+                if self.isSortFilterApplied, var duplicaterow = self.sortFilteredTableComponent?.rows?[safe: dRow] {
                     duplicaterow.columns.indices.forEach { colmIndex in
                         if duplicaterow.columns[colmIndex].uiType == "ATTACHMENT"{
                             duplicaterow.columns[colmIndex].value = ""
                         }
                     }
-                    let newRow = self.sortFilteredTableComponent?.addDuplicateRow(columns: duplicaterow.columns, at: index.section)
-                    var insertAt = index.section
+                    let newRow = self.sortFilteredTableComponent?.addDuplicateRow(columns: duplicaterow.columns, at: insertAtDisplay)
+                    var insertAt = insertAtDisplay
                     if let orginalIndex = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == duplicaterow.sortUuid }){
                         insertAt = orginalIndex + 1
                     }
                     _ = self.tableComponent?.addDuplicateRow(rowSortId: newRow?.sortUuid, columns: duplicaterow.columns, at: insertAt)
                 }else{
-                    if var duplicaterow =  self.tableComponent?.rows?[safe:index.section-1]{
-//                        self.updateDuplicateAttachment(orginalRow: duplicaterow, index: index, parentTableIndex: parentTableIndex, component: self.tableComponent)
+                    if var duplicaterow = self.tableComponent?.rows?[safe: dRow]{
                         duplicaterow.columns.indices.forEach { colmIndex in
                             if duplicaterow.columns[colmIndex].uiType == "ATTACHMENT"{
                                 duplicaterow.columns[colmIndex].value = ""
                             }
                         }
-                        _ = self.tableComponent?.addDuplicateRow(columns: duplicaterow.columns, at: index.section)
+                        _ = self.tableComponent?.addDuplicateRow(columns: duplicaterow.columns, at: insertAtDisplay)
                     }
                 }
+                self.fpReapplyTableTextSearchIfNeeded()
                 self.collectionView.reloadData()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
             
@@ -1074,16 +1213,19 @@ extension FPTableEditViewController: TableContentCellDelegate{
         DispatchQueue.main.async{
             FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage:FPLocalizationHelper.localizeWith(args: ["\(index.section)"], key: "msg_delete_row"), completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
                 self.deleteIfAnyAssetLinking(index: index)
+                let deletedFullRow = self.fp_visibleSectionToFullTableRowIndex(index.section) ?? max(0, index.section - 1)
                 if self.isSortFilterApplied{
-                    if  let delrow =  self.sortFilteredTableComponent?.rows?[safe:index.section-1], let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == delrow.sortUuid }){
+                    if let dSort = self.fp_visibleSectionToDisplayRowIndex(index.section),
+                       let delrow = self.sortFilteredTableComponent?.rows?[safe: dSort],
+                       let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == delrow.sortUuid }) {
                         self.tableComponent?.deleteRow(at:indexOfRow)
-                        self.sortFilteredTableComponent?.deleteSortedRow(at: index.section-1, orginalIndex: indexOfRow)
+                        self.sortFilteredTableComponent?.deleteSortedRow(at: dSort, orginalIndex: indexOfRow)
                     }
                 }else{
-                    self.tableComponent?.deleteRow(at:index.section-1)
+                    self.tableComponent?.deleteRow(at: deletedFullRow)
                 }
                 if let mediaIndex = FPFormDataHolder.shared.tableMediaCache.firstIndex(where: {
-                    $0.childTableIndex?.section == index.section && 
+                    $0.childTableIndex?.section == (deletedFullRow + 1) &&
                     $0.childTableIndex?.row == index.row &&
                     $0.formSessionId == FPFormDataHolder.shared.currentFormSessionId
                 }){
@@ -1100,13 +1242,14 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     var tempIndex = 0
                     cache.forEach { media in
                         var mediaObj = media
-                        if(mediaObj.childTableIndex!.section>index.section){
+                        if(mediaObj.childTableIndex!.section - 1) > deletedFullRow {
                             mediaObj.childTableIndex =  IndexPath(row: mediaObj.childTableIndex!.row, section: mediaObj.childTableIndex!.section-1)
                             FPFormDataHolder.shared.tableMediaCache[tempIndex] = mediaObj
                             tempIndex += 1
                         }
                     }
                 }
+                self.fpReapplyTableTextSearchIfNeeded()
                 self.collectionView.reloadData()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
             
@@ -1120,6 +1263,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
     func deleteMultipleRows(_ arrRows:[Rows]){
         self.view.endEditing(true)
         FPUtility.showHUDWithLoadingMessage()
+        let hasActiveSearch = !(self.fpTableSearchBar?.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
         if self.isSelectedAll{
             self.addEmptyRowToTable()
         }
@@ -1151,24 +1295,34 @@ extension FPTableEditViewController: TableContentCellDelegate{
         }
         group.notify(queue: DispatchQueue.main) {
             if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
-                layout.removeRow(nRow: arrRows.count)
-                layout.invalidateLayout()
+                if hasActiveSearch {
+                    layout.isNew = true
+                } else {
+                    layout.removeRow(nRow: arrRows.count)
+                    layout.invalidateLayout()
+                }
             }
+            if hasActiveSearch {
+                self.fpApplyTableTextSearchFromField(animated: false)
+            } else {
+                self.collectionView.reloadData()
+            }
+            self.collectionView.layoutIfNeeded()
             FPUtility.hideHUD()
-            self.collectionView.reloadData()
         }
     }
     
     func updateData(at index:IndexPath, with data:ColumnData, filedData filed:FPFieldDetails?){
+        guard let dRow = fp_visibleSectionToDisplayRowIndex(index.section) else { return }
         if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent{
-            if var row = sortCompnt.rows?[safe:index.section-1]{
+            if var row = sortCompnt.rows?[safe:dRow]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
                     row.columns[columnIndex] = data
-                    sortCompnt.rows?[index.section-1] = row
+                    sortCompnt.rows?[dRow] = row
                     sortFilteredTableComponent = sortCompnt
                 }
             }
-            if var updateRow =  sortCompnt.rows?[safe:index.section-1], let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == updateRow.sortUuid }){
+            if var updateRow =  sortCompnt.rows?[safe:dRow], let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == updateRow.sortUuid }){
                 if isAutoCalculateEnabled, data.isPartOfFormula == true{
                     updateRow = self.processAutoCalculationFor(row: updateRow, with: data)
                 }
@@ -1181,10 +1335,10 @@ extension FPTableEditViewController: TableContentCellDelegate{
                 self.collectionView.reloadItems(at: [index])
             }
         }else if let tblCompnt = tableComponent, let _ = tableIndexPath{
-            if var row = tblCompnt.rows?[safe:index.section-1]{
+            if var row = tblCompnt.rows?[safe:dRow]{
                 if let columnIndex = row.columns.firstIndex(where: {$0.key == data.key}){
                     row.columns[columnIndex] = data
-                    tblCompnt.rows?[index.section-1] = row
+                    tblCompnt.rows?[dRow] = row
                     tableComponent = tblCompnt
                     if isAutoCalculateEnabled, data.isPartOfFormula == true, let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == row.sortUuid }){
                         let autoCalRow = self.processAutoCalculationFor(row: row, with: data)
@@ -1272,7 +1426,8 @@ extension UIScrollView {
 extension FPTableEditViewController: AttachmentPickerDelegate{
     func onMediaSave(mediaAdded: [SSMedia], mediaDeleted: [SSMedia]) {
         if let index = attachmentIndex,let data = attachmentColumnData{
-            if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent, let attachrow = sortCompnt.rows?[index.section-1], let tblRowIndex = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == attachrow.sortUuid }){
+            let dAttach = fp_visibleSectionToDisplayRowIndex(index.section)
+            if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent, let dRow = dAttach, let attachrow = sortCompnt.rows?[dRow], let tblRowIndex = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == attachrow.sortUuid }){
                 let currentMainTblRow = self.tableComponent?.rows?[safe:tblRowIndex]
                 let attachIndexPath  = IndexPath(row: index.row, section: tblRowIndex + 1)
                 let tableMedia = TableMedia(columnIndex: attachIndexPath.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: attachIndexPath, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
@@ -1303,19 +1458,20 @@ extension FPTableEditViewController: AttachmentPickerDelegate{
                         self.sortFilteredTableComponent?.rows?.insert(row, at: indexOfRow)
                     }
                 }
-            }else{
-                let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: index, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
+            }else if let fullR = fp_visibleSectionToFullTableRowIndex(index.section) {
+                let childIdx = IndexPath(row: index.row, section: fullR + 1)
+                let tableMedia = TableMedia(columnIndex: index.row, key: data.key, parentTableIndex:tableIndexPath!, childTableIndex: childIdx, mediaAdded: mediaAdded.filter({$0.id?.isEmpty ?? true}), mediaDeleted: mediaDeleted, formSessionId: FPFormDataHolder.shared.currentFormSessionId)
                 FPFormDataHolder.shared.addUpdateTableMediaCache(media: tableMedia)
                 let result =  FPFormDataHolder.shared.getValueFromTableMedia(tableMedia: tableMedia, tableValues: tableComponent?.values)
                 if let component  = tableComponent{
                     component.values = result?.valueArray ?? []
-                    var row = component.rows![tableMedia.childTableIndex!.section-1]
+                    var row = component.rows![fullR]
                     if let columnIndex = row.columns.firstIndex(where: {$0.key == tableMedia.key}){
                         var column  = row.columns[columnIndex]
                         column.value = result?.columnValue ?? ""
                         row.columns[columnIndex] = column
                     }
-                    component.rows![tableMedia.childTableIndex!.section-1] = row
+                    component.rows![fullR] = row
                     self.tableComponent = component
                 }
             }
@@ -1341,14 +1497,14 @@ extension FPTableEditViewController{
         var assetRowLocalId: String?
         var assetRowId: String?
         var dictValue: [String:Any]?
-        if self.isSortFilterApplied, let currentRow = self.sortFilteredTableComponent?.rows?[safe:index.section-1]{
+        if self.isSortFilterApplied, let dRow = fp_visibleSectionToDisplayRowIndex(index.section), let currentRow = self.sortFilteredTableComponent?.rows?[safe:dRow]{
             assetRow = currentRow
             if let indexCRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == currentRow.sortUuid }){
                 dictValue = self.tableComponent?.values?[safe:indexCRow]
             }
-        }else{
-            assetRow = self.tableComponent?.rows?[safe:index.section-1]
-            dictValue = self.tableComponent?.values?[safe:index.section-1]
+        }else if let dRow = fp_visibleSectionToDisplayRowIndex(index.section) {
+            assetRow = self.tableComponent?.rows?[safe:dRow]
+            dictValue = self.tableComponent?.values?[safe:dRow]
         }
         
         if let dictvalue = dictValue{
@@ -1428,14 +1584,14 @@ extension FPTableEditViewController{
             var assetRowId: String?
             var dictValue: [String:Any]?
 
-            if self.isSortFilterApplied, let currentRow = self.sortFilteredTableComponent?.rows?[safe:assetLinkIndexPath.section-1]{
+            if self.isSortFilterApplied, let dRow = fp_visibleSectionToDisplayRowIndex(assetLinkIndexPath.section), let currentRow = self.sortFilteredTableComponent?.rows?[safe:dRow]{
                 assetRow = currentRow
                 if let indexCRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == currentRow.sortUuid }){
                     dictValue = self.tableComponent?.values?[safe:indexCRow]
                 }
-            }else{
-                assetRow = self.tableComponent?.rows?[safe:assetLinkIndexPath.section-1]
-                dictValue = self.tableComponent?.values?[safe:assetLinkIndexPath.section-1]
+            }else if let dRow = fp_visibleSectionToDisplayRowIndex(assetLinkIndexPath.section) {
+                assetRow = self.tableComponent?.rows?[safe:dRow]
+                dictValue = self.tableComponent?.values?[safe:dRow]
             }
             if let dictvalue = dictValue{
                 for (key, value) in dictvalue {
@@ -1521,10 +1677,10 @@ extension FPTableEditViewController{
         var assetRowId: String?
         var dictValue: [String:Any]?
 
-        if self.isSortFilterApplied, let currentRow = self.sortFilteredTableComponent?.rows?[safe:index.section-1], let indexCRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == currentRow.sortUuid }) {
+        if self.isSortFilterApplied, let dRow = fp_visibleSectionToDisplayRowIndex(index.section), let currentRow = self.sortFilteredTableComponent?.rows?[safe:dRow], let indexCRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == currentRow.sortUuid }) {
             dictValue = self.tableComponent?.values?[safe:indexCRow]
-        }else{
-            dictValue = self.tableComponent?.values?[safe:index.section-1]
+        }else if let dRow = fp_visibleSectionToDisplayRowIndex(index.section) {
+            dictValue = self.tableComponent?.values?[safe:dRow]
         }
         if let dictvalue = dictValue{
             for (key, value) in dictvalue {
@@ -1554,6 +1710,272 @@ extension FPTableEditViewController{
                 }
             }
         }
+    }
+}
+
+private extension FPTableEditViewController {
+
+    func fp_visibleSectionToDisplayRowIndex(_ section: Int) -> Int? {
+        guard section >= 1 else { return nil }
+        if let map = viewModel?.textSearchVisibleRowIndices {
+            let i = section - 1
+            guard i >= 0, i < map.count else { return nil }
+            return map[i]
+        }
+        let count = (isSortFilterApplied ? sortFilteredTableComponent?.rows?.count : tableComponent?.rows?.count) ?? 0
+        let r = section - 1
+        guard r >= 0, r < count else { return nil }
+        return r
+    }
+
+    func fp_visibleSectionToFullTableRowIndex(_ section: Int) -> Int? {
+        guard let d = fp_visibleSectionToDisplayRowIndex(section) else { return nil }
+        let rowCount = tableComponent?.rows?.count ?? 0
+        if isSortFilterApplied {
+            guard let filteredRow = sortFilteredTableComponent?.rows?[d],
+                  let indexInFull = tableComponent?.rows?.firstIndex(where: { $0.sortUuid == filteredRow.sortUuid }),
+                  indexInFull >= 0, indexInFull < rowCount else {
+                return nil
+            }
+            return indexInFull
+        }
+        guard d >= 0, d < rowCount else { return nil }
+        return d
+    }
+
+    func fpRestoreTableSearchColumnPrefs() {
+        if let saved = UserDefaults.standard.array(forKey: fpTableSearchColumnPrefsKey) as? [String] {
+            fpTableSearchColumnNameKeys = Set(saved)
+        }
+    }
+
+    func fpPersistTableSearchColumnPrefs() {
+        UserDefaults.standard.set(Array(fpTableSearchColumnNameKeys), forKey: fpTableSearchColumnPrefsKey)
+    }
+
+    func fpInstallTableSearchChrome() {
+        guard let stack = collectionView.superview?.superview as? UIStackView else { return }
+        let searchBar = UISearchBar()
+        searchBar.translatesAutoresizingMaskIntoConstraints = false
+        searchBar.placeholder = FPLocalizationHelper.localize("lbl_table_search_placeholder")
+        searchBar.searchBarStyle = .minimal
+        searchBar.delegate = self
+        searchBar.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        searchBar.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
+        searchBar.searchTextField.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_bar_a11y")
+        let filterBtn = UIButton(type: .system)
+        filterBtn.setImage(UIImage(systemName: "line.3.horizontal.decrease.circle"), for: .normal)
+        filterBtn.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        filterBtn.translatesAutoresizingMaskIntoConstraints = false
+        filterBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        filterBtn.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        filterBtn.accessibilityLabel = FPLocalizationHelper.localize("lbl_table_search_columns")
+        filterBtn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
+        filterBtn.addAction(UIAction { [weak self] _ in
+            self?.fpPresentTableSearchColumnPicker(from: filterBtn)
+        }, for: .touchUpInside)
+
+        let row = UIStackView(arrangedSubviews: [searchBar, filterBtn])
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 4
+        row.translatesAutoresizingMaskIntoConstraints = false
+
+        let emptyLabel = UILabel()
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        emptyLabel.font = .preferredFont(forTextStyle: .subheadline)
+        emptyLabel.textColor = .systemRed
+        emptyLabel.textAlignment = .center
+        emptyLabel.numberOfLines = 0
+        emptyLabel.text = FPLocalizationHelper.localize("msg_table_search_no_results")
+        emptyLabel.accessibilityLabel = FPLocalizationHelper.localize("msg_table_search_no_results")
+        emptyLabel.isHidden = true
+
+        let outer = UIStackView(arrangedSubviews: [row, emptyLabel])
+        outer.axis = .vertical
+        outer.spacing = 6
+        outer.translatesAutoresizingMaskIntoConstraints = false
+        stack.insertArrangedSubview(outer, at: 0)
+
+        fpTableSearchBar = searchBar
+        fpTableSearchFilterButton = filterBtn
+        fpTableSearchEmptyLabel = emptyLabel
+        fpUpdateTableSearchFilterButtonAppearance()
+    }
+
+    /// True when search is limited to a strict subset of visible (non-hidden) columns.
+    private func fpTableSearchColumnScopeIsRestricted() -> Bool {
+        let cols = tableComponent?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+        guard !cols.isEmpty else { return false }
+        if fpTableSearchColumnNameKeys.isEmpty { return false }
+        return fpTableSearchColumnNameKeys.count < cols.count
+    }
+
+    private func fpUpdateTableSearchFilterButtonAppearance() {
+        guard let btn = fpTableSearchFilterButton else { return }
+        let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+        let restricted = fpTableSearchColumnScopeIsRestricted()
+        let symbol = restricted ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle"
+        btn.setImage(UIImage(systemName: symbol), for: .normal)
+        btn.tintColor = primary
+        btn.accessibilityHint = FPLocalizationHelper.localize("lbl_table_search_filter_hint")
+        btn.accessibilityTraits = restricted ? [.button, .selected] : .button
+        if restricted {
+            let cols = tableComponent?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+            let n = min(fpTableSearchColumnNameKeys.count, cols.count)
+            btn.accessibilityValue = String.localizedStringWithFormat(
+                FPLocalizationHelper.localize("msg_table_search_scope_active_a11y"),
+                n,
+                cols.count
+            )
+        } else {
+            btn.accessibilityValue = FPLocalizationHelper.localize("msg_table_search_scope_all_a11y")
+        }
+    }
+
+    func fpPresentTableSearchColumnPicker(from sender: UIView) {
+        view.endEditing(true)
+        let cols = tableComponent?.tableOptions?.columns?.filter { $0.uiType != "HIDDEN" } ?? []
+        guard !cols.isEmpty else { return }
+        let labels: [String] = cols.map {
+            ($0.displayName.isEmpty ? $0.name : $0.displayName).handleAndDisplayApostrophe()
+        }
+        var nameByLabel: [String: String] = [:]
+        for (i, col) in cols.enumerated() {
+            let label = labels[i]
+            if nameByLabel[label] == nil {
+                nameByLabel[label] = col.name
+            }
+        }
+        let menu = RSSelectionMenu(selectionStyle: .multiple, dataSource: labels) { cell, name, _ in
+            cell.textLabel?.text = name
+            cell.tintColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        }
+        menu.tableView?.configureRSSelectionMenuTable()
+        menu.setNavigationBar(title: FPLocalizationHelper.localize("lbl_table_search_columns"), attributes: [NSAttributedString.Key.foregroundColor: isFromCoPILOT ? UIColor.white : UIColor.black], barTintColor: UIColor(named: "BT-Primary"), tintColor: isFromCoPILOT ? UIColor.white : UIColor.black)
+
+        let preselected: [String]
+        if fpTableSearchColumnNameKeys.isEmpty {
+            preselected = labels
+        } else {
+            preselected = cols.filter { fpTableSearchColumnNameKeys.contains($0.name) }.map {
+                ($0.displayName.isEmpty ? $0.name : $0.displayName).handleAndDisplayApostrophe()
+            }
+        }
+        let allSelected = (fpTableSearchColumnNameKeys.isEmpty || fpTableSearchColumnNameKeys.count == cols.count)
+        menu.addFirstRowAs(rowType: .all, showSelected: allSelected) { [weak menu] _, selected in
+            guard let menu = menu else { return }
+            if selected {
+                menu.setSelectedItems(items: labels) { _, _, _, _ in }
+                menu.tableView?.reloadData()
+            }
+        }
+        menu.setSelectedItems(items: preselected) { _, _, _, _ in }
+
+        menu.setRightBarButton(title: FPLocalizationHelper.localize("Done")) { selectedItems in
+            if selectedItems.isEmpty {
+                _ = FPUtility.showAlertController(
+                    title: FPLocalizationHelper.localize("error_dialog_title"),
+                    message: FPLocalizationHelper.localize("msg_select_at_least_one_column"),
+                    completion: nil
+                )
+                return
+            }
+            menu.dismiss(animated: true)
+            var keys = Set<String>()
+            for item in selectedItems {
+                if let n = nameByLabel[item] {
+                    keys.insert(n)
+                }
+            }
+            self.fpTableSearchColumnNameKeys = keys
+            self.fpUpdateTableSearchFilterButtonAppearance()
+            self.fpApplyTableTextSearchFromField(animated: true)
+        }
+        menu.cellSelectionStyle = .checkbox
+        menu.show(style: .popover(sourceView: sender, size: nil, arrowDirection: .any), from: self)
+    }
+
+    func fpApplyTableTextSearchFromField(animated: Bool) {
+        let raw = fpTableSearchBar?.text ?? ""
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rows = getTableComponent()?.rows ?? []
+        if trimmed.isEmpty {
+            viewModel?.textSearchVisibleRowIndices = nil
+            fpTableSearchHighlightQuery = ""
+            fpTableSearchEmptyLabel?.isHidden = true
+            fpTableSearchBar?.searchTextField.backgroundColor = nil
+            fpTableSearchBar?.searchTextField.textColor = .label
+        } else {
+            let indices = TableRowTextSearch.matchingRowIndices(
+                rows: rows,
+                query: trimmed,
+                columnKeys: fpTableSearchColumnNameKeys,
+                caseSensitive: TableRowTextSearch.userPrefersCaseSensitiveSearch
+            )
+            viewModel?.textSearchVisibleRowIndices = indices
+            fpTableSearchHighlightQuery = trimmed
+            let noResults = indices.isEmpty
+            fpTableSearchEmptyLabel?.isHidden = true
+            let primary = UIColor(named: "BT-Primary") ?? .systemBlue
+            if noResults {
+                fpTableSearchBar?.searchTextField.backgroundColor = UIColor.systemRed.withAlphaComponent(0.08)
+                fpTableSearchBar?.searchTextField.textColor = .systemRed
+            } else {
+                fpTableSearchBar?.searchTextField.backgroundColor = primary.withAlphaComponent(0.1)
+                fpTableSearchBar?.searchTextField.textColor = .label
+            }
+        }
+        resetMultipleSeletion()
+        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+            layout.invalidateLayout()
+        }
+        if animated {
+            UIView.transition(with: collectionView, duration: 0.12, options: .transitionCrossDissolve) {
+                self.collectionView.reloadData()
+            }
+        } else {
+            collectionView.reloadData()
+        }
+    }
+
+    func fpReapplyTableTextSearchIfNeeded() {
+        guard let raw = fpTableSearchBar?.text, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            viewModel?.textSearchVisibleRowIndices = nil
+            fpTableSearchHighlightQuery = ""
+            fpTableSearchEmptyLabel?.isHidden = true
+            fpTableSearchBar?.searchTextField.backgroundColor = nil
+            fpTableSearchBar?.searchTextField.textColor = .label
+            return
+        }
+        fpApplyTableTextSearchFromField(animated: false)
+    }
+
+    func fpScheduleTableSearchDebounce(for searchText: String) {
+        fpTableSearchDebounceWorkItem?.cancel()
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty, trimmed.count <= 2 {
+            fpApplyTableTextSearchFromField(animated: true)
+            return
+        }
+        let item = DispatchWorkItem { [weak self] in
+            self?.fpApplyTableTextSearchFromField(animated: true)
+        }
+        fpTableSearchDebounceWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: item)
+    }
+}
+
+extension FPTableEditViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        guard searchBar === fpTableSearchBar else { return }
+        fpScheduleTableSearchDebounce(for: searchText)
+    }
+
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+        fpTableSearchDebounceWorkItem?.cancel()
+        fpApplyTableTextSearchFromField(animated: true)
     }
 }
 

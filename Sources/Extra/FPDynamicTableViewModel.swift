@@ -19,6 +19,17 @@ class TableComponent {
     var tableOptions:TableOptions?
     var fieldDetails:FPFieldDetails?
     var customForm:FPForms?
+
+    func makeCopy() -> TableComponent {
+        let copy = TableComponent()
+        copy.headers = headers
+        copy.rows = rows
+        copy.values = values
+        copy.tableOptions = tableOptions
+        copy.fieldDetails = fieldDetails
+        copy.customForm = customForm
+        return copy
+    }
     
     func prepareData(item: TableOptions, values: String?,index:IndexPath, fieldDetails:FPFieldDetails?, customForm:FPForms) -> TableComponent {
         self.tableOptions = item
