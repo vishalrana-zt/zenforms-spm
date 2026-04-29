@@ -1114,6 +1114,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             //means TableAttachementView is showing so first dismiss it then save  so ignoring save action
             return
         }
+        
+        // Wait briefly for keyboard to dismiss and text fields to commit their values
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.performSaveAction()
+        }
+    }
+    
+    private func performSaveAction() {
         if self.isNew {
             if(isPreviousForm){
                 guard self.validateToSave() else {
@@ -1203,7 +1211,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     func saveEmptyForm(completion:@escaping(_ status:Bool)->Void){
         self.view.endEditing(true)
-        
         isSaveRefreshing = true
         DispatchQueue.main.asyncAfter(deadline: .now()+0.25, execute: {
             FPFormsServiceManager.uploadMediasAttached { status in
@@ -1414,6 +1421,16 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     }
     
     @objc func cancelButtonAction() {
+        // Close keyboard first
+        self.view.endEditing(true)
+        
+        // Wait briefly for keyboard to dismiss and text fields to commit their values
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.performCancelAction()
+        }
+    }
+    
+    private func performCancelAction() {
         if(isNew && !isFromHistory){
             _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: FPLocalizationHelper.localize("msg_are_sure_data_lost"), completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
                 if let form = FPFormDataHolder.shared.customForm, let _ = form.sqliteId{
