@@ -113,9 +113,19 @@ class FPRouter<EndPoint: FPEndPointType>: FPNetworkRouter {
     }
     
     fileprivate func buildRequest(from route: EndPoint) throws -> URLRequest {
+        // Determine timeout based on endpoint path
+        // Extended timeout (300s) for form create/update operations with large media uploads
+        // Standard timeout (120s) for all other operations
+        let timeoutInterval: TimeInterval
+        if route.path.contains("common/fp/form/create") || route.path.contains("common/fp/form/update") {
+            timeoutInterval = 300.0  // 5 minutes for form sync with large media
+        } else {
+            timeoutInterval = 120.0  // 2 minutes for other operations
+        }
+        
         var request = URLRequest(url: route.baseURL.appendingPathComponent(route.path),
                                  cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
-                                 timeoutInterval: 120.0)
+                                 timeoutInterval: timeoutInterval)
         request.httpMethod = route.httpMethod.name()
         do {
             switch route.task {
