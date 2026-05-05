@@ -171,14 +171,50 @@ final class FPSpreadsheetCollectionViewLayout: UICollectionViewLayout {
             return layoutAttributesCache
         }
         
+        guard let collectionView = collectionView else {
+            return nil
+        }
+        let columnCount = collectionView.numberOfItems(inSection: 0)
+        let rowCount = collectionView.numberOfSections
+        guard columnCount > 0, rowCount > 0 else {
+            layoutAttributesCache = []
+            layoutAttributesInRectCache = rect
+            return layoutAttributesCache
+        }
+
         layoutAttributesInRectCache = rect
         
         var attributes = Set<UICollectionViewLayoutAttributes>()
-        
-        for column in 0..<collectionView!.numberOfItems(inSection: 0) {
-            for row in 0..<collectionView!.numberOfSections {
-                let attribute = layoutAttributesForItem(at: IndexPath(row: column, section: row))!
+
+        let sampleColumn = columnCount > 2 ? 2 : columnCount - 1
+        let sampleRow = rowCount > 1 ? 1 : 0
+        let columnWidth = max(1, delegate.width(forColumn: sampleColumn, collectionView: collectionView))
+        let rowHeight = max(1, delegate.height(forRow: sampleRow, collectionView: collectionView))
+        let maxColumn = min(columnCount - 1, Int(ceil(rect.maxX / columnWidth)) + 1)
+        let minColumn = min(maxColumn, max(0, Int(floor(rect.minX / columnWidth)) - 1))
+        let maxRow = min(rowCount - 1, Int(ceil(rect.maxY / rowHeight)) + 1)
+        let minRow = min(maxRow, max(0, Int(floor(rect.minY / rowHeight)) - 1))
+
+        func cacheAttribute(row: Int, column: Int) {
+            if let attribute = layoutAttributesForItem(at: IndexPath(row: column, section: row)) {
                 attributes.insert(attribute)
+            }
+        }
+
+        for row in minRow...maxRow {
+            cacheAttribute(row: row, column: 0)
+            if columnCount > 1 {
+                cacheAttribute(row: row, column: 1)
+            }
+        }
+
+        for column in minColumn...maxColumn {
+            cacheAttribute(row: 0, column: column)
+        }
+
+        for row in minRow...maxRow {
+            for column in minColumn...maxColumn {
+                cacheAttribute(row: row, column: column)
             }
         }
         

@@ -225,11 +225,18 @@ class FPTableEditViewController: UIViewController {
     
     func registerAssetObservers(){
         NotificationCenter.default.addObserver(self, selector:#selector(clearAssetLinkingIndex), name:NSNotification.ClearAssetLinkSelected, object:nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(fpHandleMemoryWarning), name: UIApplication.didReceiveMemoryWarningNotification, object: nil)
     }
     
     @objc func clearAssetLinkingIndex(){
         self.assetLinkIndexPath = nil
         self.resetMultipleSeletion()
+    }
+
+    @objc private func fpHandleMemoryWarning() {
+        fpTableSearchDebounceWorkItem?.cancel()
+        fpTableSearchDebounceWorkItem = nil
+        collectionView?.collectionViewLayout.invalidateLayout()
     }
 
     
@@ -539,9 +546,15 @@ extension FPTableEditViewController: FPSpreadsheetCollectionViewModelDataSource 
         if let contentcell = cell as? TableContentCollectionViewCell {
             contentcell.parentTableIndex = tableIndexPath
             contentcell.childTableIndex = indexPath
-            contentcell.searchHighlightCaseSensitive = TableRowTextSearch.userPrefersCaseSensitiveSearch
-            contentcell.searchHighlightColumnKeys = fpTableSearchColumnNameKeys
-            contentcell.searchHighlightQuery = fpTableSearchHighlightQuery.isEmpty ? nil : fpTableSearchHighlightQuery
+            if fpTableSearchHighlightQuery.isEmpty {
+                contentcell.searchHighlightCaseSensitive = false
+                contentcell.searchHighlightColumnKeys = []
+                contentcell.searchHighlightQuery = nil
+            } else {
+                contentcell.searchHighlightCaseSensitive = TableRowTextSearch.userPrefersCaseSensitiveSearch
+                contentcell.searchHighlightColumnKeys = fpTableSearchColumnNameKeys
+                contentcell.searchHighlightQuery = fpTableSearchHighlightQuery
+            }
             contentcell.data = column
             contentcell.delegate = self
             contentcell.btnAction.isSelected = self.isSelectedAll || self.arrSelectedIndexes.contains(indexPath)
@@ -895,6 +908,7 @@ extension FPTableEditViewController{
         self.sortFilterColumn = nil
         self.sortFilteredTableComponent = nil
         self.resetMultipleSeletion()
+        self.collectionView.collectionViewLayout.invalidateLayout()
         self.collectionView.reloadData()
         self.fpReapplyTableTextSearchIfNeeded()
     }
