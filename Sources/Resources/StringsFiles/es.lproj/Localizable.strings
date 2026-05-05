@@ -177,7 +177,7 @@
 "lbl_Add_recommendation_here" = "Agrega la recomendación aquí";
 "lbl_Choose_Severity" = "Elige la gravedad";
 "lbl_Due_Date_PH" = "Fecha de vencimiento";
-"lbl_Recommendation" = "Recomendacione";
+"lbl_Recommendation" = "Recomendaciones";
 "msg_errorNoNetwork_Recorder" = "No puedes usar el micrófono sin conexión.";
 "lbl_AI_Suggestion" = "Sugerencias generadas por IA";
 "Size" = "Tamaño";
