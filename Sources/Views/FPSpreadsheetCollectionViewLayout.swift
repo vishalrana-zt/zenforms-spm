@@ -100,6 +100,13 @@ final class FPSpreadsheetCollectionViewLayout: UICollectionViewLayout {
             forColumn: columnCountCache-1, collectionView: collectionView!
         )
     }
+
+    func invalidateDataSourceCounts() {
+        contentSizeCache = .zero
+        columnCountCache = 0
+        rowCountCache = 0
+        invalidateLayout()
+    }
     
     override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
         let itemSize = CGSize(

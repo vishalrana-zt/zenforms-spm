@@ -908,7 +908,11 @@ extension FPTableEditViewController{
         self.sortFilterColumn = nil
         self.sortFilteredTableComponent = nil
         self.resetMultipleSeletion()
-        self.collectionView.collectionViewLayout.invalidateLayout()
+        if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+            layout.invalidateDataSourceCounts()
+        } else {
+            self.collectionView.collectionViewLayout.invalidateLayout()
+        }
         self.collectionView.reloadData()
         self.fpReapplyTableTextSearchIfNeeded()
     }
@@ -1127,6 +1131,11 @@ extension FPTableEditViewController{
         DispatchQueue.main.async {
             self.isSortFilterApplied = !self.arrAppliedFilters.isEmpty
             self.collectionView.setContentOffset(.zero, animated: false)
+            if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                layout.invalidateDataSourceCounts()
+            } else {
+                self.collectionView.collectionViewLayout.invalidateLayout()
+            }
             if self.arrAppliedFilters.isEmpty{
                 self.resetToDefault()
             }else{
@@ -1941,8 +1950,11 @@ private extension FPTableEditViewController {
             }
         }
         resetMultipleSeletion()
+        collectionView.setContentOffset(.zero, animated: false)
         if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
-            layout.invalidateLayout()
+            layout.invalidateDataSourceCounts()
+        } else {
+            collectionView.collectionViewLayout.invalidateLayout()
         }
         if animated {
             UIView.transition(with: collectionView, duration: 0.12, options: .transitionCrossDissolve) {
