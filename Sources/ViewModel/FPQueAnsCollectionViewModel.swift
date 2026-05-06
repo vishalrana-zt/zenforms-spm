@@ -29,6 +29,9 @@ final class FPQueAnsCollectionViewModel: NSObject {
     var pickerView: UIPickerView?
     var widthQuesColumn = WIDTH_QUES_COLUMN
 
+    /// Maximum number of rows to display in preview (0 = unlimited)
+    var maxPreviewRows: Int = 10
+
     /// When non-nil, only these indices into `getTableComponent()?.rows` are shown as data rows.
     var textSearchVisibleRowIndices: [Int]?
 
@@ -61,7 +64,11 @@ extension FPQueAnsCollectionViewModel: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         let tableComponent = dataSource?.getTableComponent()
         let baseCount = tableComponent?.rows?.count ?? 0
-        let dataRows = textSearchVisibleRowIndices?.count ?? baseCount
+        var dataRows = textSearchVisibleRowIndices?.count ?? baseCount
+        // Apply max preview rows limit if set (0 = unlimited)
+        if maxPreviewRows > 0 && dataRows > maxPreviewRows {
+            dataRows = maxPreviewRows
+        }
         return (baseCount > 0 ? dataRows : 0) + 1
     }
 
