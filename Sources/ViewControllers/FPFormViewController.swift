@@ -234,6 +234,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         
         // Capture initial form state for change detection
         FPFormDataHolder.shared.captureInitialFormState()
+        
+        // Register memory warning observer
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleMemoryWarning),
+            name: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil
+        )
     }
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -247,6 +255,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         super.viewWillDisappear(animated)
         IQKeyboardManager.shared.isEnabled = false
         IQKeyboardToolbarManager.shared.isEnabled = false
+        
+        // Clear file attachment tracking to prevent memory growth
+        isFileAttachedInIndex.removeAll()
     }
     
     deinit {
@@ -259,6 +270,17 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             isInitialReload.toggle()
             self.formTableView.reloadData()
         }
+    }
+    
+    @objc func handleMemoryWarning() {
+        // Clear local file attachment tracking
+        isFileAttachedInIndex.removeAll()
+        
+        // Clear FPFormDataHolder caches
+        FPFormDataHolder.shared.clearFormCaches()
+        
+        // Force table reload to release cell references
+        formTableView.reloadData()
     }
     
     func resetLocalVariables(){
@@ -333,23 +355,23 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
 
         if self.isNew{
             if FPUtility.isConnectedToNetwork(){
-                self.saveEmptyForm { status in
-                    self.handleSectionControlUI()
+                self.saveEmptyForm { [weak self] status in
+                    self?.handleSectionControlUI()
                 }
             }else{
-                FPFormsServiceManager.uploadMediasAttached { status in
+                FPFormsServiceManager.uploadMediasAttached { [weak self] status in
                     if(status){
-                        FPFormsServiceManager.uploadTableAttachments { isTableAttachmentUploaded in
+                        FPFormsServiceManager.uploadTableAttachments { [weak self] isTableAttachmentUploaded in
                             if(isTableAttachmentUploaded){
-                                self.offlinePartialSave(form: form, sectionIndex: self.previousSection) { success in
-                                    self.handleSectionControlUI()
+                                self?.offlinePartialSave(form: form, sectionIndex: self?.previousSection ?? 0) { [weak self] success in
+                                    self?.handleSectionControlUI()
                                 }
                             }else{
-                                self.stopLoadings()
+                                self?.stopLoadings()
                             }
                         }
                     }else{
-                        self.stopLoadings()
+                        self?.stopLoadings()
                     }
                 }
             }
@@ -360,8 +382,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             
             if FPUtility.isConnectedToNetwork()  {
                 //sync form first if not created
-                self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.previousSection) { success in
-                    self.handleSectionControlUI()
+                self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.previousSection) { [weak self] success in
+                    self?.handleSectionControlUI()
                 }
                 return
             }
@@ -370,15 +392,16 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 self.stopLoadings()
                 return
             }
-            FPFormsServiceManager.uploadMediasAttachedForCurrentSection(section: self.previousSection) { status in
+            FPFormsServiceManager.uploadMediasAttachedForCurrentSection(section: self.previousSection) { [weak self] status in
+                guard let self = self else { return }
                 if(status){
-                    FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.previousSection) { isTableAttachmentUploaded in
+                    FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.previousSection) { [weak self] isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
-                            FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { form, _error in
-                                self.handleSectionControlUI()
+                            FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self?.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
+                                self?.handleSectionControlUI()
                             }
                         }else{
-                            self.stopLoadings()
+                            self?.stopLoadings()
                         }
                     }
                 }else{
@@ -389,22 +412,23 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         
         guard FPUtility.isConnectedToNetwork() else {
-            self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.previousSection) { success in
-                self.handleSectionControlUI()
+            self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.previousSection) { [weak self] success in
+                self?.handleSectionControlUI()
             }
             return
         }
         
-        shouldPullSectionFromServer { needToPull in
-            DispatchQueue.main.async {
+        shouldPullSectionFromServer { [weak self] needToPull in
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
                 if needToPull == true, self.shownAlertForPull == 0{
                     self.shownAlertForPull = self.shownAlertForPull + 1
-                    _  = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: FPLocalizationHelper.localizeWith(args: ["\(form.displayName ?? "")"], key: "msg_form_updated_other_tech_pull_first"), completion: nil, withPositiveAction: FPLocalizationHelper.localize("OK"), style: .default, andHandler: { (action) in
-                        self.pullSectionFromServerAndRefresh(sectionIndex: self.previousSection)
+                    _  = FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage: FPLocalizationHelper.localizeWith(args: ["\(form.displayName ?? "")"], key: "msg_form_updated_other_tech_pull_first"), completion: nil, withPositiveAction: FPLocalizationHelper.localize("OK"), style: .default, andHandler: { [weak self] (action) in
+                        self?.pullSectionFromServerAndRefresh(sectionIndex: self?.previousSection ?? 0)
                     }, withNegativeAction: nil, style: .default, andHandler: nil)
                 }else{
-                    self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.previousSection) { success in
-                        self.handleSectionControlUI()
+                    self.continuePartialSave(form: form, isDismiss: false, sectionIndex: self.previousSection) { [weak self] success in
+                        self?.handleSectionControlUI()
                     }
                 }
             }
@@ -1041,29 +1065,32 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             return
         }
         isSaveRefreshing = true
-        FPFormsServiceManager.uploadMediasAttachedForCurrentSection(section: sectionIndex) { status in
+        FPFormsServiceManager.uploadMediasAttachedForCurrentSection(section: sectionIndex) { [weak self] status in
+            guard let self = self else { return }
             if(status){
-                FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: sectionIndex) { isTableAttachmentUploaded in
+                FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: sectionIndex) { [weak self] isTableAttachmentUploaded in
+                    guard let self = self else { return }
                     if(isTableAttachmentUploaded){
                         guard let formSection = FPFormDataHolder.shared.getProcessedSection(sectionIndex: sectionIndex) else{
                             self.stopLoadings()
                             return
                         }
-                        FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { assetLinkJson in
-                            FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, justScannedSection: justScannedSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { form, error in
+                        FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { [weak self] assetLinkJson in
+                            guard let self = self else { return }
+                            FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, justScannedSection: justScannedSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] form, error in
                                 if error == nil {
-                                    DispatchQueue.main.async {
-                                        self.stopLoadings()
+                                    DispatchQueue.main.async { [weak self] in
+                                        self?.stopLoadings()
                                         if isDismiss{
-                                            self.delegate?.formUpdated()
-                                            self.dismiss()
+                                            self?.delegate?.formUpdated()
+                                            self?.dismiss()
                                         }
                                     }
                                     completion(true)
                                 }else {
-                                    DispatchQueue.main.async {
+                                    DispatchQueue.main.async { [weak self] in
                                         FPUtility.printErrorAndShowAlert(error: error)
-                                        self.stopLoadings()
+                                        self?.stopLoadings()
                                     }
                                     completion(false)
                                 }
@@ -1158,26 +1185,29 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         self.btnNext.updateInteraction(isEnabled: false)
         self.btnPrevious.updateInteraction(isEnabled: false)
         
-        DispatchQueue.main.asyncAfter(deadline: .now()+0.25, execute: {
-            FPFormsServiceManager.uploadMediasAttached { status in
+        DispatchQueue.main.asyncAfter(deadline: .now()+0.25, execute: { [weak self] in
+            FPFormsServiceManager.uploadMediasAttached { [weak self] status in
+                guard let self = self else { return }
                 if(status){
-                    FPFormsServiceManager.uploadTableAttachments { [self] isTableAttachmentUploaded in
+                    FPFormsServiceManager.uploadTableAttachments { [weak self] isTableAttachmentUploaded in
+                        guard let self = self else { return }
                         if(isTableAttachmentUploaded){
                             guard let form = FPFormDataHolder.shared.getProcessedForm(isNew:  self.isNew) else {
-                                stopLoadings()
+                                self.stopLoadings()
                                 return
                             }
-                            FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { assetLinkJson in
-                                FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { serverForm, error in
-                                    self.stopLoadings()
+                            FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { [weak self] assetLinkJson in
+                                guard let self = self else { return }
+                                FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] serverForm, error in
+                                    self?.stopLoadings()
                                     if error == nil {
                                         // Update session ID to use sqliteId if it became available after save
                                         FPFormDataHolder.shared.updateSessionIdWithSqliteId()
                                         
                                         if isDismiss{
-                                            DispatchQueue.main.async {
-                                                self.delegate?.refreshListNeeded()
-                                                self.dismiss()
+                                            DispatchQueue.main.async { [weak self] in
+                                                self?.delegate?.refreshListNeeded()
+                                                self?.dismiss()
                                             }
                                         }
                                         if isRefreshForm, let serverForm = serverForm{
@@ -1573,14 +1603,12 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
     
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         if let cell = cell as? FPTableCollectionViewCell {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                cell.collMain.layoutIfNeeded()
-                cell.collMain.reloadData()
-                // Ensure cell has valid bounds before recalculating
-                cell.setNeedsLayout()
-                cell.layoutIfNeeded()
-                cell.recalculateLayout()
-            }
+            // Do layout immediately without delay to prevent async block pileup
+            // Remove nested reloadData() as it causes scroll hangs
+            cell.collMain.layoutIfNeeded()
+            cell.setNeedsLayout()
+            cell.layoutIfNeeded()
+            cell.recalculateLayout()
         }
     }
     
@@ -2287,10 +2315,6 @@ extension FPFormViewController: UIPickerViewDelegate {
         }
         if isSectionNameRefresh == false{
             self.formTableView.reloadData()
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-//                //to fix QA-6471 rendering issues
-//                self.formTableView.reloadData()
-//            }
         }
     }
 }

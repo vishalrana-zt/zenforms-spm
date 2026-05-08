@@ -980,6 +980,13 @@ struct FPFormDataHolder{
         // Note: currentFormSessionId is set by FPFormViewController when it opens
     }
     
+    /// Clears caches to free memory during memory warnings
+    mutating func clearFormCaches() {
+        // Clear suggestion and checklist caches
+        suggestionAtIndex.removeAll()
+        checkListAtIndex.removeAll()
+    }
+    
     mutating func removeMediaAt(indexPath: IndexPath, index: Int){
         if let media = filesAtIndex[indexPath]?[index], media.filePath == nil, let id = media.id{
             updateFileToRemove(file: id, inSection: indexPath.section, atIndex: indexPath.row)
