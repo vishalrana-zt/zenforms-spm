@@ -131,9 +131,11 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
             
             // Inner-content
         default:
-            guard let rowIdx = resolvedDataRowIndex(forSection: indexPath.section) else { break }
-            let columns = tableComponent?.rows?[rowIdx].columns.filter({$0.getUIType() != .HIDDEN})
-            if let column = columns?[indexPath.row-2]{
+            guard let rowIdx = resolvedDataRowIndex(forSection: indexPath.section),
+                  let row = tableComponent?.rows?[safe: rowIdx] else { break }
+            let columns = row.columns.filter({$0.getUIType() != .HIDDEN})
+            let columnIndex = indexPath.row - 2
+            if let column = columns[safe: columnIndex]{
                 dataSource?.configure(cell, with: cellContent,column:column,indexPath:indexPath, isHideMore: isHideMore, isHideCHeckBoxHeader: isHideCHeckBoxHeader)
                 return cell
             }
@@ -172,4 +174,3 @@ extension FPSpreadsheetCollectionViewModel: SpreadsheetCollectionViewLayoutDeleg
         return CGFloat(HEIGHT_CONTENT-HEIGHT_HEADER)
     }
 }
-

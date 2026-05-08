@@ -91,9 +91,6 @@ enum TableRowTextSearch {
                 let label = o.label.stringValue()
                 let val = o.value.stringValue()
                 let key = o.key.stringValue()
-                parts.append(label)
-                parts.append(val)
-                parts.append(key)
                 if value.caseInsensitiveCompare(val) == .orderedSame || value.caseInsensitiveCompare(key) == .orderedSame || value.caseInsensitiveCompare(label) == .orderedSame {
                     parts.append(label)
                     parts.append(val)
@@ -135,9 +132,6 @@ enum TableRowTextSearch {
         case "TIME":
             return FPFORM_DATE_FORMAT.TIME.rawValue
         case "DATE_TIME":
-            if let custom = column.dateFormat, !custom.isEmpty {
-                return custom
-            }
             return FPFORM_DATE_FORMAT.DATE_TIME.rawValue
         case "YEAR":
             return FPFORM_DATE_FORMAT.YEAR.rawValue

@@ -273,6 +273,10 @@ class FPFormsServiceManager: NSObject {
     
     
     class func getFilesFromForm(form: FPForms){
+        // Reset data holder to clear any previous form's attachments before loading new form
+        FPFormDataHolder.shared.resetData()
+        // Set the session ID to this form's sqliteId to properly associate attachments with this form
+        FPFormDataHolder.shared.currentFormSessionId = form.sqliteId?.stringValue ?? UUID().uuidString
         FPFormDataHolder.shared.customForm = form
         FPFormDataHolder.shared.getFilesFromValue(form: form)
         
