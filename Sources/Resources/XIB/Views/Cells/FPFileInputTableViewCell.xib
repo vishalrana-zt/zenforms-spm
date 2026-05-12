@@ -88,7 +88,7 @@
                 </subviews>
                 <constraints>
                     <constraint firstItem="uuH-e5-8hb" firstAttribute="leading" secondItem="H2p-sc-9uM" secondAttribute="leading" constant="10" id="6KF-Za-gsA"/>
-                    <constraint firstAttribute="trailing" secondItem="uuH-e5-8hb" secondAttribute="trailing" id="D6r-bi-1wX"/>
+                    <constraint firstAttribute="trailing" secondItem="uuH-e5-8hb" secondAttribute="trailing" constant="10" id="D6r-bi-1wX"/>
                     <constraint firstAttribute="bottom" secondItem="uuH-e5-8hb" secondAttribute="bottom" constant="10" id="LRJ-Ff-Pyv"/>
                     <constraint firstItem="uuH-e5-8hb" firstAttribute="top" secondItem="H2p-sc-9uM" secondAttribute="top" constant="10" id="q4E-uq-fBm"/>
                 </constraints>
