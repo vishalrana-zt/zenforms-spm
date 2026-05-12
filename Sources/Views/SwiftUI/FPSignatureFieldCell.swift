@@ -32,6 +32,7 @@ struct FPSignatureFieldCell: View {
                             .multilineTextAlignment(.trailing)
                             .frame(width: 150, alignment: .trailing)
                     }
+                    .padding(.trailing, 10)
                 }
             }
             if !isImageHidden(){
