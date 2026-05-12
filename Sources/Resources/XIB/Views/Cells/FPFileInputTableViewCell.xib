@@ -31,7 +31,7 @@
                                         <color key="textColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="trailing" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="6YV-0B-dFJ">
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="trailing" contentVerticalAlignment="center" lineBreakMode="clip" translatesAutoresizingMaskIntoConstraints="NO" id="6YV-0B-dFJ">
                                         <rect key="frame" x="305" y="0.0" width="150" height="28.5"/>
                                         <constraints>
                                             <constraint firstAttribute="width" constant="150" id="PTt-oL-wFG"/>
@@ -44,6 +44,10 @@
                                         </state>
                                         <userDefinedRuntimeAttributes>
                                             <userDefinedRuntimeAttribute type="string" keyPath="fpLocalizedKey" value="lbl_Attach_file"/>
+                                            <userDefinedRuntimeAttribute type="boolean" keyPath="titleLabel.adjustsFontSizeToFitWidth" value="YES"/>
+                                            <userDefinedRuntimeAttribute type="number" keyPath="titleLabel.minimumScaleFactor">
+                                                <real key="value" value="0.5"/>
+                                            </userDefinedRuntimeAttribute>
                                         </userDefinedRuntimeAttributes>
                                         <connections>
                                             <action selector="attachFileDidTap:" destination="KGk-i7-Jjw" eventType="touchUpInside" id="Jou-Ch-Dv5"/>

@@ -201,14 +201,12 @@ class FPTableCollectionViewCell: UITableViewCell {
         let wasZeroBounds = previousBounds.width == 0 || previousBounds.height == 0
         
         if boundsChanged && boundsAreValid && wasZeroBounds {
-            // Cell just got valid bounds (became visible), recalculate layout
+            // Cell just got valid bounds (became visible), invalidate layout only
+            // DO NOT call reloadData() here as it causes scroll freeze/hang
             if let layout = collMain.collectionViewLayout as? FPQueAnsCollectionViewLayout {
                 layout.isNew = true
                 layout.invalidateLayout()
-                collMain.reloadData()
-                DispatchQueue.main.async { [weak self] in
-                    self?.collMain.layoutIfNeeded()
-                }
+                // Layout will be recalculated automatically, no need to force it
             }
         }
         

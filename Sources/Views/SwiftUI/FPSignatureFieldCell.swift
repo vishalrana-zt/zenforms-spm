@@ -26,8 +26,11 @@ struct FPSignatureFieldCell: View {
                     Button(action: onAddSignatureClicked) {
                         SwiftUI.Text(FPLocalizationHelper.localize("lbl_Add_Signature"))
                             .foregroundStyle(Color("BT-Primary"))
-                            .font(.subheadline.weight(.medium))
+                            .font(.system(size: 14, weight: .medium))
+                            .minimumScaleFactor(0.5)
+                            .lineLimit(1)
                             .multilineTextAlignment(.trailing)
+                            .frame(width: 150, alignment: .trailing)
                     }
                 }
             }
