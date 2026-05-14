@@ -80,6 +80,8 @@ class FPTableEditViewController: UIViewController {
     var isSelectedAll = false
     var viewModel: FPSpreadsheetCollectionViewModel? {
         didSet {
+            let startTime = CFAbsoluteTimeGetCurrent()
+            print("📊 [TableUI] viewModel didSet - START")
             guard let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout else {
                 assertionFailure("Expected a SpreadsheetLayout")
                 return
@@ -88,8 +90,13 @@ class FPTableEditViewController: UIViewController {
             viewModel?.parentIndexPath = tableIndexPath
             collectionView.dataSource = viewModel
             collectionView.delegate = viewModel
+            collectionView.prefetchDataSource = viewModel // Enable prefetching for smoother scrolling
             layout.delegate = viewModel
+            print("📊 [TableUI] viewModel didSet - calling reloadData (rows: \(tableComponent?.rows?.count ?? 0))")
+            viewModel?.invalidateCache()
             collectionView!.reloadData()
+            let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            print("📊 [TableUI] viewModel didSet - END (elapsed: \(String(format: "%.2f", elapsed))ms)")
         }
     }
     
@@ -149,6 +156,13 @@ class FPTableEditViewController: UIViewController {
         "ZenForms.FPTableEdit.textSearch.columns.\(fieldDetails?.templateId ?? "0")"
     }
     private let bulkEditInfoShownPrefsKey = "ZenForms.FPTableEdit.bulkEdit.confirmation.shown"
+
+    /// Helper method to reload collection view with cache invalidation
+    /// This ensures cached column data is cleared when underlying data changes
+    private func reloadCollectionViewWithCacheInvalidation() {
+        viewModel?.invalidateCache()
+        collectionView.reloadData()
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -340,11 +354,11 @@ class FPTableEditViewController: UIViewController {
         
         DispatchQueue.main.async {
             FPUtility.hideHUD()
-            self.collectionView.reloadData()
+            self.reloadCollectionViewWithCacheInvalidation()
             self.fpReapplyTableTextSearchIfNeeded()
         }
     }
-    
+
     func addEmptyRowToTable(){
         guard let row = self.tableComponent?.rows?.first else { return }
         let newRow = self.tableComponent?.addNewRow(with: row.columns, ignoreDefaultVal: true)
@@ -354,7 +368,7 @@ class FPTableEditViewController: UIViewController {
         if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
             layout.addRow(nRow: 1)
         }
-        self.collectionView.reloadData()
+        self.reloadCollectionViewWithCacheInvalidation()
         self.fpReapplyTableTextSearchIfNeeded()
     }
     
@@ -1139,7 +1153,7 @@ extension FPTableEditViewController{
             if self.arrAppliedFilters.isEmpty{
                 self.resetToDefault()
             }else{
-                self.collectionView.reloadData()
+                self.reloadCollectionViewWithCacheInvalidation()
             }
             self.fpReapplyTableTextSearchIfNeeded()
         }
@@ -1179,16 +1193,16 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     }
                 }
                 self.fpReapplyTableTextSearchIfNeeded()
-                self.collectionView.reloadData()
+                self.reloadCollectionViewWithCacheInvalidation()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
-            
+
         }
         if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
             layout.addRow()
             layout.invalidateLayout()
         }
     }
-    
+
     func duplicateMultipleRows(_ arrRows:[Rows]){
         self.view.endEditing(true)
         FPUtility.showHUDWithLoadingMessage()
@@ -1220,17 +1234,17 @@ extension FPTableEditViewController: TableContentCellDelegate{
                 layout.invalidateLayout()
             }
             FPUtility.hideHUD()
-            self.collectionView.reloadData()
+            self.reloadCollectionViewWithCacheInvalidation()
             if self.isDuplicateRowAddedEndOFTable{
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     self.collectionView.scrollToBottom(animated: true)
                 }
             }
         }
-        
+
     }
-    
-    
+
+
     func deleteRow(at index:IndexPath){
         self.view.endEditing(true)
         DispatchQueue.main.async{
@@ -1273,9 +1287,9 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     }
                 }
                 self.fpReapplyTableTextSearchIfNeeded()
-                self.collectionView.reloadData()
+                self.reloadCollectionViewWithCacheInvalidation()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
-            
+
         }
         if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
             layout.removeRow()
@@ -1328,7 +1342,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
             if hasActiveSearch {
                 self.fpApplyTableTextSearchFromField(animated: false)
             } else {
-                self.collectionView.reloadData()
+                self.reloadCollectionViewWithCacheInvalidation()
             }
             self.collectionView.layoutIfNeeded()
             FPUtility.hideHUD()

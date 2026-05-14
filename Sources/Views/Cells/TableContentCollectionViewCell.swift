@@ -102,10 +102,30 @@ class TableContentCollectionViewCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        // Reset search highlighting
         searchHighlightQuery = nil
         searchHighlightCaseSensitive = false
         searchHighlightColumnKeys = []
-        stripSearchHighlightFormatting()
+
+        // Reset data reference
+        data = nil
+
+        // Reset UI to default state - avoid heavy operations
+        tblTextField.text = ""
+        tblTextField.attributedText = nil
+        tblTextField.inputView = nil
+        tblTextView.text = ""
+        tblTextView.attributedText = nil
+        tblDropdownField.text = ""
+        tblDropdownField.attributedText = nil
+
+        // Hide all views - will be shown as needed in setupView
+        btnAction.isHidden = true
+        btnAddAttachment.isHidden = true
+        tblTextField.isHidden = true
+        tblTextView.isHidden = true
+        tblDropdownField.isHidden = true
+        viewBarcode.isHidden = true
     }
 
     override func awakeFromNib() {
@@ -130,7 +150,13 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     }
     
     
+    private static var setupViewCallCount = 0
+    private static var setupViewTotalTime: Double = 0
+
     private func setupView(column:ColumnData){
+        let startTime = CFAbsoluteTimeGetCurrent()
+        TableContentCollectionViewCell.setupViewCallCount += 1
+
         self.btnAction.isHidden = true
         self.tblTextView.isUserInteractionEnabled = !(column.readonly ?? false)
         self.tblTextField.isUserInteractionEnabled = !(column.readonly ?? false)
@@ -228,6 +254,14 @@ class TableContentCollectionViewCell: UICollectionViewCell {
         self.tblTextField.tag = childTableIndex!.row-2
         self.btnAddAttachment.tag = childTableIndex!.row-2
         applySearchHighlightIfNeeded()
+
+        // Log timing stats every 100 cells
+        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+        TableContentCollectionViewCell.setupViewTotalTime += elapsed
+        if TableContentCollectionViewCell.setupViewCallCount % 100 == 0 {
+            let avgTime = TableContentCollectionViewCell.setupViewTotalTime / Double(TableContentCollectionViewCell.setupViewCallCount)
+            print("📊 [TableUI] TableContentCell setupView - calls: \(TableContentCollectionViewCell.setupViewCallCount), avg: \(String(format: "%.2f", avgTime))ms, total: \(String(format: "%.0f", TableContentCollectionViewCell.setupViewTotalTime))ms")
+        }
     }
 
     private func applySearchHighlightIfNeeded() {
