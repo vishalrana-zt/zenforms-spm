@@ -80,8 +80,6 @@ class FPTableEditViewController: UIViewController {
     var isSelectedAll = false
     var viewModel: FPSpreadsheetCollectionViewModel? {
         didSet {
-            let startTime = CFAbsoluteTimeGetCurrent()
-            print("📊 [TableUI] viewModel didSet - START")
             guard let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout else {
                 assertionFailure("Expected a SpreadsheetLayout")
                 return
@@ -92,11 +90,8 @@ class FPTableEditViewController: UIViewController {
             collectionView.delegate = viewModel
             collectionView.prefetchDataSource = viewModel // Enable prefetching for smoother scrolling
             layout.delegate = viewModel
-            print("📊 [TableUI] viewModel didSet - calling reloadData (rows: \(tableComponent?.rows?.count ?? 0))")
             viewModel?.invalidateCache()
             collectionView!.reloadData()
-            let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-            print("📊 [TableUI] viewModel didSet - END (elapsed: \(String(format: "%.2f", elapsed))ms)")
         }
     }
     

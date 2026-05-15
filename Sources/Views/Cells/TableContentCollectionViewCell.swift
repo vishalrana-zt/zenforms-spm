@@ -148,15 +148,7 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     @IBAction func didTapAddAttachments(_ sender: Any) {
         delegate?.showAddAttachment(at: childTableIndex!, with: data!)
     }
-    
-    
-    private static var setupViewCallCount = 0
-    private static var setupViewTotalTime: Double = 0
-
     private func setupView(column:ColumnData){
-        let startTime = CFAbsoluteTimeGetCurrent()
-        TableContentCollectionViewCell.setupViewCallCount += 1
-
         self.btnAction.isHidden = true
         self.tblTextView.isUserInteractionEnabled = !(column.readonly ?? false)
         self.tblTextField.isUserInteractionEnabled = !(column.readonly ?? false)
@@ -254,14 +246,6 @@ class TableContentCollectionViewCell: UICollectionViewCell {
         self.tblTextField.tag = childTableIndex!.row-2
         self.btnAddAttachment.tag = childTableIndex!.row-2
         applySearchHighlightIfNeeded()
-
-        // Log timing stats every 100 cells
-        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-        TableContentCollectionViewCell.setupViewTotalTime += elapsed
-        if TableContentCollectionViewCell.setupViewCallCount % 100 == 0 {
-            let avgTime = TableContentCollectionViewCell.setupViewTotalTime / Double(TableContentCollectionViewCell.setupViewCallCount)
-            print("📊 [TableUI] TableContentCell setupView - calls: \(TableContentCollectionViewCell.setupViewCallCount), avg: \(String(format: "%.2f", avgTime))ms, total: \(String(format: "%.0f", TableContentCollectionViewCell.setupViewTotalTime))ms")
-        }
     }
 
     private func applySearchHighlightIfNeeded() {

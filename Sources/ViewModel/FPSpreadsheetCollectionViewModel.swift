@@ -43,12 +43,21 @@ final class FPSpreadsheetCollectionViewModel: NSObject {
     /// Cached table component reference to avoid repeated calls
     private weak var cachedTableComponent: TableComponent?
 
+    /// Cached row count to avoid repeated getTableComponent calls
+    private var cachedRowCount: Int?
+
     /// Clear cached values when data changes
     func invalidateCache() {
         cachedFilteredColumns = nil
         cachedColumnCount = 0
         cachedRowColumns.removeAll()
         cachedTableComponent = nil
+        cachedRowCount = nil
+    }
+
+    /// Invalidate only row-specific cache (for single row updates)
+    func invalidateRowCache(at rowIndex: Int) {
+        cachedRowColumns.removeValue(forKey: rowIndex)
     }
 
     /// Get filtered columns with caching
@@ -101,14 +110,13 @@ final class FPSpreadsheetCollectionViewModel: NSObject {
 extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
     // i.e. rows
     func numberOfSections(in collectionView: UICollectionView) -> Int {
-        let startTime = CFAbsoluteTimeGetCurrent()
-        let tableComponent = dataSource?.getTableComponent()
+        // Use cached table component if available
+        let tableComponent = cachedTableComponent ?? dataSource?.getTableComponent()
+        if cachedTableComponent == nil { cachedTableComponent = tableComponent }
+
         let baseCount = tableComponent?.rows?.count ?? 0
         let dataRows = textSearchVisibleRowIndices?.count ?? baseCount
-        let result = (baseCount > 0 ? dataRows : 0) + 1 // +1 header when there is at least one underlying row
-        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-        print("📊 [TableUI] numberOfSections: \(result) (baseRows: \(baseCount), elapsed: \(String(format: "%.2f", elapsed))ms)")
-        return result
+        return (baseCount > 0 ? dataRows : 0) + 1 // +1 header when there is at least one underlying row
     }
 
     private func resolvedDataRowIndex(forSection section: Int) -> Int? {
@@ -128,20 +136,13 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         // Use cached column count for better performance
         if cachedColumnCount > 0 {
-            if section == 0 {
-                print("📊 [TableUI] numberOfItemsInSection[\(section)]: \(cachedColumnCount) (cached)")
-            }
             return cachedColumnCount
         }
-        let startTime = CFAbsoluteTimeGetCurrent()
         _ = getFilteredColumns()
-        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-        print("📊 [TableUI] numberOfItemsInSection[\(section)]: \(cachedColumnCount) (computed in \(String(format: "%.2f", elapsed))ms)")
         return cachedColumnCount // +2 for Sr No and Action already included
     }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let startTime = CFAbsoluteTimeGetCurrent()
         var isHideMore = false
         var isHideCHeckBoxHeader = false
 
@@ -163,22 +164,17 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
         // Use cached filtered columns for header row
         let cachedColumns = getFilteredColumns()
 
-        // Log only for first column of each row to reduce noise
-        let shouldLog = indexPath.row == 0 && (indexPath.section <= 5 || indexPath.section % 50 == 0)
-
         switch (column: indexPath.row, row: indexPath.section) {
             // Origin
         case (0, 0):
             cellContent = FPLocalizationHelper.localize("lbl_Sr_No")
             isHideMore = true
             isHideCHeckBoxHeader = true
-            break
 
         case (1, 0):
             cellContent = ""
             isHideMore = true
             isHideCHeckBoxHeader = false
-            break
 
             //Action column
         case (1, _):
@@ -195,14 +191,12 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
             if let column = cachedColumns?[safe: indexPath.row-2] {
                 isHideMore = column.uiType == "ATTACHMENT"
             }
-            break
 
             // Left column - Sr number
         case (0, _):
             cellContent = "\(indexPath.section)"
             isHideMore = true
             isHideCHeckBoxHeader = true
-            break
 
             // Inner-content
         default:
@@ -213,20 +207,10 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
             let columnIndex = indexPath.row - 2
             if let column = columns[safe: columnIndex] {
                 dataSource?.configure(cell, with: cellContent, column: column, indexPath: indexPath, isHideMore: isHideMore, isHideCHeckBoxHeader: isHideCHeckBoxHeader)
-                let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-                if shouldLog {
-                    print("📊 [TableUI] cellForItemAt[\(indexPath.section),\(indexPath.row)]: content cell (cached), elapsed: \(String(format: "%.2f", elapsed))ms")
-                }
                 return cell
             }
-
         }
         dataSource?.configure(cell, with: cellContent, column: nil, indexPath: indexPath, isHideMore: isHideMore, isHideCHeckBoxHeader: isHideCHeckBoxHeader)
-
-        let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
-        if shouldLog {
-            print("📊 [TableUI] cellForItemAt[\(indexPath.section),\(indexPath.row)]: header/empty cell, elapsed: \(String(format: "%.2f", elapsed))ms")
-        }
         return cell
 
     }
@@ -241,6 +225,26 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSourcePrefetchin
     func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
         // Pre-cache filtered columns if not already cached
         _ = getFilteredColumns()
+
+        // Pre-cache row columns for upcoming rows
+        let tableComponent = cachedTableComponent ?? dataSource?.getTableComponent()
+        guard let rows = tableComponent?.rows else { return }
+
+        // Get unique sections that need prefetching
+        let sectionsToCache = Set(indexPaths.compactMap { indexPath -> Int? in
+            guard indexPath.section >= 1 else { return nil }
+            return resolvedDataRowIndex(forSection: indexPath.section)
+        })
+
+        // Pre-cache columns for these rows (limit to avoid memory issues)
+        for rowIdx in sectionsToCache.prefix(10) {
+            guard cachedRowColumns[rowIdx] == nil,
+                  let row = rows[safe: rowIdx] else { continue }
+            let filtered = row.columns.filter({ $0.getUIType() != .HIDDEN })
+            if cachedRowColumns.count < maxRowCacheSize {
+                cachedRowColumns[rowIdx] = filtered
+            }
+        }
     }
 
     func collectionView(_ collectionView: UICollectionView, cancelPrefetchingForItemsAt indexPaths: [IndexPath]) {
