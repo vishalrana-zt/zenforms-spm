@@ -32,6 +32,9 @@ final class FPQueAnsCollectionViewModel: NSObject {
     /// When non-nil, only these indices into `getTableComponent()?.rows` are shown as data rows.
     var textSearchVisibleRowIndices: [Int]?
 
+    /// Maximum number of rows to display in preview mode (0 means unlimited)
+    var maxPreviewRows: Int = 0
+
     var accessoryToolbar: UIToolbar {
         get {
             let toolbarFrame = CGRect(x: 0, y: 0, width: SCREEN_WIDTH_S, height: 44)
@@ -61,7 +64,13 @@ extension FPQueAnsCollectionViewModel: UICollectionViewDataSource {
     func numberOfSections(in collectionView: UICollectionView) -> Int {
         let tableComponent = dataSource?.getTableComponent()
         let baseCount = tableComponent?.rows?.count ?? 0
-        let dataRows = textSearchVisibleRowIndices?.count ?? baseCount
+        var dataRows = textSearchVisibleRowIndices?.count ?? baseCount
+
+        // Apply maxPreviewRows limit if set (> 0)
+        if maxPreviewRows > 0 && dataRows > maxPreviewRows {
+            dataRows = maxPreviewRows
+        }
+
         return (baseCount > 0 ? dataRows : 0) + 1
     }
 
