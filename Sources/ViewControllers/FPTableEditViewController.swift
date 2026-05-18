@@ -1360,8 +1360,12 @@ extension FPTableEditViewController: TableContentCellDelegate{
                 }
                 self.tableComponent?.rows?.remove(at: indexOfRow)
                 self.tableComponent?.rows?.insert(updateRow, at: indexOfRow)
+                // Invalidate cache for updated row to ensure fresh data is displayed
+                viewModel?.invalidateRowCache(at: indexOfRow)
             }
             if isAutoCalculateEnabled, data.isPartOfFormula == true{
+                // Invalidate cache for the section being reloaded
+                viewModel?.invalidateRowCache(at: dRow)
                 self.collectionView.reloadSections([index.section])
             }else{
                 self.collectionView.reloadItems(at: [index])
@@ -1372,6 +1376,8 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     row.columns[columnIndex] = data
                     tblCompnt.rows?[dRow] = row
                     tableComponent = tblCompnt
+                    // Invalidate cache for updated row to ensure fresh data is displayed
+                    viewModel?.invalidateRowCache(at: dRow)
                     if isAutoCalculateEnabled, data.isPartOfFormula == true, let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == row.sortUuid }){
                         let autoCalRow = self.processAutoCalculationFor(row: row, with: data)
                         self.tableComponent?.rows?.remove(at: indexOfRow)
