@@ -434,7 +434,7 @@ extension TableAttachementView: PHPickerViewControllerDelegate{
                     }
                 }else{
                     result.itemProvider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { phImgData, error in
-                        if let phImgData = phImgData, let image = UIImage(data: phImgData), let imageData = image.jpegData(compressionQuality: 1.0){
+                        if let imageData = phImgData{
                             do {
                                 let documentDirectory = try self.fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:true)
                                 let fileURL = documentDirectory.appendingPathComponent("\(Int.random(in: 999999..<9999999)).jpeg" )
