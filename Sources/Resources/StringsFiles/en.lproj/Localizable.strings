@@ -193,3 +193,4 @@
 "lbl_Apply_all_columns" = "Apply to all columns";
 "lbl_Toggle_all_columns" = "Toggle all columns on or off";
 "lbl_Toggle_all_columns_hint" = "When on, all column toggles are turned on. When off, all column toggles are turned off.";
+"lbl_showing_rows_format" = "Showing {shown} of {total} rows";

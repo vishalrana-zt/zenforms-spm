@@ -51,6 +51,7 @@ class FPTableCollectionViewCell: UITableViewCell {
             }
             viewModel?.dataSource = self
             viewModel?.parentIndexPath = tableIndexPath
+            viewModel?.maxPreviewRows = 5
             collMain.dataSource = viewModel
             collMain.delegate = viewModel
             layout.isNew = true
@@ -91,11 +92,13 @@ class FPTableCollectionViewCell: UITableViewCell {
         "ZenForms.FPTableCell.textSearch.columns.\(fieldDetails?.templateId ?? "0")"
     }
 
+    private var rowCountLabel: UILabel?
+
     override func awakeFromNib() {
         super.awakeFromNib()
         self.setNeedsLayout()
         self.layoutIfNeeded()
-        
+
         let bundle = ZenFormsBundle.bundle
 
         collMain?.register(
@@ -106,6 +109,29 @@ class FPTableCollectionViewCell: UITableViewCell {
             UINib(nibName: contentCellReuseIdentifier, bundle: bundle),
             forCellWithReuseIdentifier: contentCellReuseIdentifier
         )
+
+        setupRowCountLabel()
+    }
+
+    private func setupRowCountLabel() {
+        guard let buttonSuperview = btnAddRow.superview as? UIStackView else { return }
+
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = UIColor(named: "BT-Primary") ?? .systemBlue
+        label.textAlignment = .left
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        // Add label to spacer view, aligned to leading (next to button)
+        if let spacerView = buttonSuperview.arrangedSubviews.last, spacerView != btnAddRow {
+            spacerView.addSubview(label)
+            NSLayoutConstraint.activate([
+                label.leadingAnchor.constraint(equalTo: spacerView.leadingAnchor, constant: 12),
+                label.centerYAnchor.constraint(equalTo: spacerView.centerYAnchor)
+            ])
+        }
+
+        rowCountLabel = label
     }
     
     override func prepareForReuse() {
@@ -134,7 +160,8 @@ class FPTableCollectionViewCell: UITableViewCell {
         if viewModel == nil {
             viewModel = FPQueAnsCollectionViewModel()
         }
-        
+
+        self.viewModel?.maxPreviewRows = 5
         self.viewModel?.widthQuesColumn = self.fieldDetails?.getUIType() == .TABLE ? WIDTH_CONTENT : WIDTH_QUES_COLUMN
         if let component = FPFormDataHolder.shared.getTableComponentAt(index: indexPath){
             self.cellItem = component
@@ -143,10 +170,27 @@ class FPTableCollectionViewCell: UITableViewCell {
             self.cellItem = TableComponent().prepareData(item: tableOptions ?? TableOptions(), values: item.value,index: indexPath,fieldDetails: item, customForm: customForm)
             FPFormDataHolder.shared.addTableComponentAt(index: indexPath, component: self.cellItem!)
         }
-        
+
+        // Update row count label
+        updateRowCountLabel()
+
         // Force layout recalculation after configuration
         DispatchQueue.main.async { [weak self] in
             self?.recalculateLayout()
+        }
+    }
+
+    private func updateRowCountLabel() {
+        let totalRows = cellItem?.rows?.count ?? 0
+        let maxRows = 5
+
+        if totalRows > maxRows {
+            rowCountLabel?.text = FPLocalizationHelper.localize("lbl_showing_rows_format")
+                .replacingOccurrences(of: "{shown}", with: "\(maxRows)")
+                .replacingOccurrences(of: "{total}", with: "\(totalRows)")
+            rowCountLabel?.isHidden = false
+        } else {
+            rowCountLabel?.isHidden = true
         }
     }
     

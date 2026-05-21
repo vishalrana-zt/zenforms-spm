@@ -193,3 +193,4 @@
 "lbl_Apply_all_columns" = "Aplicar a todas las columnas";
 "lbl_Toggle_all_columns" = "Activar o desactivar todas las columnas";
 "lbl_Toggle_all_columns_hint" = "Cuando está activado, todos los interruptores de columna están encendidos. Cuando está desactivado, todos los interruptores de columna están apagados.";
+"lbl_showing_rows_format" = "Mostrando {shown} de {total} filas";
