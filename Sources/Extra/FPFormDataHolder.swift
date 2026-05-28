@@ -607,6 +607,10 @@ struct FPFormDataHolder{
     
     public mutating func updateServerUrl(url: String, key: IndexPath, index: Int){
        var media  =  filesAtIndex[key]?[index]
+        
+        // Clean up local file after successful upload to S3
+        deleteLocalFile(at: media?.filePath)
+        
         media?.serverUrl = url
         media?.filePath =  nil
         filesAtIndex[key]?[index] = media!
@@ -977,8 +981,14 @@ struct FPFormDataHolder{
     }
     
     mutating func removeMediaAt(indexPath: IndexPath, index: Int){
-        if let media = filesAtIndex[indexPath]?[index], media.filePath == nil, let id = media.id{
-            updateFileToRemove(file: id, inSection: indexPath.section, atIndex: indexPath.row)
+        // Clean up local file if it exists
+        if let media = filesAtIndex[indexPath]?[index] {
+            deleteLocalFile(at: media.filePath)
+            
+            // Existing logic for server-synced files
+            if media.filePath == nil, let id = media.id {
+                updateFileToRemove(file: id, inSection: indexPath.section, atIndex: indexPath.row)
+            }
         }
         filesAtIndex[indexPath]?.remove(at: index)
         updateFieldFiles(files: filesAtIndex[indexPath], inSection: indexPath.section, atIndex: indexPath.row)
@@ -994,6 +1004,22 @@ struct FPFormDataHolder{
             }
         }else{
             rows[index] = 1
+        }
+    }
+    
+    // MARK: - File Cleanup Helper
+    
+    /// Safely deletes a file from disk if it exists
+    /// - Parameter filePath: The local file path to delete
+    private func deleteLocalFile(at filePath: String?) {
+        guard let localPath = filePath else { return }
+        
+        do {
+            if FileManager.default.fileExists(atPath: localPath) {
+                try FileManager.default.removeItem(atPath: localPath)
+            }
+        } catch {
+            // Silently handle file deletion errors
         }
     }
     
