@@ -87,6 +87,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     var tableAttachementcoloumnIndex:Int?
     var tableAttachementcoloumnKey:String?
     var isImageOnly:Bool = false
+    private var previewFileURLs = Set<URL>()  // Track ALL preview files
     
     let TEXT_CELL = "text_cell"
     let RADIO_CELL = "radio_cell"
@@ -340,6 +341,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
+        
+        // Final cleanup of any remaining preview files
+        cleanupPreviewFile()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -1677,6 +1681,10 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
                     let ext : String = URL.init(string: serverUrl)?.pathExtension ?? ""
                     url = documentDirectory.appendingPathComponent("\(UUID().uuidString)_downloaded.\(ext)")
                     try image?.write(to: url)
+                    
+                    // Track this URL for cleanup (supports multiple concurrent previews)
+                    self.previewFileURLs.insert(url)
+                    
                     let documentInteractionController = UIDocumentInteractionController(url: url)
                     documentInteractionController.delegate = self
                     DispatchQueue.main.async {
@@ -2614,6 +2622,26 @@ extension  FPFormViewController: UIDocumentPickerDelegate{
 extension FPFormViewController:  UIDocumentInteractionControllerDelegate {
     func documentInteractionControllerViewControllerForPreview(_ controller: UIDocumentInteractionController) -> UIViewController {
         return self
+    }
+    
+    func documentInteractionControllerDidEndPreview(_ controller: UIDocumentInteractionController) {
+        // Clean up downloaded preview file after user closes the preview
+        cleanupPreviewFile()
+    }
+    
+    /// Deletes all downloaded preview files from disk
+    private func cleanupPreviewFile() {
+        for fileURL in previewFileURLs {
+            do {
+                if fileManager.fileExists(atPath: fileURL.path) {
+                    try fileManager.removeItem(at: fileURL)
+                }
+            } catch {
+                // Silently handle cleanup errors
+            }
+        }
+        
+        previewFileURLs.removeAll()
     }
 }
 

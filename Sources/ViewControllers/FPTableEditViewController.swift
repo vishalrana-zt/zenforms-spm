@@ -216,11 +216,16 @@ class FPTableEditViewController: UIViewController {
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        NotificationCenter.default.removeObserver(self)
         IQKeyboardManager.shared.isEnabled = false
         IQKeyboardToolbarManager.shared.isEnabled = false
         IQKeyboardToolbarManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
         IQKeyboardToolbarManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        // Clean up preview file cache when view controller is deallocated
+        TableAttachementView.instance.clearPreviewCache()
     }
     
     func registerAssetObservers(){
