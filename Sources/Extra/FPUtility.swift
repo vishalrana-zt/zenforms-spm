@@ -49,6 +49,13 @@ class FPUtility : NSObject{
         
     }
     
+    class func nanoID(size: Int = 10) -> String {
+        let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        var bytes = [UInt8](repeating: 0, count: size)
+        _ = SecRandomCopyBytes(kSecRandomDefault, size, &bytes)
+        return String(bytes.map { chars[chars.index(chars.startIndex, offsetBy: Int($0) % chars.count)] })
+    }
+    
     class func make(_ systemName: String, color: UIColor = .systemBlue) -> UIImage? {
         let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .regular)
 
