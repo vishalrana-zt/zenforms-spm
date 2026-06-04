@@ -222,40 +222,60 @@ class FPUtility : NSObject{
     }
     
     class func download(urlString: String, toFile fileUrlString: String, completion: @escaping (Error?) -> Void) {
-        if let remoteUrl = URL.init(string: urlString), let fileUrl = URL.init(string: fileUrlString){
-            // Download the remote URL to a file
-            let task = URLSession.shared.downloadTask(with: remoteUrl) {
-                (tempURL, response, error) in
-                // Early exit on error
-                guard let tempURL = tempURL else {
-                    completion(error)
-                    return
-                }
-                
-                do {
-                    // Remove any existing document at file
-                    if FileManager.default.fileExists(atPath: fileUrl.path) {
-                        try FileManager.default.removeItem(at: fileUrl)
-                    }
-                    
-                    // Copy the tempURL to file
-                    try FileManager.default.copyItem(
-                        at: tempURL,
-                        to: fileUrl
-                    )
-                    
-                    completion(nil)
-                }
-                
-                // Handle potential file system errors
-                catch _ {
-                    completion(error)
-                }
+        guard let remoteUrl = URL.init(string: urlString), let fileUrl = URL.init(string: fileUrlString) else {
+            // Invalid URL, call completion with error
+            completion(NSError(domain: "FPUtility", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
+            return
+        }
+        
+        // Download the remote URL to a file
+        let task = URLSession.shared.downloadTask(with: remoteUrl) {
+            (tempURL, response, error) in
+            
+            // Check for network errors
+            if let error = error {
+                completion(error)
+                return
             }
             
-            // Start the download
-            task.resume()
+            // Validate HTTP response status code
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                let error = NSError(domain: "FPUtility", code: httpResponse.statusCode, 
+                                  userInfo: [NSLocalizedDescriptionKey: "HTTP Error \(httpResponse.statusCode)"])
+                completion(error)
+                return
+            }
+            
+            // Ensure we have a temp file
+            guard let tempURL = tempURL else {
+                completion(NSError(domain: "FPUtility", code: -1, 
+                                 userInfo: [NSLocalizedDescriptionKey: "No temporary file"]))
+                return
+            }
+            
+            do {
+                // Remove any existing document at file
+                if FileManager.default.fileExists(atPath: fileUrl.path) {
+                    try FileManager.default.removeItem(at: fileUrl)
+                }
+                
+                // Copy the tempURL to file
+                try FileManager.default.copyItem(
+                    at: tempURL,
+                    to: fileUrl
+                )
+                
+                completion(nil)
+            }
+            
+            // Handle potential file system errors
+            catch let fileError {
+                completion(fileError)
+            }
         }
+        
+        // Start the download
+        task.resume()
     }
     
     class func downloadedImage(from urlString: String?, completion: @escaping ((_ image: UIImage?) -> Void)) {
