@@ -1011,7 +1011,7 @@ struct FPFormDataHolder{
     
     /// Safely deletes a file from disk if it exists
     /// - Parameter filePath: The local file path to delete
-    private func deleteLocalFile(at filePath: String?) {
+    func deleteLocalFile(at filePath: String?) {
         guard let localPath = filePath else { return }
         
         do {

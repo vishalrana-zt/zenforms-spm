@@ -647,7 +647,13 @@ class FPFormsServiceManager: NSObject {
                 
                 if error == nil, let s3URL = json?["s3URL"] as? String {
                     var tempMedia = media
+
+                    // Clean up local file after successful upload to S3
+                    FPFormDataHolder.shared.deleteLocalFile(at: media.filePath)
+                    tempMedia.filePath = nil
+                    
                     tempMedia.serverUrl = s3URL
+                    
                     var tempTableMedia = tableMedia
                     tempTableMedia.mediaAdded[tableMediaindex] = tempMedia
                     FPFormDataHolder.shared.updateTableFieldValue(media: tempTableMedia,isPostUpload: true)
