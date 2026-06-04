@@ -487,7 +487,9 @@ struct AssetFormLinkingDatabaseManager: FPDataBaseQueries {
             formQureyString = " WHERE \(FPColumn.customFormLocalId) = '\(formLocalId)'"
         }else if let formId = formId, !formId.isEmpty {
             formQureyString = " WHERE \(FPColumn.customFormId) = '\(formId)'"
-        }else{}
+        }else{
+            formQureyString = " WHERE "
+        }
 
         if let sectionId = sectionId, !sectionId.isEmpty, let sectionLocalId = sectionLocalId, !sectionLocalId.isEmpty{
             sectionQureyString = " (\(FPColumn.sectionLocalId) = '\(sectionLocalId)' OR \(FPColumn.sectionId) = '\(sectionId)')"
@@ -526,6 +528,8 @@ struct AssetFormLinkingDatabaseManager: FPDataBaseQueries {
             formQureyString = " WHERE \(FPColumn.customFormId) = '\(formId)'"
         }else if let formTemplateId = formTemplateId, !formTemplateId.isEmpty {
             formQureyString = " WHERE \(FPColumn.formTemplateId) = '\(formTemplateId)'"
+        }else{
+            formQureyString = " WHERE "
         }
         
         if isNotConfirmed{
