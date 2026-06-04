@@ -222,11 +222,14 @@ class FPUtility : NSObject{
     }
     
     class func download(urlString: String, toFile fileUrlString: String, completion: @escaping (Error?) -> Void) {
-        guard let remoteUrl = URL.init(string: urlString), let fileUrl = URL.init(string: fileUrlString) else {
+        guard let remoteUrl = URL.init(string: urlString) else {
             // Invalid URL, call completion with error
             completion(NSError(domain: "FPUtility", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"]))
             return
         }
+        
+        // Create file URL from path
+        let fileUrl = URL(fileURLWithPath: fileUrlString)
         
         // Download the remote URL to a file
         let task = URLSession.shared.downloadTask(with: remoteUrl) {
