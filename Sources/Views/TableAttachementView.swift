@@ -314,7 +314,7 @@ extension TableAttachementView:  FPDrawHelper{
     func imageSelected(_ image: UIImage) {
         do {
             let documentDirectory = try fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:true)
-            let fileURL = documentDirectory.appendingPathComponent("\(Int.random(in: 999999..<9999999)).png" )
+            let fileURL = documentDirectory.appendingPathComponent(FPUtility.generateImageFileName())
             if let data = image.pngData() {
                 try? data.write(to: fileURL)
             }
@@ -354,7 +354,7 @@ extension TableAttachementView: UIImagePickerControllerDelegate{
                 do{
                     let mediadata = try? Data(contentsOf: mediaURL)
                     let documentDirectory = try self.fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:true)
-                    let fileURL = documentDirectory.appendingPathComponent("\(Int.random(in: 999999..<9999999)).mov")
+                    let fileURL = documentDirectory.appendingPathComponent(FPUtility.generateVideoFileName())
                     try? mediadata?.write(to: fileURL)
                     let media  = SSMedia(name: fileURL.lastPathComponent, mimeType: fileURL.fileMimeType(), filePath: fileURL.path, templateId: nil, moduleType: .forms)
                     self.mediaAdded.append(media)
@@ -377,7 +377,7 @@ extension TableAttachementView: UIImagePickerControllerDelegate{
                     guard let imageData = FPImageEXIFHelper.jpegData(from: chosenImage!, metadata: metadata, compressionQuality: 1.0) else { return }
                     do {
                         let documentDirectory = try self.fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:true)
-                        let fileURL = documentDirectory.appendingPathComponent("\(Int.random(in: 999999..<9999999)).jpeg" )
+                        let fileURL = documentDirectory.appendingPathComponent(FPUtility.generateJPEGImageFileName())
                         try? imageData.write(to: fileURL)
                         let media  = SSMedia(name: fileURL.lastPathComponent, mimeType: fileURL.fileMimeType(), filePath: fileURL.path, templateId: nil, moduleType: .forms)
                         self.mediaAdded.append(media)
@@ -426,7 +426,7 @@ extension TableAttachementView: PHPickerViewControllerDelegate{
                         if let fileData = fileData{
                             do {
                                 let documentDirectory = try self.fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:true)
-                                let fileURL = documentDirectory.appendingPathComponent("\(Int.random(in: 999999..<9999999)).mov")
+                                let fileURL = documentDirectory.appendingPathComponent(FPUtility.generateVideoFileName())
                                 try? fileData.write(to: fileURL)
                                 let media  = SSMedia(name: fileURL.lastPathComponent, mimeType: fileURL.fileMimeType(), filePath: fileURL.path, templateId: nil, moduleType: .forms)
                                 self.mediaAdded.append(media)
@@ -441,7 +441,7 @@ extension TableAttachementView: PHPickerViewControllerDelegate{
                         if let imageData = phImgData{
                             do {
                                 let documentDirectory = try self.fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:true)
-                                let fileURL = documentDirectory.appendingPathComponent("\(Int.random(in: 999999..<9999999)).jpeg" )
+                                let fileURL = documentDirectory.appendingPathComponent(FPUtility.generateJPEGImageFileName())
                                 try? imageData.write(to: fileURL)
                                 let media  = SSMedia(name: fileURL.lastPathComponent, mimeType: fileURL.fileMimeType(), filePath: fileURL.path, templateId: nil, moduleType: .forms)
                                 self.mediaAdded.append(media)
@@ -476,7 +476,7 @@ extension  TableAttachementView: UIDocumentPickerDelegate{
             let fileFullName = url.lastPathComponent.removingPercentEncoding?.replacingOccurrences(of: " ", with: "_") ?? ""
             let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
             let documentsPath = paths.first ?? ""
-            let filePath = (documentsPath as NSString).appendingPathComponent("\(Int.random(in: 999999..<9999999))_" + fileFullName)
+            let filePath = (documentsPath as NSString).appendingPathComponent(FPUtility.generateDocFileName(originalName: fileFullName))
             let tempUrl = URL(fileURLWithPath: filePath)
             let UTI = FPUTI(withExtension: tempUrl.pathExtension).rawValue
             let fileExtension = FPMedia.getExtensionWith(fileName: filePath.components(separatedBy: "/").last ?? "")
