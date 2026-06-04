@@ -129,8 +129,6 @@ class FPQueAnsTableEditViewController: UIViewController {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        // Clean up preview file cache when view controller is deallocated
-        TableAttachementView.instance.clearPreviewCache()
     }
     
     @objc func onDoneButtonTapped(sender: UIBarButtonItem) {

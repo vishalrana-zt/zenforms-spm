@@ -34,10 +34,6 @@ class TableAttachementView: UIView, UINavigationControllerDelegate {
     
     fileprivate let fileManager = FileManager.default
     
-    // Session cache to avoid re-downloading frequently accessed files
-    // Cache is automatically cleared when parent view controller is dismissed
-    private var previewFileCache = Set<String>()  // Stores file names that are cached
-    
     override init(frame: CGRect) {
         super.init(frame: frame)
         commonInit()
@@ -531,7 +527,6 @@ extension TableAttachementView:TagListViewDelegate{
                         self.previewMedia = localMedia
                         let previewController = QLPreviewController()
                         previewController.dataSource = self
-                        previewController.delegate = self
                         FPUtility.topViewController()?.present(previewController, animated: false)
                     }
                 }
@@ -542,7 +537,6 @@ extension TableAttachementView:TagListViewDelegate{
             self.previewMedia = media
             let previewController = QLPreviewController()
             previewController.dataSource = self
-            previewController.delegate = self
             FPUtility.topViewController()?.present(previewController, animated: false)
         }
     }
@@ -592,46 +586,6 @@ extension TableAttachementView: QLPreviewControllerDataSource{
         }else{
             return  NSURL()
         }
-    }
-}
-
-extension TableAttachementView: QLPreviewControllerDelegate {
-    func previewControllerDidDismiss(_ controller: QLPreviewController) {
-        // Add file to cache instead of immediate deletion
-        cachePreviewFile()
-    }
-    
-    /// Adds the preview file to session cache for potential reuse
-    private func cachePreviewFile() {
-        guard let media = previewMedia,
-              media.serverUrl != nil else {
-            previewMedia = nil
-            return
-        }
-        
-        // Only cache files downloaded from server (not user uploads)
-        previewFileCache.insert(media.name)
-        
-        previewMedia = nil
-    }
-    
-    /// Clears all cached preview files (call when view is dismissed or session ends)
-    func clearPreviewCache() {
-        let paths = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)
-        let cachesPath = paths.first ?? ""
-        
-        for fileName in previewFileCache {
-            let filePath = (cachesPath as NSString).appendingPathComponent(fileName)
-            do {
-                if fileManager.fileExists(atPath: filePath) {
-                    try fileManager.removeItem(atPath: filePath)
-                }
-            } catch {
-                // Silently handle cleanup errors
-            }
-        }
-        
-        previewFileCache.removeAll()
     }
 }
 

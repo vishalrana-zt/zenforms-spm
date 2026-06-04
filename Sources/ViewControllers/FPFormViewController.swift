@@ -87,7 +87,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     var tableAttachementcoloumnIndex:Int?
     var tableAttachementcoloumnKey:String?
     var isImageOnly:Bool = false
-    private var previewFileURLs = Set<URL>()  // Track ALL preview files
     
     let TEXT_CELL = "text_cell"
     let RADIO_CELL = "radio_cell"
@@ -341,9 +340,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        
-        // Final cleanup of any remaining preview files
-        cleanupPreviewFile()
         
         // Cleanup all tracked failed uploads for this session
         ZenForms.shared.failedFilesTrackingDelegate?.cleanupAllTrackedFailedUploads()
@@ -1672,10 +1668,6 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
             guard let self = self, let filePath = filePath else { return }
             
             let fileUrl = URL(fileURLWithPath: filePath)
-            
-            // Track URL for cleanup
-            self.previewFileURLs.insert(fileUrl)
-            
             self.presentFilePreview(url: fileUrl)
         }
     }
@@ -2617,25 +2609,7 @@ extension FPFormViewController:  UIDocumentInteractionControllerDelegate {
         return self
     }
     
-    func documentInteractionControllerDidEndPreview(_ controller: UIDocumentInteractionController) {
-        // Clean up downloaded preview file after user closes the preview
-        cleanupPreviewFile()
-    }
-    
-    /// Deletes all downloaded preview files from disk
-    private func cleanupPreviewFile() {
-        for fileURL in previewFileURLs {
-            do {
-                if fileManager.fileExists(atPath: fileURL.path) {
-                    try fileManager.removeItem(at: fileURL)
-                }
-            } catch {
-                // Silently handle cleanup errors
-            }
-        }
-        
-        previewFileURLs.removeAll()
-    }
+
 }
 
 extension FPFormViewController:  FPDrawHelper{

@@ -224,8 +224,6 @@ class FPTableEditViewController: UIViewController {
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        // Clean up preview file cache when view controller is deallocated
-        TableAttachementView.instance.clearPreviewCache()
     }
     
     func registerAssetObservers(){

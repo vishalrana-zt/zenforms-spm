@@ -284,25 +284,25 @@ class FPUtility : NSObject{
     // MARK: - Filename Generation (matching main app convention)
     
     /// Generates a unique filename for images using timestamp (PNG format)
-    class func generateImageFileName(moduleName: String = "FpForms") -> String {
+    class func generateImageFileName(moduleName: String = "FPForms") -> String {
         let timestamp = Int(Date().timeIntervalSince1970 * 1000)
         return String(format: "%@_%lld.png", moduleName, timestamp)
     }
     
     /// Generates a unique filename for JPEG images using timestamp
-    class func generateJPEGImageFileName(moduleName: String = "FpForms") -> String {
+    class func generateJPEGImageFileName(moduleName: String = "FPForms") -> String {
         let timestamp = Int(Date().timeIntervalSince1970 * 1000)
         return String(format: "%@_%lld.jpeg", moduleName, timestamp)
     }
     
     /// Generates a unique filename for videos using timestamp (MP4/MOV format)
-    class func generateVideoFileName(moduleName: String = "FpForms", extension fileExtension: String = "mov") -> String {
+    class func generateVideoFileName(moduleName: String = "FPForms", extension fileExtension: String = "mov") -> String {
         let timestamp = Int(Date().timeIntervalSince1970 * 1000)
         return String(format: "%@_%lld.%@", moduleName, timestamp, fileExtension)
     }
     
     /// Generates a unique filename for documents using timestamp with original filename
-    class func generateDocFileName(originalName: String, moduleName: String = "FpForms") -> String {
+    class func generateDocFileName(originalName: String, moduleName: String = "FPForms") -> String {
         let timestamp = Int(Date().timeIntervalSince1970 * 1000)
         let fileNameWithoutExtension = (originalName as NSString).deletingPathExtension
         let fileExtension = (originalName as NSString).pathExtension
