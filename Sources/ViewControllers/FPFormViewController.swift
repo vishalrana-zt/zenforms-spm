@@ -346,7 +346,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         cleanupPreviewFile()
         
         // Cleanup all tracked failed uploads for this session
-        ZenForms.shared.cleanupDelegate?.cleanupAllTrackedFailedUploads()
+        ZenForms.shared.failedFilesTrackingDelegate?.cleanupAllTrackedFailedUploads()
     }
     
     override func viewDidAppear(_ animated: Bool) {

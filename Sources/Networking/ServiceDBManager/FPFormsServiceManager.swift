@@ -318,12 +318,12 @@ class FPFormsServiceManager: NSObject {
                                     
                                     // Clean up local file on successful upload
                                     if let filePath = media.element.filePath {
-                                        ZenForms.shared.cleanupDelegate?.removeFromTracking(filePath: filePath)
+                                        ZenForms.shared.failedFilesTrackingDelegate?.removeFromTracking(filePath: filePath)
                                     }
                                 } else {
                                     // Track failed upload
                                     if let filePath = media.element.filePath {
-                                        ZenForms.shared.cleanupDelegate?.trackFailedUpload(filePath: filePath)
+                                        ZenForms.shared.failedFilesTrackingDelegate?.trackFailedUpload(filePath: filePath)
                                     }
                                 }
                                 if isLastTraversed && countOfUploading == 0 {
@@ -380,12 +380,12 @@ class FPFormsServiceManager: NSObject {
                                     
                                     // Clean up local file on successful upload
                                     if let filePath = media.element.filePath {
-                                        ZenForms.shared.cleanupDelegate?.removeFromTracking(filePath: filePath)
+                                        ZenForms.shared.failedFilesTrackingDelegate?.removeFromTracking(filePath: filePath)
                                     }
                                 } else {
                                     // Track failed upload
                                     if let filePath = media.element.filePath {
-                                        ZenForms.shared.cleanupDelegate?.trackFailedUpload(filePath: filePath)
+                                        ZenForms.shared.failedFilesTrackingDelegate?.trackFailedUpload(filePath: filePath)
                                     }
                                 }
                                 if isLastTraversed && countOfUploading == 0 {
@@ -654,14 +654,14 @@ class FPFormsServiceManager: NSObject {
                     
                     // Clean up local file on successful upload
                     if let filePath = media.filePath {
-                        ZenForms.shared.cleanupDelegate?.removeFromTracking(filePath: filePath)
+                        ZenForms.shared.failedFilesTrackingDelegate?.removeFromTracking(filePath: filePath)
                     }
                     
                     uploadTableMedia(tableMedia: tempTableMedia, tableMediaindex: tableMediaindex+1, completion: completion)
                 } else {
                     // Track failed upload
                     if let filePath = media.filePath {
-                        ZenForms.shared.cleanupDelegate?.trackFailedUpload(filePath: filePath)
+                        ZenForms.shared.failedFilesTrackingDelegate?.trackFailedUpload(filePath: filePath)
                     }
                     
                     // Continue with next media even if this one failed
