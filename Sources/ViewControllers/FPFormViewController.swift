@@ -1663,38 +1663,26 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
         }
     }
     
+    /// Presents file preview, downloading from server if needed
     fileprivate func handleFileMedia(_ ssMedia: SSMedia) {
-        let documentsUrl = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        var url = documentsUrl.appendingPathComponent(ssMedia.name)
-        
-        if fileManager.fileExists(atPath: url.path){
-            let documentInteractionController = UIDocumentInteractionController(url: url)
-            documentInteractionController.delegate = self
-            DispatchQueue.main.async {
-                documentInteractionController.presentPreview(animated: true)
-            }
-        } else if let serverUrl = ssMedia.serverUrl {
-            FPUtility.showHUDWithLoadingMessage()
-            FPUtility.downloadAnyData(from: serverUrl) { image  in
-                do {
-                    let documentDirectory = try self.fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:false)
-                    let ext : String = URL.init(string: serverUrl)?.pathExtension ?? ""
-                    url = documentDirectory.appendingPathComponent("\(UUID().uuidString)_downloaded.\(ext)")
-                    try image?.write(to: url)
-                    
-                    // Track this URL for cleanup (supports multiple concurrent previews)
-                    self.previewFileURLs.insert(url)
-                    
-                    let documentInteractionController = UIDocumentInteractionController(url: url)
-                    documentInteractionController.delegate = self
-                    DispatchQueue.main.async {
-                        documentInteractionController.presentPreview(animated: true)
-                    }
-                } catch{
-                    print(error)
-                }
-                FPUtility.hideHUD()
-            }
+        FPMedia.getPreviewFilePath(fileName: ssMedia.name, serverUrl: ssMedia.serverUrl) { [weak self] filePath in
+            guard let self = self, let filePath = filePath else { return }
+            
+            let fileUrl = URL(fileURLWithPath: filePath)
+            
+            // Track URL for cleanup
+            self.previewFileURLs.insert(fileUrl)
+            
+            self.presentFilePreview(url: fileUrl)
+        }
+    }
+    
+    /// Presents file preview using UIDocumentInteractionController
+    private func presentFilePreview(url: URL) {
+        let documentInteractionController = UIDocumentInteractionController(url: url)
+        documentInteractionController.delegate = self
+        DispatchQueue.main.async {
+            documentInteractionController.presentPreview(animated: true)
         }
     }
     

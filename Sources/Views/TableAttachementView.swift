@@ -548,43 +548,12 @@ extension TableAttachementView:TagListViewDelegate{
     }
     
     
-    fileprivate func retrunLocalFilePath(_ media: SSMedia, _ completion: (SSMedia?) -> Void) {
-        let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
-        let documentsPath = paths.first ?? ""
-        let filePath = (documentsPath as NSString).appendingPathComponent(media.name)
-        var tempMedia = media
-        tempMedia.filePath = filePath
-        completion(tempMedia)
-    }
-    
-    func getMedialLocalUrl(media:SSMedia, completion: @escaping (SSMedia?) -> Void) {
-        if FPUtility.isConnectedToNetwork(){
-            if  FPMedia.isMediaExistInDocumentsDirectory(fileName: media.name ){
-                retrunLocalFilePath(media, completion)
-            }else if let serverUrl = media.serverUrl, serverUrl.isValidHttpsUrl || serverUrl.isValidHttpsUrl{
-                DispatchQueue.main.async {
-                    _ = FPUtility.showHUDWithMessage(FPLocalizationHelper.localize("lbl_Getting_File"), detailText: "")
-                }
-                let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
-                let documentsPath = paths.first ?? ""
-                let filePath = (documentsPath as NSString).appendingPathComponent(media.name )
-                let tempUrl:NSURL = NSURL(fileURLWithPath: filePath)
-                FPUtility.download(urlString:media.serverUrl ?? "", toFile: tempUrl.absoluteString ?? "") { error in
-                    FPUtility.hideHUD()
-                    var tempMedia = media
-                    if error == nil{
-                        tempMedia.filePath = filePath
-                    }
-                    completion(tempMedia)
-                }
-            }else{}
-            
-        }else{
-            if FPMedia.isMediaExistInDocumentsDirectory(fileName: media.name ){
-                retrunLocalFilePath(media, completion)
-            }else{
-                completion(media)
-            }
+    /// Gets local URL for media, downloading from server if needed
+    func getMedialLocalUrl(media: SSMedia, completion: @escaping (SSMedia?) -> Void) {
+        FPMedia.getPreviewFilePath(fileName: media.name, serverUrl: media.serverUrl) { filePath in
+            var resultMedia = media
+            resultMedia.filePath = filePath
+            completion(resultMedia)
         }
     }
 
@@ -648,11 +617,11 @@ extension TableAttachementView: QLPreviewControllerDelegate {
     
     /// Clears all cached preview files (call when view is dismissed or session ends)
     func clearPreviewCache() {
-        let paths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
-        let documentsPath = paths.first ?? ""
+        let paths = NSSearchPathForDirectoriesInDomains(.cachesDirectory, .userDomainMask, true)
+        let cachesPath = paths.first ?? ""
         
         for fileName in previewFileCache {
-            let filePath = (documentsPath as NSString).appendingPathComponent(fileName)
+            let filePath = (cachesPath as NSString).appendingPathComponent(fileName)
             do {
                 if fileManager.fileExists(atPath: filePath) {
                     try fileManager.removeItem(atPath: filePath)
