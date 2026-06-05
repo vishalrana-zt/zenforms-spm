@@ -49,6 +49,7 @@ import Foundation
     static let isActive = "isActive"
     static let isAdmin = "isAdmin"
     static let id = "id"
+    static let localClientId = "localClientId"
     static let companyId = "companyId"
     static let templateId = "templateId"
     static let isTemplate = "isTemplate"

@@ -38,6 +38,7 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         CREATE TABLE IF NOT EXISTS \(FPFormsDatabaseManager.getTableName()) (
         \(FPColumn.sqliteId)              \(FPDataTypes.integer) PRIMARY KEY AUTOINCREMENT,
         \(FPColumn.id)                    \(FPDataTypes.text) UNIQUE,
+        \(FPColumn.localClientId)         \(FPDataTypes.text),
         \(FPColumn.locallyUpdatedAt)      \(FPDataTypes.date),
         \(FPColumn.createdAt)             \(FPDataTypes.date),
         \(FPColumn.updatedAt)             \(FPDataTypes.date),
@@ -147,6 +148,9 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         if !FPUtility.isObjectEmpty(form.objectId) {
             insertQuery += "\(FPColumn.id),"
         }
+        if !FPUtility.isObjectEmpty(form.localClientId) {
+            insertQuery += "\(FPColumn.localClientId),"
+        }
         if !FPUtility.isObjectEmpty(form.locallyUpdatedAt) {
             insertQuery += "\(FPColumn.locallyUpdatedAt),"
         }
@@ -204,6 +208,9 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         
         if let objectId = form.objectId {
             insertQuery += "'\(objectId)',"
+        }
+        if let localClientId = form.localClientId {
+            insertQuery += "'\(localClientId)',"
         }
         if let localLastUpdatedAt = form.locallyUpdatedAt {
             insertQuery += "'\(localLastUpdatedAt)',"
@@ -292,6 +299,10 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
 
         if let objectId = form.objectId {
             updateQuery += "\(FPColumn.id)='\(objectId)',"
+        }
+        
+        if let localClientId = form.localClientId {
+            updateQuery += "\(FPColumn.localClientId)='\(localClientId)',"
         }
         
         if let templateId = form.templateId {

@@ -643,6 +643,10 @@ class FPFormsServiceManager: NSObject {
         if isNew || form.objectId == nil{
             let tempForm = form
             tempForm.objectId = nil
+            // Generate localClientId if not already set (similar to sqliteId assignment pattern)
+            if tempForm.localClientId == nil || tempForm.localClientId?.isEmpty == true {
+                tempForm.localClientId = FPUtility.nanoID()
+            }
             self.addCustomForm(ticketId: ticketId, form: tempForm, setSynced: setSynced, assetLinkDetail: assetLinkDetail) { result, error in
                 completion(result, error)
             }
@@ -756,9 +760,13 @@ class FPFormsServiceManager: NSObject {
                     let formOnline = FPForms.init(dict: result,isForLocal: true)
                     formOnline.isSyncedToServer = true
                     
+                    // Preserve localClientId if not returned by server
+                    if formOnline.localClientId == nil || formOnline.localClientId?.isEmpty == true {
+                        formOnline.localClientId = form.localClientId
+                    }
+                    
                     if isStaffTechnician{
-                        FPFormsServiceManager.preComileFPForm(form: formOnline, ticketID: ticketId.stringValue) {
-                        }
+                        FPFormsServiceManager.preComileFPForm(form: formOnline, ticketID: ticketId.stringValue) {}
                     }
                     
                     let results = AssetFormLinkingDatabaseManager().fetchAssetLinkigDataFor(customForm: form)

@@ -13,6 +13,7 @@ public class FPForms : NSObject{
     public var locallyUpdatedAt:String?
     public var sqliteId:NSNumber?
     public var objectId:String?
+    public var localClientId:String?
     public var createdAt:String?
     public var updatedAt:String?
     public var isSyncedToServer:Bool? = false
@@ -75,6 +76,7 @@ public class FPForms : NSObject{
         
         self.objectId = FPUtility.getSQLiteCompatibleStringValue(dict["id"], isForLocal:isForLocal)
         self.objectStringId = FPUtility.getSQLiteCompatibleStringValue(dict["id"], isForLocal:isForLocal)
+        self.localClientId = FPUtility.getSQLiteCompatibleStringValue(dict["localClientId"], isForLocal:isForLocal)
         self.companyId = FPUtility.getNumberValue(dict["companyId"])
         
         self.templateId = FPUtility.getSQLiteCompatibleStringValue(dict["templateId"], isForLocal:isForLocal)
@@ -245,6 +247,11 @@ public class FPForms : NSObject{
         
         dict["updatedAt"] = self.updatedAt ?? ""
         
+        // Include localClientId if set (should be set during insertForm, similar to sqliteId)
+        if let localClientId = self.localClientId, !localClientId.isEmpty {
+            dict["localClientId"] = localClientId
+        }
+        
         if let sections = self.sections, !sections.isEmpty {
             dict["sections"] = getSectionsArray()
         }
@@ -275,7 +282,6 @@ public class FPForms : NSObject{
             }
         } else {
             copy.templateId = self.templateId
-            copy.sqliteId = self.sqliteId
         }
 
         if let sections = self.sections, !sections.isEmpty {

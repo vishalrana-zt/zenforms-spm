@@ -49,7 +49,7 @@ class FPUtility : NSObject{
         
     }
     
-    class func nanoID(size: Int = 10) -> String {
+    class func nanoID(size: Int = 12) -> String {
         let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         var bytes = [UInt8](repeating: 0, count: size)
         _ = SecRandomCopyBytes(kSecRandomDefault, size, &bytes)
