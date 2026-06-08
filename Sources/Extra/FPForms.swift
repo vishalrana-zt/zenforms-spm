@@ -283,6 +283,7 @@ public class FPForms : NSObject{
         } else {
             copy.templateId = self.templateId
             copy.sqliteId = self.sqliteId
+            copy.localClientId = self.localClientId
         }
 
         if let sections = self.sections, !sections.isEmpty {
