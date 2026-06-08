@@ -370,7 +370,9 @@ extension TableAttachementView: UIImagePickerControllerDelegate{
                     UIImageWriteToSavedPhotosAlbum(chosenImage!, nil, nil,nil)
                 }
                 if (chosenImage != nil) {
-                    guard let imageData = chosenImage!.jpegData(compressionQuality: 1.0) else { return }
+                    // Preserve EXIF metadata for camera captures
+                    let metadata = picker.sourceType == .camera ? info[.mediaMetadata] as? [String: Any] : nil
+                    guard let imageData = FPImageEXIFHelper.jpegData(from: chosenImage!, metadata: metadata, compressionQuality: 1.0) else { return }
                     do {
                         let documentDirectory = try self.fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:true)
                         let fileURL = documentDirectory.appendingPathComponent("\(Int.random(in: 999999..<9999999)).jpeg" )
@@ -434,7 +436,7 @@ extension TableAttachementView: PHPickerViewControllerDelegate{
                     }
                 }else{
                     result.itemProvider.loadDataRepresentation(forTypeIdentifier: UTType.image.identifier) { phImgData, error in
-                        if let phImgData = phImgData, let image = UIImage(data: phImgData), let imageData = image.jpegData(compressionQuality: 1.0){
+                        if let imageData = phImgData{
                             do {
                                 let documentDirectory = try self.fileManager.url(for: .documentDirectory, in: .userDomainMask, appropriateFor:nil, create:true)
                                 let fileURL = documentDirectory.appendingPathComponent("\(Int.random(in: 999999..<9999999)).jpeg" )
