@@ -99,6 +99,31 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     let CHART_CELL = "chart_cell"
     var isRescan: Bool = false
     fileprivate let fileManager = FileManager.default
+    private var shouldUseCopilotLegacyUI: Bool {
+        isFromCoPILOT
+    }
+    private weak var copilotLegacyHeaderView: UIView?
+    private weak var copilotProgressSection: UIProgressView?
+    private weak var copilotProgressFields: UIProgressView?
+    private weak var copilotFieldsProgressCountLabel: UILabel?
+    private weak var copilotSectionTitleLabel: UILabel?
+    private var sectionHeaderOriginalHeight: CGFloat = 40
+    private var sectionHeaderOriginalTableSpacing: CGFloat = 8
+    private var copilotPrimaryColor: UIColor {
+        UIColor(red: 0.898, green: 0.451, blue: 0.451, alpha: 1)
+    }
+    private var copilotPrimaryFadeColor: UIColor {
+        UIColor(red: 0.980, green: 0.820, blue: 0.824, alpha: 1)
+    }
+    private var copilotRowBackgroundColor: UIColor {
+        UIColor(red: 0.941, green: 0.937, blue: 0.965, alpha: 1)
+    }
+    private var copilotCountTextColor: UIColor {
+        UIColor(red: 0.278, green: 0.278, blue: 0.278, alpha: 1)
+    }
+    private var zenFormsPrimaryColor: UIColor {
+        UIColor(named: "BT-Primary", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIColor(red: 0.2, green: 0.396, blue: 0.718, alpha: 1)
+    }
     
     var refreshActivityBarButton:UIBarButtonItem?
     var refreshActivityIndicator = UIActivityIndicatorView()
@@ -155,6 +180,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         imgViewForDropDown.image = UIImage(named: "ic_down_arrow_black")
         txtFieldSection.text = FPUtility.getSQLiteCompatibleStringValue(FPFormDataHolder.shared.getFormSections().first?.displayName ?? "", isForLocal: false)
         lblCurrentSectionName.text = txtFieldSection.text
+        updateCopilotSectionProgress(animated: false)
         if(FPFormDataHolder.shared.getSectionCount()>1) {
             addSectionPicker()
         }else{
@@ -297,6 +323,170 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         formTableView.estimatedRowHeight = 200
     }
     
+    private func applyCopilotLegacyUIIfNeeded() {
+        guard shouldUseCopilotLegacyUI else {
+            setCurrentSectionHeaderCollapsed(false)
+            return
+        }
+        buildCopilotLegacyUIIfNeeded()
+        copilotLegacyHeaderView?.isHidden = false
+        copilotProgressSection?.isHidden = false
+        setCurrentSectionHeaderCollapsed(true)
+        
+        view.backgroundColor = copilotRowBackgroundColor
+        formTableView.backgroundColor = copilotRowBackgroundColor
+        formTableView.superview?.backgroundColor = copilotRowBackgroundColor
+        viewBottom.backgroundColor = .white
+        txtFieldSection.font = .boldSystemFont(ofSize: 17)
+        btnPrevious.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+        btnNext.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+        btnPrevious.setTitleColor(zenFormsPrimaryColor, for: .normal)
+        btnNext.setTitleColor(zenFormsPrimaryColor, for: .normal)
+    }
+    
+    private func buildCopilotLegacyUIIfNeeded() {
+        if copilotLegacyHeaderView == nil, let contentStack = view.subviews.compactMap({ $0 as? UIStackView }).first {
+            let headerView = UIView()
+            headerView.translatesAutoresizingMaskIntoConstraints = false
+            headerView.backgroundColor = .systemBackground
+            
+            let headerStack = UIStackView()
+            headerStack.translatesAutoresizingMaskIntoConstraints = false
+            headerStack.axis = .vertical
+            headerStack.spacing = 0
+            
+            let titleRow = UIStackView()
+            titleRow.translatesAutoresizingMaskIntoConstraints = false
+            titleRow.axis = .horizontal
+            
+            let titleLabel = UILabel()
+            titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+            titleLabel.textColor = .black
+            titleLabel.lineBreakMode = .byTruncatingTail
+            
+            let countContainer = UIView()
+            let countLabel = UILabel()
+            countLabel.translatesAutoresizingMaskIntoConstraints = false
+            countLabel.backgroundColor = copilotPrimaryFadeColor
+            countLabel.textColor = copilotCountTextColor
+            countLabel.font = .systemFont(ofSize: 12, weight: .medium)
+            countLabel.textAlignment = .center
+            countLabel.layer.cornerRadius = 8
+            countLabel.layer.masksToBounds = true
+            countLabel.layer.borderWidth = 0.5
+            countLabel.layer.borderColor = UIColor(red: 0.686, green: 0.686, blue: 0.686, alpha: 1).cgColor
+            
+            countContainer.addSubview(countLabel)
+            NSLayoutConstraint.activate([
+                countContainer.widthAnchor.constraint(equalToConstant: 100),
+                countLabel.centerXAnchor.constraint(equalTo: countContainer.centerXAnchor),
+                countLabel.centerYAnchor.constraint(equalTo: countContainer.centerYAnchor),
+                countLabel.widthAnchor.constraint(equalToConstant: 80),
+                countLabel.heightAnchor.constraint(equalToConstant: 20)
+            ])
+            
+            titleRow.addArrangedSubview(titleLabel)
+            titleRow.addArrangedSubview(countContainer)
+            
+            let fieldsProgress = UIProgressView(progressViewStyle: .default)
+            fieldsProgress.translatesAutoresizingMaskIntoConstraints = false
+            fieldsProgress.progressTintColor = copilotPrimaryColor
+            fieldsProgress.trackTintColor = copilotPrimaryFadeColor
+            
+            headerStack.addArrangedSubview(titleRow)
+            headerStack.addArrangedSubview(fieldsProgress)
+            headerView.addSubview(headerStack)
+            
+            contentStack.insertArrangedSubview(headerView, at: 0)
+            NSLayoutConstraint.activate([
+                headerView.heightAnchor.constraint(equalToConstant: 46),
+                headerStack.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 16),
+                headerStack.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
+                headerStack.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
+                headerStack.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -8),
+                fieldsProgress.heightAnchor.constraint(equalToConstant: 4)
+            ])
+            
+            copilotLegacyHeaderView = headerView
+            copilotSectionTitleLabel = titleLabel
+            copilotFieldsProgressCountLabel = countLabel
+            copilotProgressFields = fieldsProgress
+        }
+        
+        if copilotProgressSection == nil {
+            let sectionProgress = UIProgressView(progressViewStyle: .bar)
+            sectionProgress.translatesAutoresizingMaskIntoConstraints = false
+            sectionProgress.progressTintColor = copilotPrimaryColor
+            sectionProgress.trackTintColor = copilotPrimaryFadeColor
+            viewBottom.addSubview(sectionProgress)
+            NSLayoutConstraint.activate([
+                sectionProgress.leadingAnchor.constraint(equalTo: viewBottom.leadingAnchor),
+                sectionProgress.trailingAnchor.constraint(equalTo: viewBottom.trailingAnchor),
+                sectionProgress.topAnchor.constraint(equalTo: viewBottom.topAnchor),
+                sectionProgress.heightAnchor.constraint(equalToConstant: 0.5)
+            ])
+            copilotProgressSection = sectionProgress
+        }
+    }
+    
+    private func setCurrentSectionHeaderCollapsed(_ collapsed: Bool) {
+        viewSectioNameEdit.isHidden = collapsed
+        if let heightConstraint = viewSectioNameEdit.constraints.first(where: { $0.firstAttribute == .height }) {
+            if !collapsed {
+                sectionHeaderOriginalHeight = max(sectionHeaderOriginalHeight, heightConstraint.constant)
+            }
+            heightConstraint.constant = collapsed ? 0 : sectionHeaderOriginalHeight
+        }
+        
+        viewSectioNameEdit.superview?.constraints.forEach { constraint in
+            let firstView = constraint.firstItem as? UIView
+            let secondView = constraint.secondItem as? UIView
+            if firstView === formTableView,
+               constraint.firstAttribute == .top,
+               secondView === viewSectioNameEdit,
+               constraint.secondAttribute == .bottom {
+                if !collapsed {
+                    sectionHeaderOriginalTableSpacing = max(sectionHeaderOriginalTableSpacing, constraint.constant)
+                }
+                constraint.constant = collapsed ? 0 : sectionHeaderOriginalTableSpacing
+            }
+        }
+        view.layoutIfNeeded()
+    }
+    
+    private func updateCopilotSectionProgress(animated: Bool = true) {
+        guard shouldUseCopilotLegacyUI else { return }
+        let sections = FPFormDataHolder.shared.getFormSections()
+        guard sections.isEmpty == false else {
+            copilotFieldsProgressCountLabel?.text = "0/0"
+            copilotProgressFields?.setProgress(0, animated: animated)
+            copilotProgressSection?.setProgress(0, animated: animated)
+            copilotSectionTitleLabel?.text = ""
+            return
+        }
+        
+        let sectionIndex = min(max(section, 0), sections.count - 1)
+        let (answered, total) = FPFormDataHolder.shared.countOfAnsweredVisibleFields(section: sectionIndex)
+        copilotFieldsProgressCountLabel?.text = "\(answered)/\(total)"
+        let fieldsProgress = total == 0 ? 0 : Float(answered) / Float(total)
+        copilotProgressFields?.setProgress(fieldsProgress, animated: animated)
+        
+        if sections.count > 1 {
+            let title = FPUtility.getSQLiteCompatibleStringValue(sections[safe: sectionIndex]?.displayName ?? "", isForLocal: false)
+            copilotSectionTitleLabel?.text = title
+        } else {
+            copilotSectionTitleLabel?.text = ""
+        }
+        
+        let sectionProgress: Float
+        if sectionIndex == 0 || sections.count <= 1 {
+            sectionProgress = 0
+        } else {
+            sectionProgress = Float(sectionIndex + 1) / Float(sections.count)
+        }
+        copilotProgressSection?.setProgress(sectionProgress, animated: animated)
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         let form = self.customForm.getCopyOfCustomForm(isTemplate: false)
@@ -314,12 +504,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         btnNext.currentView = self.navigationController?.view ?? self.view
         
         initializeView()
-        btnQuickNote.isHidden = !isEnableQuickNotes
+        btnQuickNote.isHidden = shouldUseCopilotLegacyUI || !isEnableQuickNotes
         if self.isAnalysed || self.isFromHistory{
             btnQuickNote.isHidden = true
         }
         viewBottom.dropShadow()
-        viewSectioNameEdit.dropShadow()
+        if shouldUseCopilotLegacyUI == false {
+            viewSectioNameEdit.dropShadow()
+        }
         if let ticketID = self.ticketId?.stringValue{
             FPFormsServiceManager.getComputedFields(ticketID: ticketID)
         }
@@ -360,10 +552,17 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     func initializeView() {
         resetLocalVariables()
-        self.imgEditSectionName.isHidden = false
+        applyCopilotLegacyUIIfNeeded()
+        self.imgEditSectionName.isHidden = shouldUseCopilotLegacyUI
         FPFormDataHolder.shared.customForm = self.customForm.getCopyOfCustomForm(isTemplate: false)
-        if isNew || isFromHistory{
+        if isNew || isFromHistory {
             FPFormDataHolder.shared.customForm?.objectId = nil
+        }
+        if shouldUseCopilotLegacyUI {
+            self.title = FPFormDataHolder.shared.customForm?.displayName
+            self.navigationItem.titleView = nil
+            self.imgEditSectionName.isHidden = true
+        } else if isNew || isFromHistory{
             self.title =  FPFormDataHolder.shared.customForm?.displayName
             self.imgEditSectionName.isHidden = isFromHistory
         }else{
@@ -502,6 +701,10 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     }
     
     func setupNavBar() {
+        if shouldUseCopilotLegacyUI {
+            setupCopilotLegacyNavBar()
+            return
+        }
         
         self.refreshActivityIndicator.sizeToFit()
         self.refreshActivityIndicator.color = UIColor(named: "BT-Primary") ?? .blue
@@ -525,6 +728,43 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             self.refreshActivityIndicator.startAnimating()
             (self.navigationController?.view ?? self.view)?.isUserInteractionEnabled = false
         }else{
+            self.refreshActivityIndicator.stopAnimating()
+            (self.navigationController?.view ?? self.view)?.isUserInteractionEnabled = true
+        }
+    }
+    
+    private func setupCopilotLegacyNavBar() {
+        self.refreshActivityIndicator.sizeToFit()
+        self.refreshActivityIndicator.color = zenFormsPrimaryColor
+        self.refreshActivityIndicator.style = .medium
+        self.refreshActivityIndicator.hidesWhenStopped = true
+        
+        if self.refreshActivityBarButton == nil {
+            self.refreshActivityBarButton = UIBarButtonItem(customView: refreshActivityIndicator)
+        }
+        
+        navigationController?.navigationBar.backgroundColor = .white
+        navigationController?.navigationBar.tintColor = .black
+        navigationController?.navigationBar.barTintColor = .white
+        self.navigationItem.titleView = nil
+        self.navigationItem.rightBarButtonItem = nil
+        
+        if self.customForm?.isAnalysed == false, isFromHistory == false {
+            let rightBarButton = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(saveButtonAction))
+            rightBarButton.tintColor = zenFormsPrimaryColor
+            rightBarButton.setTitleTextAttributes([.font: UIFont.systemFont(ofSize: 16, weight: .bold)], for: .normal)
+            self.navigationItem.rightBarButtonItem = isSaveRefreshing ? self.refreshActivityBarButton : rightBarButton
+        }
+        
+        let backImage = (UIImage(named: "ic_left_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage(systemName: "chevron.left"))?.withRenderingMode(.alwaysTemplate)
+        let leftBarButton = UIBarButtonItem(image: backImage, style: .plain, target: self, action: #selector(cancelButtonAction))
+        leftBarButton.tintColor = .black
+        self.navigationItem.leftBarButtonItem = leftBarButton
+        
+        if isSaveRefreshing {
+            self.refreshActivityIndicator.startAnimating()
+            (self.navigationController?.view ?? self.view)?.isUserInteractionEnabled = false
+        } else {
             self.refreshActivityIndicator.stopAnimating()
             (self.navigationController?.view ?? self.view)?.isUserInteractionEnabled = true
         }
@@ -782,9 +1022,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         self.stopLoadings()
         DispatchQueue.main.async {
             let sections = FPFormDataHolder.shared.getFormSections()
+            self.viewBottom.isHidden = self.shouldUseCopilotLegacyUI && sections.count <= 1
             if sections.count == 1{
                 self.btnPrevious.isHidden = true
                 self.btnNext.isHidden = true
+                if self.shouldUseCopilotLegacyUI {
+                    self.refreshSection()
+                    self.updateCopilotSectionProgress()
+                }
                 return
             }else{
                 self.btnPrevious.isHidden = false
@@ -803,6 +1048,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             }
             self.handleSectionButtonsInteraction()
             self.refreshSection()
+            self.updateCopilotSectionProgress()
         }
     }
     
@@ -1624,6 +1870,10 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
     }
     
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if shouldUseCopilotLegacyUI {
+            cell.backgroundColor = .white
+            cell.contentView.backgroundColor = .white
+        }
         if let cell = cell as? FPTableCollectionViewCell {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 cell.collMain.layoutIfNeeded()
@@ -2296,6 +2546,7 @@ extension FPFormViewController: FPDynamicDataTypeCellDelegate {
                 }
             }
         }
+        updateCopilotSectionProgress()
     }
 }
 
@@ -2334,6 +2585,10 @@ extension FPFormViewController: UIPickerViewDelegate {
         let value = FPUtility.getSQLiteCompatibleStringValue(sections[safe:self.section]?.displayName ?? "", isForLocal: false)
         self.txtFieldSection.text = value
         self.lblCurrentSectionName.text = value
+        if shouldUseCopilotLegacyUI {
+            self.copilotSectionTitleLabel?.text = sections.count > 1 ? value : ""
+            self.updateCopilotSectionProgress()
+        }
         if value == FPLocalizationHelper.localize("SELECT"){
             self.txtFieldSection.text = ""
         }

@@ -430,6 +430,17 @@ struct FPFormDataHolder{
         return getFormSections().count
     }
     
+    public func countOfAnsweredVisibleFields(section:Int)->(Int,Int){
+        let fields = getFieldsIn(section: section).filter { $0.getUIType() != .HIDDEN }
+        let answeredCount = fields.filter { field in
+            guard let value = field.value?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+                return false
+            }
+            return !value.isEmpty
+        }.count
+        return (answeredCount, fields.count)
+    }
+    
     public func getFieldsCountFor(section:Int)->Int{
         return getFieldsIn(section: section).count
     }
