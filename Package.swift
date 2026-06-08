@@ -62,6 +62,8 @@ let package = Package(
                 .product(name: "FMDB", package: "fmdb"),
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "IQKeyboardManagerSwift", package: "IQKeyboardManager"),
+            .product(name: "IQKeyboardToolbarManager", package: "IQKeyboardManager"),
+            .product(name: "IQKeyboardToolbar", package: "IQKeyboardManager"),
                 .product(name: "Reachability", package: "Reachability.swift"),
                 .product(name: "SwiftUIFlowLayout", package: "swiftui-flow-layout"),
                 .product(name: "Kingfisher", package: "Kingfisher"),
