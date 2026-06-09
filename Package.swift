@@ -33,6 +33,8 @@ let package = Package(
 
         // MARK: - Keyboard Management
         .package(url: "https://github.com/hackiftekhar/IQKeyboardManager.git", branch: "master"),
+        .package(url: "https://github.com/hackiftekhar/IQKeyboardToolbar.git", .upToNextMajor(from: "1.1.4")),
+        .package(url: "https://github.com/hackiftekhar/IQKeyboardToolbarManager.git", .upToNextMajor(from: "1.1.5")),
 
         // MARK: - Utilities
         .package(url: "https://github.com/ashleymills/Reachability.swift", branch: "master"),
@@ -62,8 +64,8 @@ let package = Package(
                 .product(name: "FMDB", package: "fmdb"),
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "IQKeyboardManagerSwift", package: "IQKeyboardManager"),
-            .product(name: "IQKeyboardToolbarManager", package: "IQKeyboardManager"),
-            .product(name: "IQKeyboardToolbar", package: "IQKeyboardManager"),
+            .product(name: "IQKeyboardToolbarManager", package: "IQKeyboardToolbarManager"),
+            .product(name: "IQKeyboardToolbar", package: "IQKeyboardToolbar"),
                 .product(name: "Reachability", package: "Reachability.swift"),
                 .product(name: "SwiftUIFlowLayout", package: "swiftui-flow-layout"),
                 .product(name: "Kingfisher", package: "Kingfisher"),
