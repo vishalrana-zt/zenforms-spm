@@ -1513,7 +1513,7 @@ extension FPTableEditViewController: AttachmentPickerDelegate{
                     self.tableComponent = component
                 }
             }
-            self.collectionView.reloadData()
+            reloadCollectionViewWithCacheInvalidation()
         }
     }
     
