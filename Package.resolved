@@ -1,5 +1,5 @@
 {
-  "originHash" : "0f16454f748fc6e76df51ff42ddbe6eae47eb3fc804bda899cc96dda7d384623",
+  "originHash" : "b40dbe6bc3ec8effd1a19bcfc0622985687ba192bb4732169b586341040a228e",
   "pins" : [
     {
       "identity" : "acedrawingview",
@@ -204,8 +204,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vishalrana-zt/SSMediaManager",
       "state" : {
-        "branch" : "exif-support",
-        "revision" : "3e014a6c92b9d4e9ae3e4eb7e16aa70ebbab5dc2"
+        "branch" : "main",
+        "revision" : "c5859791382a087b0bad9615e0e3172b783a09d3"
       }
     },
     {
