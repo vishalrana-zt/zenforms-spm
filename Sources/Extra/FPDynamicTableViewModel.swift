@@ -392,7 +392,6 @@ class TableComponent {
     func getValuesObject() -> [[String: Any]] {
         var values = [[String: Any]]()
         self.rows?.enumerated().forEach { (index, row) in
-            print("\(index): \(row)")
             var value = [String: Any]()
             row.columns.forEach { column in
                 value[column.key] = column.value

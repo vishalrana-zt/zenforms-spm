@@ -225,7 +225,6 @@ class FPUtility : NSObject{
             try fileManager.moveItem(at: sourceURL, to: destinationURL)
             return destinationURL.path
         } catch {
-            print("Error moving file to cache: \(error)")
             return nil
         }
     }
@@ -672,7 +671,6 @@ extension FPUtility {
             print("Database Path: \(finalDatabaseURL.path)")
             return finalDatabaseURL.path
         } else {
-            print("Couldn't get documents directory!")
             return nil
         }
     }
@@ -686,7 +684,6 @@ extension FPUtility {
             print("Database Path: \(dbURL.path)")
             return dbURL.path
         }catch {
-            print("Path Unresolved error \(error)")
             return nil
         }
     }
@@ -699,9 +696,7 @@ extension FPUtility {
             guard let file = bundle?.appendingPathComponent(fileName) else { return nil }
             do {
                 try fileManager.copyItem(atPath: file.path, toPath: dbPath)
-                print("Newly Saved to DB")
             } catch {
-                print("Error: \(error.localizedDescription)")
                 return nil
             }
         }
