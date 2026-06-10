@@ -65,10 +65,12 @@ extension FPQueAnsCollectionViewModel: UICollectionViewDataSource {
         let tableComponent = dataSource?.getTableComponent()
         let baseCount = tableComponent?.rows?.count ?? 0
         var dataRows = textSearchVisibleRowIndices?.count ?? baseCount
-        // Apply max preview rows limit if set (0 = unlimited)
+
+        // Apply maxPreviewRows limit if set (> 0)
         if maxPreviewRows > 0 && dataRows > maxPreviewRows {
             dataRows = maxPreviewRows
         }
+
         return (baseCount > 0 ? dataRows : 0) + 1
     }
 
