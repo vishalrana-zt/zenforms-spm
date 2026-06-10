@@ -291,6 +291,7 @@ class FPTableCollectionViewCell: UITableViewCell {
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: tableComponent)
             }
             self.updateTableData()
+            self.updateRowCountLabel()
             self.fpReapplyPreviewTextSearchIfNeeded()
             self.collMain.reloadData()
             self.collMain.layoutIfNeeded()
@@ -298,7 +299,7 @@ class FPTableCollectionViewCell: UITableViewCell {
         self.fpViewController?.navigationController?.pushViewController(viewController, animated: true)
         return
     }
-    
+
     func openRestrictedTable(){
         let viewController =  FPQueAnsTableEditViewController(nibName: "FPQueAnsTableEditViewController", bundle: ZenFormsBundle.bundle)
         viewController.fieldDetails =  fieldDetails
@@ -321,6 +322,7 @@ class FPTableCollectionViewCell: UITableViewCell {
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: tableComponent)
             }
             self.updateTableData()
+            self.updateRowCountLabel()
             self.fpReapplyPreviewTextSearchIfNeeded()
             self.collMain.reloadData()
             self.collMain.layoutIfNeeded()
