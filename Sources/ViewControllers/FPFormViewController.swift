@@ -215,9 +215,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         // Use sqliteId as session ID if available, otherwise fallback to UUID for new forms
         FPFormDataHolder.shared.currentFormSessionId = form.sqliteId?.stringValue ?? UUID().uuidString
         FPFormDataHolder.shared.customForm = form
-        if !(form.isSyncedToServer ?? false) {
-            FPFormDataHolder.shared.getFilesFromValue(form: form)
-        }
+        FPFormDataHolder.shared.getFilesFromValue(form: form)
         btnPrevious.currentView = self.navigationController?.view ?? self.view
         btnNext.currentView = self.navigationController?.view ?? self.view
         
