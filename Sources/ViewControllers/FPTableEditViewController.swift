@@ -907,7 +907,14 @@ extension FPTableEditViewController{
         self.isSortFilterApplied = false
         self.sortFilterColumn = nil
         self.sortFilteredTableComponent = nil
-        self.resetMultipleSeletion()
+        // Reset selection state without triggering an intermediate reloadData
+        self.arrSelectedIndexes = []
+        self.arrSelectedRows = []
+        self.isSelectedAll = false
+        self.refreshActionButtons()
+        // Reset scroll position BEFORE invalidating layout so the layout captures (0,0) as
+        // originalContentOffset — prevents cells rendering at stale offsets (UI glitch after Clear).
+        self.collectionView.setContentOffset(.zero, animated: false)
         if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
             layout.invalidateDataSourceCounts()
         } else {
@@ -1498,7 +1505,7 @@ extension FPTableEditViewController: AttachmentPickerDelegate{
                     self.tableComponent = component
                 }
             }
-            reloadCollectionViewWithCacheInvalidation()
+            self.collectionView.reloadData()
         }
     }
     

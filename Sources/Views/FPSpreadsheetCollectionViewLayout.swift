@@ -181,8 +181,9 @@ final class FPSpreadsheetCollectionViewLayout: UICollectionViewLayout {
         guard let collectionView = collectionView else {
             return nil
         }
-        let columnCount = collectionView.numberOfItems(inSection: 0)
-        let rowCount = collectionView.numberOfSections
+        // Use cached counts when available to avoid triggering data-source calls on every scroll frame.
+        let columnCount = columnCountCache > 0 ? columnCountCache : collectionView.numberOfItems(inSection: 0)
+        let rowCount = rowCountCache > 0 ? rowCountCache : collectionView.numberOfSections
         guard columnCount > 0, rowCount > 0 else {
             layoutAttributesCache = []
             layoutAttributesInRectCache = rect
