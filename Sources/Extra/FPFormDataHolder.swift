@@ -1246,31 +1246,6 @@ struct FPFormDataHolder{
             }
         }
         
-        // Hash file attachments (sorted keys for deterministic hashing)
-        let sortedFileKeys = filesAtIndex.keys.sorted { (lh, rh) -> Bool in
-            if lh.section != rh.section {
-                return lh.section < rh.section
-            }
-            return lh.row < rh.row
-        }
-        for key in sortedFileKeys {
-            if let files = filesAtIndex[key] {
-                hasher.combine(key.section)
-                hasher.combine(key.row)
-                hasher.combine(files.count)
-            }
-        }
-        
-        // Hash table media (count only for speed)
-        for media in tableMedia {
-            if let parentIndex = media.parentTableIndex {
-                hasher.combine(parentIndex.section)
-                hasher.combine(parentIndex.row)
-            }
-            hasher.combine(media.mediaAdded.count)
-            hasher.combine(media.mediaDeleted.count)
-        }
-        
         return String(hasher.finalize())
     }
     
