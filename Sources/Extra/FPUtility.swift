@@ -203,6 +203,33 @@ class FPUtility : NSObject{
         }
     }
     
+    @objc class func getCacheDirectoryURL() -> URL? {
+        return FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+    }
+
+    @objc class func moveFileToCache(atPath filePath: String) -> String? {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: filePath) else { return nil }
+        
+        let sourceURL = URL(fileURLWithPath: filePath)
+        let fileName = sourceURL.lastPathComponent
+        guard let cacheDirectoryURL = getCacheDirectoryURL() else { return nil }
+        let destinationURL = cacheDirectoryURL.appendingPathComponent(fileName)
+        
+        // Remove existing file at destination if any
+        if fileManager.fileExists(atPath: destinationURL.path) {
+            try? fileManager.removeItem(at: destinationURL)
+        }
+        
+        do {
+            try fileManager.moveItem(at: sourceURL, to: destinationURL)
+            return destinationURL.path
+        } catch {
+            print("Error moving file to cache: \(error)")
+            return nil
+        }
+    }
+    
     class func downloadAnyData(from urlString: String?, completion: @escaping ((_ data: Data?) -> Void)) {
         guard let unwrapedURLString = urlString, let url = URL(string: unwrapedURLString) else {
             completion(nil)

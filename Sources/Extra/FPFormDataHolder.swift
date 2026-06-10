@@ -608,8 +608,8 @@ struct FPFormDataHolder{
     public mutating func updateServerUrl(url: String, key: IndexPath, index: Int){
        var media  =  filesAtIndex[key]?[index]
         
-        // Clean up local file after successful upload to S3
-        deleteLocalFile(at: media?.filePath)
+        // Move local file to cache after successful upload to S3
+        cacheLocalFile(at: media?.filePath)
         
         media?.serverUrl = url
         media?.filePath =  nil
@@ -1020,6 +1020,19 @@ struct FPFormDataHolder{
             }
         } catch {
             // Silently handle file deletion errors
+        }
+    }
+    
+    /// Moves a local file to the cache directory instead of deleting it
+    /// - Parameter filePath: The local file path to move
+    func cacheLocalFile(at filePath: String?) {
+        guard let localPath = filePath, !localPath.isEmpty else { return }
+        
+        if let cachedPath = FPUtility.moveFileToCache(atPath: localPath) {
+            debugPrint("Successfully cached file to: \(cachedPath)")
+        } else {
+            // Fallback to deletion if move fails to ensure cleanup from temporary location
+            deleteLocalFile(at: localPath)
         }
     }
     
