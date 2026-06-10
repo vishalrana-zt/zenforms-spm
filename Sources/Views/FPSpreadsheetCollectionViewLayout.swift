@@ -11,7 +11,6 @@ final class FPSpreadsheetCollectionViewLayout: UICollectionViewLayout {
     weak var delegate: SpreadsheetCollectionViewLayoutDelegate!
     
     private var layoutAttributesCache: [UICollectionViewLayoutAttributes]!
-    private var layoutAttributesInRectCache = CGRect.zero
     private var contentSizeCache = CGSize.zero
     private var columnCountCache = 0
     private var rowCountCache = 0
@@ -105,6 +104,10 @@ final class FPSpreadsheetCollectionViewLayout: UICollectionViewLayout {
         contentSizeCache = .zero
         columnCountCache = 0
         rowCountCache = 0
+        // Reset originalContentOffset so cell positions are recalculated from (0,0).
+        // Callers are responsible for resetting the collection view's scroll offset to .zero
+        // before calling this, so the layout origin stays in sync with the visible position.
+        originalContentOffset = .zero
         invalidateLayout()
     }
     
@@ -174,10 +177,6 @@ final class FPSpreadsheetCollectionViewLayout: UICollectionViewLayout {
     }
     
     override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
-        guard !rect.equalTo(layoutAttributesInRectCache) else {
-            return layoutAttributesCache
-        }
-        
         guard let collectionView = collectionView else {
             return nil
         }
@@ -186,11 +185,8 @@ final class FPSpreadsheetCollectionViewLayout: UICollectionViewLayout {
         let rowCount = rowCountCache > 0 ? rowCountCache : collectionView.numberOfSections
         guard columnCount > 0, rowCount > 0 else {
             layoutAttributesCache = []
-            layoutAttributesInRectCache = rect
             return layoutAttributesCache
         }
-
-        layoutAttributesInRectCache = rect
         
         var attributes = Set<UICollectionViewLayoutAttributes>()
 
@@ -237,8 +233,6 @@ final class FPSpreadsheetCollectionViewLayout: UICollectionViewLayout {
     
     override func invalidateLayout() {
         super.invalidateLayout()
-        
         layoutAttributesCache = nil
-        layoutAttributesInRectCache = CGRect.zero
     }
 }

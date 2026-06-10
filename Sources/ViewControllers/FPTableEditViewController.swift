@@ -274,11 +274,11 @@ class FPTableEditViewController: UIViewController {
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: tableComponent)
                 self.didCompletedEdit?(tableComponent)
             }
-            let snapshot = FPFormDataHolder.shared.tableMediaCache
-            snapshot.forEach { tableMedia in
-                DispatchQueue.main.async {
-                    FPFormDataHolder.shared.updateTableFieldValue(media: tableMedia)
-                }
+            // Process all cached media synchronously — we're already on the main thread inside asyncAfter.
+            // Nested DispatchQueue.main.async calls would let other closures interleave between mutations
+            // of the shared FPFormDataHolder struct, risking inconsistent state.
+            FPFormDataHolder.shared.tableMediaCache.forEach { tableMedia in
+                FPFormDataHolder.shared.updateTableFieldValue(media: tableMedia)
             }
             FPFormDataHolder.shared.tableMediaCache = []
             
@@ -334,12 +334,12 @@ class FPTableEditViewController: UIViewController {
                 _ = self.sortFilteredTableComponent?.addNewRow(with: row.columns, rowSortId: newRow?.sortUuid)
             }
         }
-        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
-            layout.addRow(nRow: rowCount)
-        }
-        
         DispatchQueue.main.async {
             FPUtility.hideHUD()
+            if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                layout.addRow(nRow: self.rowCount)
+                layout.invalidateLayout()
+            }
             self.collectionView.reloadData()
             self.fpReapplyTableTextSearchIfNeeded()
         }
@@ -351,8 +351,9 @@ class FPTableEditViewController: UIViewController {
         if isSortFilterApplied{
             _ = self.sortFilteredTableComponent?.addNewRow(with: row.columns, rowSortId: newRow?.sortUuid, ignoreDefaultVal: true)
         }
-        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
+        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
             layout.addRow(nRow: 1)
+            layout.invalidateLayout()
         }
         self.collectionView.reloadData()
         self.fpReapplyTableTextSearchIfNeeded()
@@ -1137,17 +1138,18 @@ extension FPTableEditViewController{
     func refreshWithSortFilter(){
         DispatchQueue.main.async {
             self.isSortFilterApplied = !self.arrAppliedFilters.isEmpty
+            if self.arrAppliedFilters.isEmpty {
+                // resetToDefault handles setContentOffset + layout invalidation + reloadData
+                self.resetToDefault()
+                return
+            }
             self.collectionView.setContentOffset(.zero, animated: false)
             if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
                 layout.invalidateDataSourceCounts()
             } else {
                 self.collectionView.collectionViewLayout.invalidateLayout()
             }
-            if self.arrAppliedFilters.isEmpty{
-                self.resetToDefault()
-            }else{
-                self.collectionView.reloadData()
-            }
+            self.collectionView.reloadData()
             self.fpReapplyTableTextSearchIfNeeded()
         }
     }
@@ -1185,14 +1187,14 @@ extension FPTableEditViewController: TableContentCellDelegate{
                         _ = self.tableComponent?.addDuplicateRow(columns: duplicaterow.columns, at: insertAtDisplay)
                     }
                 }
+                if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                    layout.addRow()
+                    layout.invalidateLayout()
+                }
                 self.fpReapplyTableTextSearchIfNeeded()
                 self.collectionView.reloadData()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
-            
-        }
-        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
-            layout.addRow()
-            layout.invalidateLayout()
+
         }
     }
     
@@ -1279,14 +1281,14 @@ extension FPTableEditViewController: TableContentCellDelegate{
                         }
                     }
                 }
+                if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                    layout.removeRow()
+                    layout.invalidateLayout()
+                }
                 self.fpReapplyTableTextSearchIfNeeded()
                 self.collectionView.reloadData()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
-            
-        }
-        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
-            layout.removeRow()
-            layout.invalidateLayout()
+
         }
     }
     
@@ -1343,6 +1345,9 @@ extension FPTableEditViewController: TableContentCellDelegate{
     }
     
     func updateData(at index:IndexPath, with data:ColumnData, filedData filed:FPFieldDetails?){
+        // Invalidate cached row columns so reloadItems/reloadSections picks up the new value,
+        // not stale ColumnData from the per-row filter cache.
+        viewModel?.invalidateColumnCache()
         guard let dRow = fp_visibleSectionToDisplayRowIndex(index.section) else { return }
         if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent{
             if var row = sortCompnt.rows?[safe:dRow]{
@@ -1664,9 +1669,6 @@ extension FPTableEditViewController{
                     }
                 }
                 upsertAddAssetLinkIntoDB(assetData:assetData, rowLocalId: assetRowLocalId, rowId: assetRowId)
-                DispatchQueue.main.async {
-                    self.collectionView.reloadData()
-                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                     self.collectionView.reloadData()
                     FPUtility.hideHUD()
