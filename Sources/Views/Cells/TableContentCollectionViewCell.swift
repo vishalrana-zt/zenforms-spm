@@ -102,30 +102,10 @@ class TableContentCollectionViewCell: UICollectionViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        // Reset search highlighting
         searchHighlightQuery = nil
         searchHighlightCaseSensitive = false
         searchHighlightColumnKeys = []
-
-        // Reset data reference
-        data = nil
-
-        // Reset UI to default state - avoid heavy operations
-        tblTextField.text = ""
-        tblTextField.attributedText = nil
-        tblTextField.inputView = nil
-        tblTextView.text = ""
-        tblTextView.attributedText = nil
-        tblDropdownField.text = ""
-        tblDropdownField.attributedText = nil
-
-        // Hide all views - will be shown as needed in setupView
-        btnAction.isHidden = true
-        btnAddAttachment.isHidden = true
-        tblTextField.isHidden = true
-        tblTextView.isHidden = true
-        tblDropdownField.isHidden = true
-        viewBarcode.isHidden = true
+        stripSearchHighlightFormatting()
     }
 
     override func awakeFromNib() {
@@ -148,6 +128,8 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     @IBAction func didTapAddAttachments(_ sender: Any) {
         delegate?.showAddAttachment(at: childTableIndex!, with: data!)
     }
+    
+    
     private func setupView(column:ColumnData){
         self.btnAction.isHidden = true
         self.tblTextView.isUserInteractionEnabled = !(column.readonly ?? false)
