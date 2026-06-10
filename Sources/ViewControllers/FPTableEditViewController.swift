@@ -88,9 +88,7 @@ class FPTableEditViewController: UIViewController {
             viewModel?.parentIndexPath = tableIndexPath
             collectionView.dataSource = viewModel
             collectionView.delegate = viewModel
-            collectionView.prefetchDataSource = viewModel // Enable prefetching for smoother scrolling
             layout.delegate = viewModel
-            viewModel?.invalidateCache()
             collectionView!.reloadData()
         }
     }
@@ -151,13 +149,6 @@ class FPTableEditViewController: UIViewController {
         "ZenForms.FPTableEdit.textSearch.columns.\(fieldDetails?.templateId ?? "0")"
     }
     private let bulkEditInfoShownPrefsKey = "ZenForms.FPTableEdit.bulkEdit.confirmation.shown"
-
-    /// Helper method to reload collection view with cache invalidation
-    /// This ensures cached column data is cleared when underlying data changes
-    private func reloadCollectionViewWithCacheInvalidation() {
-        viewModel?.invalidateCache()
-        collectionView.reloadData()
-    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -349,11 +340,11 @@ class FPTableEditViewController: UIViewController {
         
         DispatchQueue.main.async {
             FPUtility.hideHUD()
-            self.reloadCollectionViewWithCacheInvalidation()
+            self.collectionView.reloadData()
             self.fpReapplyTableTextSearchIfNeeded()
         }
     }
-
+    
     func addEmptyRowToTable(){
         guard let row = self.tableComponent?.rows?.first else { return }
         let newRow = self.tableComponent?.addNewRow(with: row.columns, ignoreDefaultVal: true)
@@ -363,7 +354,7 @@ class FPTableEditViewController: UIViewController {
         if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
             layout.addRow(nRow: 1)
         }
-        self.reloadCollectionViewWithCacheInvalidation()
+        self.collectionView.reloadData()
         self.fpReapplyTableTextSearchIfNeeded()
     }
     
@@ -1148,7 +1139,7 @@ extension FPTableEditViewController{
             if self.arrAppliedFilters.isEmpty{
                 self.resetToDefault()
             }else{
-                self.reloadCollectionViewWithCacheInvalidation()
+                self.collectionView.reloadData()
             }
             self.fpReapplyTableTextSearchIfNeeded()
         }
@@ -1188,16 +1179,16 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     }
                 }
                 self.fpReapplyTableTextSearchIfNeeded()
-                self.reloadCollectionViewWithCacheInvalidation()
+                self.collectionView.reloadData()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
-
+            
         }
         if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
             layout.addRow()
             layout.invalidateLayout()
         }
     }
-
+    
     func duplicateMultipleRows(_ arrRows:[Rows]){
         self.view.endEditing(true)
         FPUtility.showHUDWithLoadingMessage()
@@ -1229,17 +1220,17 @@ extension FPTableEditViewController: TableContentCellDelegate{
                 layout.invalidateLayout()
             }
             FPUtility.hideHUD()
-            self.reloadCollectionViewWithCacheInvalidation()
+            self.collectionView.reloadData()
             if self.isDuplicateRowAddedEndOFTable{
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                     self.collectionView.scrollToBottom(animated: true)
                 }
             }
         }
-
+        
     }
-
-
+    
+    
     func deleteRow(at index:IndexPath){
         self.view.endEditing(true)
         DispatchQueue.main.async{
@@ -1282,9 +1273,9 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     }
                 }
                 self.fpReapplyTableTextSearchIfNeeded()
-                self.reloadCollectionViewWithCacheInvalidation()
+                self.collectionView.reloadData()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
-
+            
         }
         if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
             layout.removeRow()
@@ -1337,7 +1328,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
             if hasActiveSearch {
                 self.fpApplyTableTextSearchFromField(animated: false)
             } else {
-                self.reloadCollectionViewWithCacheInvalidation()
+                self.collectionView.reloadData()
             }
             self.collectionView.layoutIfNeeded()
             FPUtility.hideHUD()
@@ -1360,12 +1351,8 @@ extension FPTableEditViewController: TableContentCellDelegate{
                 }
                 self.tableComponent?.rows?.remove(at: indexOfRow)
                 self.tableComponent?.rows?.insert(updateRow, at: indexOfRow)
-                // Invalidate cache for updated row to ensure fresh data is displayed
-                viewModel?.invalidateRowCache(at: indexOfRow)
             }
             if isAutoCalculateEnabled, data.isPartOfFormula == true{
-                // Invalidate cache for the section being reloaded
-                viewModel?.invalidateRowCache(at: dRow)
                 self.collectionView.reloadSections([index.section])
             }else{
                 self.collectionView.reloadItems(at: [index])
@@ -1376,8 +1363,6 @@ extension FPTableEditViewController: TableContentCellDelegate{
                     row.columns[columnIndex] = data
                     tblCompnt.rows?[dRow] = row
                     tableComponent = tblCompnt
-                    // Invalidate cache for updated row to ensure fresh data is displayed
-                    viewModel?.invalidateRowCache(at: dRow)
                     if isAutoCalculateEnabled, data.isPartOfFormula == true, let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == row.sortUuid }){
                         let autoCalRow = self.processAutoCalculationFor(row: row, with: data)
                         self.tableComponent?.rows?.remove(at: indexOfRow)
