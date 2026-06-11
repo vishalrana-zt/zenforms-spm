@@ -383,7 +383,7 @@ public class FPFieldDetails: NSObject {
                 usableDict["reasonTemplateId"] = dict["reasonTemplateId"] == nil ? dict["id"] : dict["reasonTemplateId"]
                 usableDict["recommendations"] = dict["recommendations"]
                 usableDict["dueDate"] =  dict["dueDate"]
-                usableDict["severity"] = dict["severity"]
+                if !isFromCoPILOT { usableDict["severity"] = dict["severity"] }
                 arrayReasons.append(usableDict)
                 
                 if let template = dict["reasonTemplateId"] as? String, template.contains("custom") && !isCustomTemplateAdded {
@@ -400,7 +400,7 @@ public class FPFieldDetails: NSObject {
                 usableDict["reasonTemplateId"] = template
                 usableDict["recommendations"] = [:]
                 usableDict["dueDate"] =  nil
-                usableDict["severity"] = ""
+                if !isFromCoPILOT { usableDict["severity"] = "" }
                 arrayReasons.append(usableDict)
             }
             if arrayReasons.first?.isEmpty ?? false {

@@ -52,7 +52,7 @@ class FPReasonsComponent {
             reason["reasonTemplateId"] = "\(item.reasonTemplateId)"
             reason["recommendations"] = convertToDictionaryArray(array: item.recommendations ?? [FPRecommendation]()) ?? [:]
             reason["dueDate"] = item.dueDate ?? nil
-            reason["severity"] = item.severity ?? ""
+            if !isFromCoPILOT { reason["severity"] = item.severity ?? "" }
             reasons.append(reason)
         }
         let customReason = getCustomReasonJson(customReason, filedTemplateId: fieldTemplateId!)
@@ -76,10 +76,10 @@ class FPReasonsComponent {
         reason["isSelected"] = customReason?.isSelected ?? false
         reason["recommendations"] = convertToDictionaryArray(array: customReason?.recommendations ?? [FPRecommendation]()) ?? [:]
         reason["dueDate"] = customReason?.dueDate ?? nil
-        reason["severity"] = customReason?.severity ?? ""
+        if !isFromCoPILOT { reason["severity"] = customReason?.severity ?? "" }
         return reason
     }
-    
+
     func getCustomReason(_ description: String, templateId: String, objectId: String,severity:String,dueDate:Int?,recommendation:String,recommendationID:Int?) -> FPReasonsRow {
         let recommendation = FPRecommendation(id: recommendationID, name:  "custom_\(templateId)", nfpaCitation: "", note: recommendation, displayName: recommendation, description: recommendation)
         return FPReasonsRow(objectID: objectId, displayName: "custom_\(templateId)", name: "custom_\(templateId)", reasonTemplateId: "custom_\(templateId)", description: description, isSelected: true,recommendations: [recommendation], severity: severity,dueDate: dueDate)
