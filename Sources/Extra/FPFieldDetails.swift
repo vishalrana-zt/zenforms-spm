@@ -381,8 +381,8 @@ public class FPFieldDetails: NSObject {
                 usableDict["isSelected"] = dict["isSelected"] == nil ? false : dict["isSelected"] as? Bool
                 usableDict["name"] = dict["name"]
                 usableDict["reasonTemplateId"] = dict["reasonTemplateId"] == nil ? dict["id"] : dict["reasonTemplateId"]
-                usableDict["recommendations"] = dict["recommendations"]
-                usableDict["dueDate"] =  dict["dueDate"]
+                if !isFromCoPILOT { usableDict["recommendations"] = dict["recommendations"] }
+                if !isFromCoPILOT { usableDict["dueDate"] = dict["dueDate"] }
                 if !isFromCoPILOT { usableDict["severity"] = dict["severity"] }
                 arrayReasons.append(usableDict)
                 
@@ -398,8 +398,8 @@ public class FPFieldDetails: NSObject {
                 usableDict["isSelected"] = true
                 usableDict["name"] = template
                 usableDict["reasonTemplateId"] = template
-                usableDict["recommendations"] = [:]
-                usableDict["dueDate"] =  nil
+                if !isFromCoPILOT { usableDict["recommendations"] = [:] }
+                if !isFromCoPILOT { usableDict["dueDate"] = nil }
                 if !isFromCoPILOT { usableDict["severity"] = "" }
                 arrayReasons.append(usableDict)
             }

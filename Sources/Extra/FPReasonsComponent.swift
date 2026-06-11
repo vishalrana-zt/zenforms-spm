@@ -50,8 +50,8 @@ class FPReasonsComponent {
             reason["description"] = item.description
             reason["isSelected"] = item.isSelected
             reason["reasonTemplateId"] = "\(item.reasonTemplateId)"
-            reason["recommendations"] = convertToDictionaryArray(array: item.recommendations ?? [FPRecommendation]()) ?? [:]
-            reason["dueDate"] = item.dueDate ?? nil
+            if !isFromCoPILOT { reason["recommendations"] = convertToDictionaryArray(array: item.recommendations ?? [FPRecommendation]()) ?? [:] }
+            if !isFromCoPILOT { reason["dueDate"] = item.dueDate ?? nil }
             if !isFromCoPILOT { reason["severity"] = item.severity ?? "" }
             reasons.append(reason)
         }
@@ -74,8 +74,8 @@ class FPReasonsComponent {
         reason["id"] = customReason?.objectID ?? ""
         reason["description"] = customReason?.description ?? ""
         reason["isSelected"] = customReason?.isSelected ?? false
-        reason["recommendations"] = convertToDictionaryArray(array: customReason?.recommendations ?? [FPRecommendation]()) ?? [:]
-        reason["dueDate"] = customReason?.dueDate ?? nil
+        if !isFromCoPILOT { reason["recommendations"] = convertToDictionaryArray(array: customReason?.recommendations ?? [FPRecommendation]()) ?? [:] }
+        if !isFromCoPILOT { reason["dueDate"] = customReason?.dueDate ?? nil }
         if !isFromCoPILOT { reason["severity"] = customReason?.severity ?? "" }
         return reason
     }

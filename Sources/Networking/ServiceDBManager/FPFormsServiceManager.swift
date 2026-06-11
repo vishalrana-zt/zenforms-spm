@@ -449,7 +449,7 @@ class FPFormsServiceManager: NSObject {
        params["ticketId"] = ticketId
        params["sectionDetails"] = section.getJSON()
        
-       if let data = assetLinkDetail, !data.isEmpty{
+       if !isFromCoPILOT, let data = assetLinkDetail, !data.isEmpty{
            params["assetLinkingDetails"] = data
        }
        if let deletedSections = FPFormDataHolder.shared.customForm?.deletedSections, !deletedSections.isEmpty{
@@ -664,7 +664,7 @@ class FPFormsServiceManager: NSObject {
             return
         }
         var dictJson = form.getJSONForUpdate()
-        if let data = assetLinkDetail, !data.isEmpty{
+        if !isFromCoPILOT, let data = assetLinkDetail, !data.isEmpty{
             dictJson["assetLinkingDetails"] = data
         }
         if let deletedSections = FPFormDataHolder.shared.customForm?.deletedSections, !deletedSections.isEmpty{
@@ -743,7 +743,7 @@ class FPFormsServiceManager: NSObject {
         var params = [String: Any]()
         params["ticketId"] = ticketId
         params["fpForm"] = dictJson
-        if let data = assetLinkDetail, !data.isEmpty{
+        if !isFromCoPILOT, let data = assetLinkDetail, !data.isEmpty{
             params["assetLinkingDetails"] = data
         }
         router.request(.addCustomForm(params)) { (json, _data, response, _error ) in
