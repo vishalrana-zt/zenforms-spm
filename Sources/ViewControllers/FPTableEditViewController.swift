@@ -1242,6 +1242,13 @@ extension FPTableEditViewController: TableContentCellDelegate{
     
     func deleteRow(at index:IndexPath){
         self.view.endEditing(true)
+        let totalRows = self.isSortFilterApplied
+            ? (self.sortFilteredTableComponent?.rows?.count ?? 0)
+            : (self.tableComponent?.rows?.count ?? 0)
+        guard totalRows > 1 else {
+            _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: FPLocalizationHelper.localize("msg_tbl_atleast_need_one_row"), completion: nil)
+            return
+        }
         DispatchQueue.main.async{
             FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage:FPLocalizationHelper.localizeWith(args: ["\(index.section)"], key: "msg_delete_row"), completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
                 self.deleteIfAnyAssetLinking(index: index)
