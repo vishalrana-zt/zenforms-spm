@@ -1309,7 +1309,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
         }
         FPUtility.showHUDWithLoadingMessage()
         let hasActiveSearch = !(self.fpTableSearchBar?.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-        if self.isSelectedAll{
+        if self.isSelectedAll || arrRows.count >= totalRows {
             self.addEmptyRowToTable()
         }
         self.resetMultipleSeletion()
