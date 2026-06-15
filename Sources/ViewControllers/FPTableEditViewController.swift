@@ -1301,10 +1301,8 @@ extension FPTableEditViewController: TableContentCellDelegate{
     
     func deleteMultipleRows(_ arrRows:[Rows]){
         self.view.endEditing(true)
-        let totalRows = self.isSortFilterApplied
-            ? (self.sortFilteredTableComponent?.rows?.count ?? 0)
-            : (self.tableComponent?.rows?.count ?? 0)
-        guard totalRows > arrRows.count else {
+        let totalRows = self.tableComponent?.rows?.count ?? 0
+        guard !(totalRows == 1 && arrRows.count == 1 && !self.isSelectedAll) else {
             self.resetMultipleSeletion()
             _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: FPLocalizationHelper.localize("msg_tbl_atleast_need_one_row"), completion: nil)
             return
