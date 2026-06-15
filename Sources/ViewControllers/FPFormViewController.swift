@@ -1819,13 +1819,12 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
     }
     
     private func safeReloadRows(_ indexPaths: [IndexPath]) {
-        let section = 0
-        let maxRows = formTableView.numberOfRows(inSection: section)
-
-        let validPaths = indexPaths.filter { $0.row >= 0 && $0.row < maxRows }
-        guard !validPaths.isEmpty else { return }
-        
         DispatchQueue.main.async {
+            let section = 0
+            let maxRows = self.formTableView.numberOfRows(inSection: section)
+            let validPaths = indexPaths.filter { $0.row >= 0 && $0.row < maxRows }
+            guard !validPaths.isEmpty else { return }
+
             self.formTableView.beginUpdates()
             self.formTableView.reloadRows(at: validPaths, with: .automatic)
             self.formTableView.endUpdates()
