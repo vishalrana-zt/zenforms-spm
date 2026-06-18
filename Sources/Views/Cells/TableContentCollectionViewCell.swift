@@ -131,6 +131,9 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     
     
     private func setupView(column:ColumnData){
+        if self.tblTextField.isFirstResponder {
+            self.tblTextField.resignFirstResponder()
+        }
         self.btnAction.isHidden = true
         self.tblTextView.isUserInteractionEnabled = !(column.readonly ?? false)
         self.tblTextField.isUserInteractionEnabled = !(column.readonly ?? false)
@@ -219,6 +222,7 @@ class TableContentCollectionViewCell: UICollectionViewCell {
                     }else{}
                 }
             }else{
+                self.tblTextView.isEditable = !(column.readonly ?? false)
                 self.tblTextView.isHidden = false
                 let displayValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: column.value, isForLocal: false) ?? column.value
                 self.tblTextView.text = displayValue
@@ -361,9 +365,11 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     }
     private func setTextFieldByInputType(_ rowData: ColumnData) {
         self.tblTextView.isHidden = true
+        self.tblTextView.isEditable = false
         self.tblTextField.isHidden = true
         switch rowData.dataType {
         case "NUMBER":
+            self.tblTextView.isEditable = !(rowData.readonly ?? false)
             self.tblTextView.isHidden = false
             self.tblTextView.keyboardType = .numbersAndPunctuation
             self.tblTextView.inputView = nil
@@ -371,6 +377,7 @@ class TableContentCollectionViewCell: UICollectionViewCell {
             self.tblTextView.disableCut()
 //            self.tblTextView.inputAccessoryView = self.accessoryToolbar
         case "TEXT":
+            self.tblTextView.isEditable = !(rowData.readonly ?? false)
             self.tblTextView.isHidden = false
             self.tblTextView.keyboardType = .default
             self.tblTextView.inputView = nil
