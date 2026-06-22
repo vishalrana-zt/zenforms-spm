@@ -49,6 +49,16 @@ struct FPFieldDetailsTemplateDatabaseManager: FPDataBaseQueries {
         );
         """
     }
+    
+    // Create indexes for optimized batch query performance
+    static func getCreateIndexQueries() -> [String] {
+        return [
+            """
+            CREATE INDEX IF NOT EXISTS idx_template_fields_section 
+            ON \(FPFieldDetailsTemplateDatabaseManager.getTableName())(\(FPColumn.sectionId), \(FPColumn.isActive), \(FPColumn.isDeleted), \(FPColumn.sortPosition))
+            """
+        ]
+    }
     func getDeleteQuery() -> String {
         return """
             DELETE FROM \(FPFieldDetailsTemplateDatabaseManager.getTableName())\n
@@ -253,6 +263,41 @@ struct FPFieldDetailsTemplateDatabaseManager: FPDataBaseQueries {
             }
         }
         return array
+    }
+    
+    // Optimized batch fetch for multiple template sections
+    func fetchFieldDetailsForSections(sectionIds: [String], completion: @escaping ([String: [FPFieldDetails]]) -> Void) {
+        guard !sectionIds.isEmpty else {
+            completion([:])
+            return
+        }
+        
+        let idsString = sectionIds.map { "'\($0)'" }.joined(separator: ",")
+        let batchQuery = """
+        SELECT * FROM \(FPFieldDetailsTemplateDatabaseManager.getTableName())
+        WHERE \(FPColumn.sectionId) IN (\(idsString))
+        AND \(FPColumn.isActive) = 1
+        AND \(FPColumn.isDeleted) = 0
+        ORDER BY \(FPColumn.sectionId), \(FPColumn.sortPosition) ASC
+        """
+        
+        FPLocalDatabaseManager.shared.executeQuery(batchQuery, dbManager: self) { results in
+            var fieldsDict = [String: [FPFieldDetails]]()
+            
+            for item in results {
+                let field = FPFieldDetails(json: item, isForLocal: false)
+                
+                // Group by section ID (read from database result)
+                if let sectionId = item["sectionId"] as? String {
+                    if fieldsDict[sectionId] == nil {
+                        fieldsDict[sectionId] = []
+                    }
+                    fieldsDict[sectionId]?.append(field)
+                }
+            }
+            
+            completion(fieldsDict)
+        }
     }
     func getFetchQuery(_ sectionId:String) -> String {
         return """

@@ -49,6 +49,16 @@ struct FPSectionDetailsTemplateDatabaseManager: FPDataBaseQueries {
         """
     }
     
+    // Create indexes for optimized batch query performance
+    static func getCreateIndexQueries() -> [String] {
+        return [
+            """
+            CREATE INDEX IF NOT EXISTS idx_template_sections_entity 
+            ON \(FPSectionDetailsTemplateDatabaseManager.getTableName())(\(FPColumn.moduleEntityId), \(FPColumn.isActive), \(FPColumn.isDeleted), \(FPColumn.sortPosition))
+            """
+        ]
+    }
+    
     func getDeleteQuery(_ moduleEntityId:String) -> String {
         return """
         \(self.getDeleteQuery())
@@ -208,6 +218,65 @@ struct FPSectionDetailsTemplateDatabaseManager: FPDataBaseQueries {
             }
         })
         return array
+    }
+    
+    // Optimized batch fetch for multiple templates
+    func fetchSectionDetailsForTemplates(templateIds: [String], completion: @escaping ([String: [FPSectionDetails]]) -> Void) {
+        guard !templateIds.isEmpty else {
+            completion([:])
+            return
+        }
+        
+        let idsString = templateIds.map { "'\($0)'" }.joined(separator: ",")
+        let batchQuery = """
+        SELECT * FROM \(FPSectionDetailsTemplateDatabaseManager.getTableName())
+        WHERE \(FPColumn.moduleEntityId) IN (\(idsString))
+        AND \(FPColumn.isActive) = 1
+        AND \(FPColumn.isDeleted) = 0
+        ORDER BY \(FPColumn.moduleEntityId), \(FPColumn.sortPosition) ASC
+        """
+        
+        FPLocalDatabaseManager.shared.executeQuery(batchQuery, dbManager: self) { results in
+            var sectionsDict = [String: [FPSectionDetails]]()
+            var sectionObjectIds = [String]()
+            var sectionIdMap = [String: FPSectionDetails]()
+            
+            // Step 1: Parse all sections and collect IDs
+            for dict in results {
+                let section = FPSectionDetails(json: dict, isForLocal: false)
+                section.fields = [] // Initialize empty fields array
+                
+                if let sectionId = section.objectStringId {
+                    sectionObjectIds.append(sectionId)
+                    sectionIdMap[sectionId] = section
+                }
+                
+                // Group by template ID
+                if let templateId = section.moduleEntityStringId {
+                    if sectionsDict[templateId] == nil {
+                        sectionsDict[templateId] = []
+                    }
+                    sectionsDict[templateId]?.append(section)
+                }
+            }
+            
+            guard !sectionObjectIds.isEmpty else {
+                completion(sectionsDict)
+                return
+            }
+            
+            // Step 2: Fetch ALL template fields in ONE batch query
+            FPFieldDetailsTemplateDatabaseManager().fetchFieldDetailsForSections(sectionIds: sectionObjectIds) { fieldsDict in
+                // Step 3: Assign fields to sections
+                for (sectionId, fields) in fieldsDict {
+                    if let section = sectionIdMap[sectionId] {
+                        section.fields = fields
+                    }
+                }
+                
+                completion(sectionsDict)
+            }
+        }
     }
     func fetchSectionDetailsObjectIds(for moduleEntityId: String) -> [String] {
         var array = [String]()

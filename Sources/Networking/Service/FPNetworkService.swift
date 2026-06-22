@@ -113,9 +113,28 @@ class FPRouter<EndPoint: FPEndPointType>: FPNetworkRouter {
     }
     
     fileprivate func buildRequest(from route: EndPoint) throws -> URLRequest {
+        // Determine timeout based on endpoint type and payload size
+        // Extended timeout (180s) for form create/update operations with large payloads (> 500KB)
+        // Standard timeout (120s) for all other operations
+        var timeoutInterval: TimeInterval = 120.0  // 2 minutes for non-form operations
+
+        // Check if this is a form sync endpoint that needs extended timeout
+        if let formsRoute = route as? FPFormsApiName {
+            switch formsRoute {
+            case .addCustomForm(let params), .updateCustomForm(let params), .updateCustomFormSection(let params):
+                if hasLargePayload(params: params) {
+                    timeoutInterval = 180.0  // 3 minutes for very large form data
+                } else {
+                    timeoutInterval = 120.0  // 2 minutes for standard form sync
+                }
+            default:
+                timeoutInterval = 120.0  // 2 minutes for other operations
+            }
+        }
+        
         var request = URLRequest(url: route.baseURL.appendingPathComponent(route.path),
                                  cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
-                                 timeoutInterval: 120.0)
+                                 timeoutInterval: timeoutInterval)
         request.httpMethod = route.httpMethod.name()
         do {
             switch route.task {
@@ -140,6 +159,14 @@ class FPRouter<EndPoint: FPEndPointType>: FPNetworkRouter {
         } catch {
             throw error
         }
+    }
+    
+    private func hasLargePayload(params: [String: Any]) -> Bool {
+        // Check if total serialized size exceeds 500KB
+        if let data = try? JSONSerialization.data(withJSONObject: params, options: []), data.count > 500_000 {
+            return true
+        }
+        return false
     }
     
     fileprivate func configureParameters(parameters: FPParameters?,
