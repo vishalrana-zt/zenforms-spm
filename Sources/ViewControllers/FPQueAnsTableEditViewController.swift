@@ -128,7 +128,6 @@ class FPQueAnsTableEditViewController: UIViewController {
         IQKeyboardToolbarManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage())
     }
     
-    
     @objc func onDoneButtonTapped(sender: UIBarButtonItem) {
         
     }
