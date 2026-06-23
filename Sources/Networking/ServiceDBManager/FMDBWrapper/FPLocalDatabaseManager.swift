@@ -588,6 +588,13 @@ extension FPLocalDatabaseManager {
                 )
             }
         }
+        
+        // Migration for form sync idempotency
+        migrator.registerMigration("addLocalClientIdColumnToFormsTable") {[unowned self] db in
+            if !self.exists(db, column: FPColumn.localClientId, in: FPTableName.form) {
+                self.addColumn(to: db, tableName: FPTableName.form, columnName: FPColumn.localClientId, constraintName: FPDataTypes.text)
+            }
+        }
 
                 
         return migrator

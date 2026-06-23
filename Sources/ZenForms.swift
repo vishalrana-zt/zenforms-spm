@@ -155,7 +155,7 @@ public final class ZenForms {
         IQKeyboardToolbarManager.shared.deepResponderAllowedContainerClasses  = [UITableView.self, UICollectionView.self, UIStackView.self, UIView.self, UIScrollView.self]
     }
    
-    public func syncZenForm(form:FPForms, syncDelegate: ZenFormsSyncAssetLinkingDelegate?, isAssetEnabled:Bool , completion: @escaping (_ success: Bool) -> ()){
+    public func syncZenForm(form:FPForms, syncDelegate: ZenFormsSyncAssetLinkingDelegate?, isAssetEnabled:Bool , completion: @escaping (_ form: FPForms?, _ success: Bool) -> ()){
         isAssetENABLED = isAssetEnabled
         FPFormsServiceManager.getFilesFromForm(form: form)
         FPFormsServiceManager.uploadMediasAttached { status in
@@ -167,12 +167,12 @@ public final class ZenForms {
                             if isEnableQuickNotes, let form = form, let strTicketId = ticketId?.stringValue{
                                 FPFormsServiceManager.preComileFPForm(form: form, ticketID: strTicketId) { }
                             }
-                            completion(true)
+                            completion(form, true)
                         }else {
                             DispatchQueue.main.async {
                                 FPUtility.printErrorAndShowAlert(error: error)
                             }
-                            completion(false)
+                            completion(nil, false)
                         }
                     }
                 }
