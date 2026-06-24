@@ -1799,9 +1799,11 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
             let validPaths = indexPaths.filter { $0.row >= 0 && $0.row < maxRows }
             guard !validPaths.isEmpty else { return }
 
-            self.formTableView.beginUpdates()
-            self.formTableView.reloadRows(at: validPaths, with: .automatic)
-            self.formTableView.endUpdates()
+            DispatchQueue.main.async {
+                self.formTableView.beginUpdates()
+                self.formTableView.reloadRows(at: validPaths, with: .automatic)
+                self.formTableView.endUpdates()
+            }
         }
     }
     
