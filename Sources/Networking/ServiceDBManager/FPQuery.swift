@@ -26,6 +26,8 @@ import Foundation
             return FPSectionDetailsTemplateDatabaseManager.getCreateQuery()
         case FPTableName.fieldDetailsTemplate:
             return FPFieldDetailsTemplateDatabaseManager.getCreateQuery()
+        case FPTableName.tableDraftData:
+            return FPTableDraftDatabaseManager.getCreateQuery()
         default:
             return ""
         }
@@ -120,7 +122,10 @@ import Foundation
     static let deletedSections = "deletedSections"
     static let downloadStatus = "downloadStatus"
     static let downloadURL = "downloadURL"
-
+    static let draftKey = "draft_key"
+    static let fieldId = "fieldId"
+    static let fieldLocalId = "fieldLocalId"
+    
     //Linking
     static let isAssetSynced = "isAssetSynced"
     static let fieldTemplateId = "fieldTemplateId"
@@ -175,6 +180,7 @@ import Foundation
     static let differentialMeta = "FPDifferentialMeta"
     static let fieldDetailsTemplate = "FPFieldDetailsTemplate"
     static let sectionDetailsTemplate = "FPSectionDetailsTemplate"
+    static let tableDraftData = "TableDraftData"
 
     static func getArrayOfTables() -> [String] {
         let mirrored_object = Mirror(reflecting: FPTableName.self)

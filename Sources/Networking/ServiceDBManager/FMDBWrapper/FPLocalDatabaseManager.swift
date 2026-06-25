@@ -597,6 +597,19 @@ extension FPLocalDatabaseManager {
         }
 
                 
+        migrator.registerMigration("tableDraftData") { db in
+            if(!self.isTableExist(db, FPTableName.tableDraftData)){
+                try db.create(table: FPTableName.tableDraftData) { t in
+                    t.column(FPColumn.draftKey, .text).primaryKey()
+                    t.column(FPColumn.fieldLocalId, .integer)
+                    t.column(FPColumn.fieldId, .text)
+                    t.column(FPColumn.value, .text)
+                    t.column(FPColumn.updatedAt, .date)
+                }
+                try db.create(index: "idx_table_draft_key", on: FPTableName.tableDraftData, columns: [FPColumn.draftKey], unique: true)
+            }
+        }
+        
         return migrator
     }
     

@@ -72,6 +72,7 @@ class FPTableEditViewController: UIViewController {
     var sortFilterColumn:Columns?
     var isSortFilterApplied:Bool = false
     var zenFormsDelegate: ZenFormsDelegate?
+    private var fp_autoSaveTimer: Timer?
 
     
     var arrAppliedFilters = [SortFilter]()
@@ -152,6 +153,8 @@ class FPTableEditViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        fp_setupAutoSave()
+        fp_checkAndRecoverDraft()
         rowCount = 1
         txtRowCount.text = "\(rowCount)"
         txtRowCount.inputAccessoryView = self.accessoryToolbar
@@ -213,9 +216,10 @@ class FPTableEditViewController: UIViewController {
         IQKeyboardToolbarManager.shared.toolbarConfiguration.previousBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_left_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
         IQKeyboardToolbarManager.shared.toolbarConfiguration.nextBarButtonConfiguration = IQBarButtonItemConfiguration(image: UIImage(named: "ic_right_arrow", in: ZenFormsBundle.bundle, compatibleWith: nil) ?? UIImage())
     }
-    
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        fp_stopAutoSave()
         NotificationCenter.default.removeObserver(self)
         IQKeyboardManager.shared.isEnabled = false
         IQKeyboardToolbarManager.shared.isEnabled = false
@@ -236,6 +240,15 @@ class FPTableEditViewController: UIViewController {
     @objc private func fpHandleMemoryWarning() {
         fpTableSearchDebounceWorkItem?.cancel()
         fpTableSearchDebounceWorkItem = nil
+
+        // Save draft immediately before the OS potentially kills the process
+        fp_autoSave()
+
+        if !isSortFilterApplied {
+            arrSelectedRows.removeAll()
+            arrSelectedIndexes.removeAll()
+        }
+
         collectionView?.collectionViewLayout.invalidateLayout()
     }
 
@@ -267,7 +280,10 @@ class FPTableEditViewController: UIViewController {
         }
     }
     
+
+    
     @objc func saveButtonAction(){
+        fp_stopAutoSave()
         view.endEditing(true)
         DispatchQueue.main.asyncAfter(deadline: .now()+1, execute: {
             if let tableComponent = self.tableComponent,let index = self.tableIndexPath{
@@ -291,12 +307,13 @@ class FPTableEditViewController: UIViewController {
                 FPFormDataHolder.shared.arrLinkingDB = []
                 FPFormDataHolder.shared.arrLinkingDB.append(contentsOf: arrLocalLinkings)
             }
+            self.fp_deleteDraft()
             self.navigationController?.popViewController(animated: false)
-            
         })
     }
     
     @objc func cancelButtonClicked() {
+        fp_stopAutoSave()
         view.endEditing(true)
         if self.isAssetEnabled, let isAssetTable = self.tableComponent?.tableOptions?.isAssetTable, isAssetTable{
             let otherFieldTableSavedLinkings = FPFormDataHolder.shared.arrLinkingDB.filter { $0.fieldTemplateId != self.fieldDetails?.templateId || $0.isTableSaved == true}
@@ -305,6 +322,7 @@ class FPTableEditViewController: UIViewController {
             AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
         }
         FPFormDataHolder.shared.tableMediaCache = []
+        fp_deleteDraft()
         self.navigationController?.popViewController(animated: true)
     }
     
@@ -2002,6 +2020,200 @@ extension FPTableEditViewController: UISearchBarDelegate {
         searchBar.resignFirstResponder()
         fpTableSearchDebounceWorkItem?.cancel()
         fpApplyTableTextSearchFromField(animated: true)
+    }
+}
+
+// MARK: - Auto-Save
+
+extension FPTableEditViewController {
+
+    // MARK: Draft key
+    
+    /// Returns the stable draft key for this session.
+    /// Stored via objc associated object so it is computed exactly once
+    /// and never changes even if fieldDetails / tableIndexPath are mutated.
+    private var fp_draftKey: String {
+        if let stored = objc_getAssociatedObject(
+            self,
+            &FPTableEditViewController.fp_draftKeyHandle
+        ) as? String {
+            return stored
+        }
+        let built = fp_buildDraftKey()
+        objc_setAssociatedObject(
+            self,
+            &FPTableEditViewController.fp_draftKeyHandle,
+            built,
+            .OBJC_ASSOCIATION_RETAIN_NONATOMIC
+        )
+        debugPrint("FPTableEdit: draft key built = \(built)")
+        return built
+    }
+    
+    private static var fp_draftKeyHandle: UInt8 = 0
+    
+    private func fp_buildDraftKey() -> String {
+        // Priority 1: objectId (Mongo ID) - globally unique and stable.
+        if let oid = self.fieldDetails?.objectStringId, !oid.isEmpty, oid != "0" {
+            return "fp_tbl_oid_\(oid)"
+        }
+
+        // Priority 2: sqliteId (Local DB ID) - stable once the record is persisted locally.
+        if let sqliteId = self.fieldDetails?.sqliteId as? NSNumber, sqliteId.int64Value > 0 {
+            return "fp_tbl_sid_\(sqliteId.int64Value)"
+        }
+
+        // Priority 3: Fallback combination - stable for the same position in a specific install.
+        let templateId = self.fieldDetails?.templateId ?? ""
+        let section    = self.tableIndexPath?.section ?? 0
+        let row        = self.tableIndexPath?.row ?? 0
+        let installId  = FPTableDraftDatabaseManager.installScopeId()
+
+        return "fp_tbl_tid_\(templateId)_s\(section)_r\(row)_\(installId)"
+    }
+
+    // MARK: DB dispatch helpers
+
+    private func fp_saveDraftToDB(key: String, value: String) {
+        let sid = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
+        let oid = self.fieldDetails?.objectStringId
+        FPTableDraftDatabaseManager().saveDraft(key: key, sqliteId: sid, objectId: oid, value: value)
+    }
+
+    private func fp_fetchDraftFromDB(key: String, completion: @escaping (String?) -> Void) {
+        FPTableDraftDatabaseManager().fetchDraft(draftKey: key, completion: completion)
+    }
+
+    private func fp_deleteDraftFromDB(key: String) {
+        FPTableDraftDatabaseManager().deleteDraft(draftKey: key)
+    }
+
+    // MARK: Setup / teardown
+
+    func fp_setupAutoSave() {
+        guard !isAnalysed && !isFromHistory else { return }
+        fp_autoSaveTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            self?.fp_autoSave()
+        }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(fp_autoSave),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+    }
+
+    func fp_stopAutoSave() {
+        fp_autoSaveTimer?.invalidate()
+        fp_autoSaveTimer = nil
+        NotificationCenter.default.removeObserver(
+            self,
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+    }
+
+    // MARK: Save draft
+
+    @objc func fp_autoSave() {
+        fp_performAutoSave()
+    }
+    
+    func fp_performAutoSave() {
+        guard !isAnalysed && !isFromHistory else { return }
+        guard let tableComponent = self.tableComponent else { return }
+        
+        // Capture everything needed from main thread RIGHT NOW,
+        // before dispatching to background.
+        let key       = fp_draftKey          // stable stored value
+        
+        // getValuesObject() must be called on main thread.
+        // Capture the snapshot synchronously here.
+        let valuesSnapshot = tableComponent.getValuesObject()
+        
+        DispatchQueue.global(qos: .background).async {
+            // JSON serialization happens off main thread.
+            let jsonValue = valuesSnapshot.getJson()
+            
+            guard !jsonValue.isEmpty else {
+                debugPrint("FPTableEdit: auto-save skipped — empty JSON for key=\(key)")
+                return
+            }
+            
+            self.fp_saveDraftToDB(key: key, value: jsonValue)
+            debugPrint("FPTableEdit: auto-saved draft key=\(key) rows=\(valuesSnapshot.count)")
+        }
+    }
+
+    // MARK: Delete draft
+
+    func fp_deleteDraft() {
+        let key = fp_draftKey
+        DispatchQueue.global(qos: .background).async {
+            self.fp_deleteDraftFromDB(key: key)
+        }
+    }
+
+    // MARK: Recovery
+
+    func fp_checkAndRecoverDraft() {
+        guard !isAnalysed && !isFromHistory else { return }
+        let key = fp_draftKey
+
+        fp_fetchDraftFromDB(key: key) { [weak self] draftValue in
+            guard let self = self,
+                  let draftValue = draftValue,
+                  !draftValue.isEmpty else { return }
+
+            DispatchQueue.main.async {
+                _ = FPUtility.showAlertController(
+                    title: FPLocalizationHelper.localize("alert_dialog_title"),
+                    andMessage: FPLocalizationHelper.localize("msg_restore_unsaved_changes"),
+                    completion: nil,
+                    withPositiveAction: FPLocalizationHelper.localize("Restore"),
+                    style: .default,
+                    andHandler: { [weak self] _ in
+                        guard let self = self else { return }
+                        self.fp_applyDraft(draftValue)
+                    },
+                    withNegativeAction: FPLocalizationHelper.localize("Discard"),
+                    style: .destructive,
+                    andHandler: { [weak self] _ in
+                        self?.fp_deleteDraft()
+                    }
+                )
+            }
+        }
+    }
+
+    private func fp_applyDraft(_ draftValue: String) {
+        guard let tableOptions = self.tableComponent?.tableOptions,
+              let form = FPFormDataHolder.shared.customForm else { return }
+
+        FPUtility.showHUDWithLoadingMessage()
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            
+            let index = self.tableIndexPath ?? IndexPath(row: 0, section: 0)
+            let recovered = TableComponent().prepareData(
+                item: tableOptions,
+                values: draftValue,
+                index: index,
+                fieldDetails: self.fieldDetails,
+                customForm: form
+            )
+            
+            DispatchQueue.main.async {
+                self.tableComponent = recovered
+                self.collectionView.reloadData()
+                FPUtility.hideHUD()
+                
+                // Delete after successful restore so stale
+                // draft cannot be offered again on next open.
+                self.fp_deleteDraft()
+            }
+        }
     }
 }
 
