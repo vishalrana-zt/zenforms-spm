@@ -52,12 +52,12 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
     // MARK: - Draft Operations (Key-centric)
 
     private func getInsertQuery(key: String, sqliteId: Int64?, objectId: String?, value: String) -> String {
-        let safeKey   = key.processApostrophe()
+        let safeKey   = key
         let safeValue = value.processApostrophe()
         let now       = ISO8601DateFormatter().string(from: Date())
         
-        let sidStr = sqliteId != nil ? "\(sqliteId!)" : "NULL"
-        let oidStr = objectId != nil ? "'\(objectId!.processApostrophe())'" : "NULL"
+        let sidStr = sqliteId != nil ? "\(sqliteId ?? 0)" : "NULL"
+        let oidStr = objectId != nil ? "'\(objectId ?? "")'" : "NULL"
 
         return """
         INSERT OR REPLACE INTO \(FPTableDraftDatabaseManager.getTableName())
@@ -74,7 +74,7 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
     }
 
     func deleteDraft(draftKey: String) {
-        let safeKey = draftKey.processApostrophe()
+        let safeKey = draftKey
         let query = """
             DELETE FROM \(FPTableDraftDatabaseManager.getTableName())
             WHERE \(FPColumn.draftKey) = '\(safeKey)'
@@ -82,14 +82,66 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
     }
 
+    /// Robust delete that clears any draft matching the current field's identifiers.
+    func deleteDraftByMultiPath(draftKey: String, fieldLocalId: Int64?, fieldId: String?) {
+        var clauses = ["\(FPColumn.draftKey) = '\(draftKey)'"]
+        
+        if let sid = fieldLocalId, sid > 0 {
+            clauses.append("\(FPColumn.fieldLocalId) = \(sid)")
+        }
+        
+        if let fid = fieldId, !fid.isEmpty, fid != "0" {
+            clauses.append("\(FPColumn.fieldId) = '\(fid)'")
+        }
+        
+        let whereClause = clauses.joined(separator: " OR ")
+        let query = "DELETE FROM \(FPTableDraftDatabaseManager.getTableName()) WHERE \(whereClause)"
+        
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
+    }
+
     func fetchDraft(draftKey: String, completion: @escaping (String?) -> Void) {
-        let safeKey = draftKey.processApostrophe()
+        let safeKey = draftKey
         let query = """
             SELECT \(FPColumn.value)
             FROM \(FPTableDraftDatabaseManager.getTableName())
             WHERE \(FPColumn.draftKey) = '\(safeKey)'
             LIMIT 1
             """
+        FPLocalDatabaseManager.shared.executeQuery(query, dbManager: self) { results in
+            if let first = results.first,
+               let value = first[FPColumn.value] as? String,
+               !value.isEmpty {
+                completion(value)
+            } else {
+                completion(nil)
+            }
+        }
+    }
+
+    /// Robust fetch that checks for a draft match across multiple ID paths.
+    /// Useful when a draft was saved under a local ID, but the field now has a global objectId.
+    func fetchDraftByMultiPath(draftKey: String, fieldLocalId: Int64?, fieldId: String?, completion: @escaping (String?) -> Void) {
+        var clauses = ["\(FPColumn.draftKey) = '\(draftKey)'"]
+        
+        if let sid = fieldLocalId, sid > 0 {
+            clauses.append("\(FPColumn.fieldLocalId) = \(sid)")
+        }
+        
+        if let fid = fieldId, !fid.isEmpty, fid != "0" {
+            clauses.append("\(FPColumn.fieldId) = '\(fid)'")
+        }
+        
+        let whereClause = clauses.joined(separator: " OR ")
+        
+        let query = """
+            SELECT \(FPColumn.value)
+            FROM \(FPTableDraftDatabaseManager.getTableName())
+            WHERE \(whereClause)
+            ORDER BY \(FPColumn.updatedAt) DESC
+            LIMIT 1
+            """
+        
         FPLocalDatabaseManager.shared.executeQuery(query, dbManager: self) { results in
             if let first = results.first,
                let value = first[FPColumn.value] as? String,

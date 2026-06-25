@@ -2029,63 +2029,72 @@ extension FPTableEditViewController {
 
     // MARK: Draft key
     
-    /// Returns the stable draft key for this session.
-    /// Stored via objc associated object so it is computed exactly once
-    /// and never changes even if fieldDetails / tableIndexPath are mutated.
+    /// Stable draft key, computed based on available IDs.
+    /// Priority: fieldId > fieldLocalId > template fallback.
     private var fp_draftKey: String {
-        if let stored = objc_getAssociatedObject(
-            self,
-            &FPTableEditViewController.fp_draftKeyHandle
-        ) as? String {
-            return stored
-        }
-        let built = fp_buildDraftKey()
-        objc_setAssociatedObject(
-            self,
-            &FPTableEditViewController.fp_draftKeyHandle,
-            built,
-            .OBJC_ASSOCIATION_RETAIN_NONATOMIC
-        )
-        debugPrint("FPTableEdit: draft key built = \(built)")
-        return built
+        return fp_buildDraftKey()
     }
-    
-    private static var fp_draftKeyHandle: UInt8 = 0
-    
+        
     private func fp_buildDraftKey() -> String {
-        // Priority 1: objectId (Mongo ID) - globally unique and stable.
-        if let oid = self.fieldDetails?.objectStringId, !oid.isEmpty, oid != "0" {
-            return "fp_tbl_oid_\(oid)"
-        }
+        // Build a stable structural key independent of database-generated IDs.
+        // This ensures the key remains the same even if the form is re-persisted or synced.
+        let ticketId = self.fpFormViewController?.ticketId?.stringValue ?? "0"
+        let formTemplateId = FPFormDataHolder.shared.customForm?.templateId ?? "0"
+        
+        let fieldTemplateId = self.fieldDetails?.templateId ?? ""
+        let section = self.tableIndexPath?.section ?? 0
+        let row = self.tableIndexPath?.row ?? 0
+        let installId = FPTableDraftDatabaseManager.installScopeId()
 
-        // Priority 2: sqliteId (Local DB ID) - stable once the record is persisted locally.
-        if let sqliteId = self.fieldDetails?.sqliteId as? NSNumber, sqliteId.int64Value > 0 {
-            return "fp_tbl_sid_\(sqliteId.int64Value)"
-        }
-
-        // Priority 3: Fallback combination - stable for the same position in a specific install.
-        let templateId = self.fieldDetails?.templateId ?? ""
-        let section    = self.tableIndexPath?.section ?? 0
-        let row        = self.tableIndexPath?.row ?? 0
-        let installId  = FPTableDraftDatabaseManager.installScopeId()
-
-        return "fp_tbl_tid_\(templateId)_s\(section)_r\(row)_\(installId)"
+        return "fp_tbl_path_\(ticketId)_\(formTemplateId)_\(fieldTemplateId)_s\(section)_r\(row)_\(installId)"
     }
 
     // MARK: DB dispatch helpers
 
     private func fp_saveDraftToDB(key: String, value: String) {
+        if let parentForm = FPFormDataHolder.shared.customForm, parentForm.sqliteId == nil {
+            // Edge case: parent form not yet saved locally.
+            // We must persist the form record first so this draft has a valid parent.
+            self.fpFormViewController?.saveFormOfflineForTable { [weak self] success in
+                if success {
+                    // 1. Refresh local reference to fieldDetails to pick up the new sqliteId
+                    self?.fp_refreshFieldDetailsFromHolder()
+                    
+                    // 2. Retry save with REGENERATED key
+                    if let newKey = self?.fp_draftKey {
+                        self?.fp_saveDraftToDB(key: newKey, value: value)
+                    }
+                }
+            }
+            return
+        }
+        
         let sid = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
-        let oid = self.fieldDetails?.objectStringId
+        let oid = self.fieldDetails?.objectId?.stringValue
         FPTableDraftDatabaseManager().saveDraft(key: key, sqliteId: sid, objectId: oid, value: value)
     }
 
+    private func fp_refreshFieldDetailsFromHolder() {
+        guard let holderForm = FPFormDataHolder.shared.customForm,
+              let sectionIndex = self.tableIndexPath?.section,
+              let fieldIndex = self.tableIndexPath?.row else { return }
+        
+        if let section = holderForm.sections?[safe: sectionIndex],
+           let field = section.fields[safe: fieldIndex] {
+            self.fieldDetails = field
+        }
+    }
+
     private func fp_fetchDraftFromDB(key: String, completion: @escaping (String?) -> Void) {
-        FPTableDraftDatabaseManager().fetchDraft(draftKey: key, completion: completion)
+        let sid = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
+        let oid = self.fieldDetails?.objectId?.stringValue
+        FPTableDraftDatabaseManager().fetchDraftByMultiPath(draftKey: key, fieldLocalId: sid, fieldId: oid, completion: completion)
     }
 
     private func fp_deleteDraftFromDB(key: String) {
-        FPTableDraftDatabaseManager().deleteDraft(draftKey: key)
+        let sid = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
+        let oid = self.fieldDetails?.objectId?.stringValue
+        FPTableDraftDatabaseManager().deleteDraftByMultiPath(draftKey: key, fieldLocalId: sid, fieldId: oid)
     }
 
     // MARK: Setup / teardown
@@ -2206,6 +2215,10 @@ extension FPTableEditViewController {
             
             DispatchQueue.main.async {
                 self.tableComponent = recovered
+                if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                    let totalSections = (recovered.rows?.count ?? 0) + 1
+                    layout.updateRowCountOnly(to: totalSections)
+                }
                 self.collectionView.reloadData()
                 FPUtility.hideHUD()
                 

@@ -1237,6 +1237,42 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         })
     }
     
+    
+    func saveFormOfflineForTable( completion: ((_ status:Bool)->Void)? = nil){
+        guard let form = FPFormDataHolder.shared.getProcessedForm(isNew:  self.isNew) else {
+            completion?(false)
+            return
+        }
+        FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { [weak self] assetLinkJson in
+            guard let self = self else { return }
+            DispatchQueue.global(qos: .userInitiated).async {
+                // Generate localClientId if not already set (similar to sqliteId assignment pattern)
+                if form.localClientId == nil || form.localClientId?.isEmpty == true {
+                    form.localClientId = FPUtility.nanoID()
+                }
+                form.isSyncedToServer = false
+                form.isActive = true
+                FPFormsServiceManager.upsertLocalData(ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId, form: form) { form, error in
+                    FPFormDataHolder.shared.updateSessionIdWithSqliteId()
+                    let group = DispatchGroup()
+                    for linking in FPFormDataHolder.shared.arrLinkingDB{
+                        let updated = linking
+                        updated.customFormLocalId = form?.sqliteId
+                        updated.isNotConfirmed = false
+                        group.enter()
+                        AssetFormLinkingDatabaseManager().upsert(item: updated) { _ in
+                            group.leave()
+                        }
+                    }
+                    FPFormDataHolder.shared.arrLinkingDB = []
+                    FPFormDataHolder.shared.customForm = form
+                    completion?(true)
+                }
+            }
+            return
+        }
+    }
+    
     func saveEmptyForm(completion:@escaping(_ status:Bool)->Void){
         self.view.endEditing(true)
         isSaveRefreshing = true

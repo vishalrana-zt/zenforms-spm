@@ -74,8 +74,8 @@ class TableComponent {
                         valueString =  value.getJson()
                     }
 
-                    let column = ColumnData(key: column.name, value: valueString, defaultValue: column.defaultValue, uiType: column.uiType, dataType: column.dataType, dropDownOptions: column.columnOptions?.dropdownOptions ?? nil, generateDynamically: column.columnOptions?.generateDynamically, dateFormat: column.columnOptions?.dateFormat ?? nil, readonly: column.readonly, scannable: column.scannable, isPartOfFormula: column.isPartOfFormula)
-                    columns.append(column)
+                    let columnData = ColumnData(key: column.name, value: valueString, defaultValue: column.defaultValue, uiType: column.uiType, dataType: column.dataType, dropDownOptions: column.columnOptions?.dropdownOptions ?? nil, generateDynamically: column.columnOptions?.generateDynamically, dateFormat: column.columnOptions?.dateFormat ?? nil, readonly: column.readonly, scannable: column.scannable, isPartOfFormula: column.isPartOfFormula)
+                    columns.append(columnData)
                    
                 })
 //                self.rows?.append(Rows(columns: columns))
@@ -119,8 +119,8 @@ class TableComponent {
                     }
                 })
         
-                let column = ColumnData(key: column.name, value: value, defaultValue: column.defaultValue, uiType: column.uiType, dataType: column.dataType, dropDownOptions: column.columnOptions?.dropdownOptions ?? nil, generateDynamically: column.columnOptions?.generateDynamically, dateFormat: column.columnOptions?.dateFormat ?? nil, readonly: column.readonly, scannable: column.scannable, isPartOfFormula: column.isPartOfFormula)
-                columns.append(column)
+                let columnData = ColumnData(key: column.name, value: value, defaultValue: column.defaultValue, uiType: column.uiType, dataType: column.dataType, dropDownOptions: column.columnOptions?.dropdownOptions ?? nil, generateDynamically: column.columnOptions?.generateDynamically, dateFormat: column.columnOptions?.dateFormat ?? nil, readonly: column.readonly, scannable: column.scannable, isPartOfFormula: column.isPartOfFormula)
+                columns.append(columnData)
             })
             
             if self.values?.isEmpty ?? false{
