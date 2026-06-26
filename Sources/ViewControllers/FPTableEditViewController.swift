@@ -2036,17 +2036,18 @@ extension FPTableEditViewController {
     }
         
     private func fp_buildDraftKey() -> String {
-        // Build a stable structural key independent of database-generated IDs.
-        // This ensures the key remains the same even if the form is re-persisted or synced.
+        // Build a stable structural key independent of global IDs but unique to the form instance.
+        // We include the parent form's local sqliteId to distinguish between multiple 
+        // instances of the same form template on the same ticket.
         let ticketId = self.fpFormViewController?.ticketId?.stringValue ?? "0"
-        let formTemplateId = FPFormDataHolder.shared.customForm?.templateId ?? "0"
+        let parentFormLocalId = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? "0"
         
         let fieldTemplateId = self.fieldDetails?.templateId ?? ""
         let section = self.tableIndexPath?.section ?? 0
         let row = self.tableIndexPath?.row ?? 0
         let installId = FPTableDraftDatabaseManager.installScopeId()
 
-        return "fp_tbl_path_\(ticketId)_\(formTemplateId)_\(fieldTemplateId)_s\(section)_r\(row)_\(installId)"
+        return "fp_tbl_path_\(ticketId)_\(parentFormLocalId)_\(fieldTemplateId)_s\(section)_r\(row)_\(installId)"
     }
 
     // MARK: DB dispatch helpers
