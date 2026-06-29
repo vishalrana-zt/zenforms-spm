@@ -364,7 +364,7 @@ struct FPFormDataHolder{
         sectionToInsert.objectId = nil
         sectionToInsert.objectStringId = nil
         let serialNumber = asset?.first?.fields.first(where: {$0.name == "serialNumber"})?.value ?? ""
-        let assetName = asset?.first?.displayName ?? ""
+        let assetName = assetData?.assetName ?? ""
         sectionToInsert.displayName = "\(sectionToInsert.name ?? "") (\(serialNumber) / \(assetName))"
         if let assetFields = asset {
             let insertSectionOptions = sectionToInsert.sectionOptions
