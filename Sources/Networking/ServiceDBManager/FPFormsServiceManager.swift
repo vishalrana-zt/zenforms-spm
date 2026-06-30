@@ -539,6 +539,19 @@ class FPFormsServiceManager: NSObject {
                         } else {
                             sections.append(serverSection)
                         }
+                        
+                        // Fix: Specifically reconcile the Scanner section's sortPosition if it changed on server
+                        if let localScanner = FPFormDataHolder.shared.getScannebleSection(){
+                            if let serverScanner = formOnline.sections?.first(where: { $0.objectId == localScanner.objectId }) {
+                                localScanner.sortPosition = serverScanner.sortPosition
+                                if let scannerIdx = sections.firstIndex(where: { $0.objectId == localScanner.objectId }) {
+                                    sections[scannerIdx] = localScanner
+                                }
+                                // Immediately update local DB for the scanner section to reflect new sortPosition
+                                FPSectionDetailsDatabaseManager().updateScannerSortPositionToDB(localScanner)
+                            }
+                        }
+                        
                         FPFormDataHolder.shared.sections = sections
                         
                         updatedSection = serverSection
