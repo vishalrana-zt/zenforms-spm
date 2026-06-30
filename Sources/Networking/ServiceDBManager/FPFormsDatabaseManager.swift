@@ -683,6 +683,7 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
                     }
                 }
             }
+            completion(formArray)
         }
     }
     
