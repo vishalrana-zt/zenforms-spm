@@ -231,7 +231,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         
         // Capture initial form state for change detection
-        FPFormDataHolder.shared.captureInitialFormState()
+        DispatchQueue.main.async {
+            FPFormDataHolder.shared.captureInitialFormState()
+        }
         
         // Register memory warning observer
         NotificationCenter.default.addObserver(
@@ -835,7 +837,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 sections.first!,
                                 at: section,
                                 forAsset: [asset],
-                                assetObjectId: assetData.assetObjectId,
+                                assetData: assetData,
                                 completion: {
                                     error,
                                     response in

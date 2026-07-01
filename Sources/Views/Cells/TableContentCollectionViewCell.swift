@@ -46,6 +46,11 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     var fieldDetails:FPFieldDetails?
     var pickerView: UIPickerView?
     var delegate:TableContentCellDelegate?
+    /// Holds the formatted date/time string while the picker wheel is spinning.
+    /// Written by datePickerValueChanged/yearPickerValueChanged instead of mutating
+    /// self.data?.value directly — mutating data.value triggers didSet → setupView →
+    /// resignFirstResponder, which dismisses the picker before the user taps Done.
+    private var pendingPickerValue: String?
     var accessoryToolbar: UIToolbar {
         get {
             let toolbarFrame = CGRect(x: 0, y: 0, width: SCREEN_SIZE.width, height: 44)
@@ -105,6 +110,7 @@ class TableContentCollectionViewCell: UICollectionViewCell {
         searchHighlightQuery = nil
         searchHighlightCaseSensitive = false
         searchHighlightColumnKeys = []
+        pendingPickerValue = nil
         stripSearchHighlightFormatting()
     }
 
@@ -447,12 +453,15 @@ class TableContentCollectionViewCell: UICollectionViewCell {
     
     @objc func datePickerValueChanged(sender: UIDatePicker) {
         self.tblTextField.text = self.formateDateAccordingToMode(date: sender.date)
-        self.data?.value =  FPUtility.getStringWithTZFormat(sender.date)
+        // Store in pendingPickerValue instead of self.data?.value.
+        // Writing to self.data?.value triggers data.didSet → setupView → resignFirstResponder,
+        // which dismisses the picker before the user taps Done.
+        pendingPickerValue = FPUtility.getStringWithTZFormat(sender.date)
     }
-    
+
     @objc func yearPickerValueChanged(sender: FPMonthYearDatePicker) {
         self.tblTextField.text = self.formateDateAccordingToMode(date: sender.date)
-        self.data?.value =  FPUtility.getStringWithTZFormat(sender.date)
+        pendingPickerValue = FPUtility.getStringWithTZFormat(sender.date)
     }
     
     func formateDateAccordingToMode(date:Date) -> String {
@@ -476,8 +485,10 @@ class TableContentCollectionViewCell: UICollectionViewCell {
         if var columnData = data{
             var tblValue = text
             if !text.trim.isEmpty, data?.dataType == "DATE" || data?.dataType == "TIME" || data?.dataType == "DATE_TIME" || data?.dataType == "YEAR"{
-                tblValue = columnData.value
+                // Use the staged picker value (set during wheel spin) so we don't read stale data.value.
+                tblValue = pendingPickerValue ?? columnData.value
             }
+            pendingPickerValue = nil
             let dbValue = FPUtility().getSQLiteSpecialCharsCompatibleString(value: tblValue, isForLocal: true) ?? text
             columnData.value = dbValue
             delegate?.updateData(at: childTableIndex!, with: columnData, filedData: nil)
@@ -553,7 +564,9 @@ extension TableContentCollectionViewCell: UITextFieldDelegate {
         self.setTextFieldByType(self.data!)
         if self.data?.dataType == "DATE" || self.data?.dataType == "TIME" || self.data?.dataType == "DATE_TIME" || self.data?.dataType == "YEAR"{
             if let value = textField.text, value.trim.isEmpty{
-                self.data?.value =  FPUtility.getStringWithTZFormat(Date())
+                // Use pendingPickerValue instead of self.data?.value to avoid triggering
+                // data.didSet → setupView → resignFirstResponder on first open with empty value.
+                pendingPickerValue = FPUtility.getStringWithTZFormat(Date())
             }
         }
         return true
