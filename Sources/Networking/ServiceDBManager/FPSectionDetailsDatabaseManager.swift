@@ -545,6 +545,13 @@ struct FPSectionDetailsDatabaseManager: FPDataBaseQueries {
         }
     }
     
+    func updateScannerSortPositionToDB(_ item: FPSectionDetails) {
+        if let id = item.objectId?.intValue, let sort = item.sortPosition {
+            let query = "UPDATE \(FPSectionDetailsDatabaseManager.getTableName()) SET \(FPColumn.sortPosition) = '\(sort)' WHERE \(FPColumn.id) = \(id)"
+            FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self) { _ in }
+        }
+    }
+    
     func getDeleteQuery() -> String {
         return """
         DELETE FROM \(FPSectionDetailsDatabaseManager.getTableName())\n

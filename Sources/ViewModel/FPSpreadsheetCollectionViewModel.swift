@@ -30,6 +30,20 @@ final class FPSpreadsheetCollectionViewModel: NSObject {
 
     /// When non-nil, only these indices into `getTableComponent()?.rows` are shown as data rows. `nil` = show every row.
     var textSearchVisibleRowIndices: [Int]?
+
+    // MARK: - Lightweight column filter cache
+    // Avoids repeated .filter({$0.getUIType() != .HIDDEN}) on every cellForItemAt / numberOfItemsInSection call.
+    // Keyed by row index; cleared whenever the data changes (reloadData triggers numberOfSections first,
+    // so the cache is safe for the lifetime of one layout pass).
+    private var cachedFilteredColumns: [ColumnData]?        // from rows[0] — used for header & item count
+    private var cachedRowColumns: [Int: [ColumnData]] = [:] // per row — used for content cells
+
+    /// Call this before reloadData() to ensure stale columns are never served.
+    func invalidateColumnCache() {
+        cachedFilteredColumns = nil
+        cachedRowColumns.removeAll()
+    }
+
     var accessoryToolbar: UIToolbar {
         get {
             let toolbarFrame = CGRect(x: 0, y: 0, width: SCREEN_WIDTH_S, height: 44)
@@ -57,6 +71,8 @@ final class FPSpreadsheetCollectionViewModel: NSObject {
 extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
     // i.e. rows
     func numberOfSections(in collectionView: UICollectionView) -> Int {
+        // numberOfSections is called once per reloadData pass — safe point to drop the column cache.
+        invalidateColumnCache()
         let tableComponent = dataSource?.getTableComponent()
         let baseCount = tableComponent?.rows?.count ?? 0
         let dataRows = textSearchVisibleRowIndices?.count ?? baseCount
@@ -78,8 +94,10 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
     
     // i.e. number of columns
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        
-        return (dataSource?.getTableComponent()?.rows?.first?.columns.filter({$0.getUIType() != .HIDDEN}).count ?? 0)+2 // +2 > Sr No and Action
+        if cachedFilteredColumns == nil {
+            cachedFilteredColumns = dataSource?.getTableComponent()?.rows?.first?.columns.filter({ $0.getUIType() != .HIDDEN })
+        }
+        return (cachedFilteredColumns?.count ?? 0) + 2 // +2 > Sr No and Action
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -115,25 +133,35 @@ extension FPSpreadsheetCollectionViewModel: UICollectionViewDataSource {
             // Top row - Header
         case (_, 0):
             isHideCHeckBoxHeader = true
-            let columns = tableComponent?.rows?.first?.columns.filter({$0.getUIType() != .HIDDEN})
-            cellContent = columns?[indexPath.row-2].key ?? ""
-            if let column = columns?[indexPath.row-2]{
+            if cachedFilteredColumns == nil {
+                cachedFilteredColumns = tableComponent?.rows?.first?.columns.filter({ $0.getUIType() != .HIDDEN })
+            }
+            let headerColumns = cachedFilteredColumns
+            cellContent = headerColumns?[indexPath.row-2].key ?? ""
+            if let column = headerColumns?[indexPath.row-2]{
                 isHideMore = column.uiType == "ATTACHMENT"
             }
             break
-            
+
             // Left column -Sr number
         case (0, _):
             cellContent = "\(indexPath.section)"
             isHideMore = true
             isHideCHeckBoxHeader = true
             break
-            
+
             // Inner-content
         default:
             guard let rowIdx = resolvedDataRowIndex(forSection: indexPath.section),
                   let row = tableComponent?.rows?[safe: rowIdx] else { break }
-            let columns = row.columns.filter({$0.getUIType() != .HIDDEN})
+            let columns: [ColumnData]
+            if let cached = cachedRowColumns[rowIdx] {
+                columns = cached
+            } else {
+                let filtered = row.columns.filter({ $0.getUIType() != .HIDDEN })
+                cachedRowColumns[rowIdx] = filtered
+                columns = filtered
+            }
             let columnIndex = indexPath.row - 2
             if let column = columns[safe: columnIndex]{
                 dataSource?.configure(cell, with: cellContent,column:column,indexPath:indexPath, isHideMore: isHideMore, isHideCHeckBoxHeader: isHideCHeckBoxHeader)

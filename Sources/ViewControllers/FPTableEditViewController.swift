@@ -290,11 +290,11 @@ class FPTableEditViewController: UIViewController {
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: tableComponent)
                 self.didCompletedEdit?(tableComponent)
             }
-            let snapshot = FPFormDataHolder.shared.tableMediaCache
-            snapshot.forEach { tableMedia in
-                DispatchQueue.main.async {
-                    FPFormDataHolder.shared.updateTableFieldValue(media: tableMedia)
-                }
+            // Process all cached media synchronously — we're already on the main thread inside asyncAfter.
+            // Nested DispatchQueue.main.async calls would let other closures interleave between mutations
+            // of the shared FPFormDataHolder struct, risking inconsistent state.
+            FPFormDataHolder.shared.tableMediaCache.forEach { tableMedia in
+                FPFormDataHolder.shared.updateTableFieldValue(media: tableMedia)
             }
             FPFormDataHolder.shared.tableMediaCache = []
             
@@ -352,12 +352,12 @@ class FPTableEditViewController: UIViewController {
                 _ = self.sortFilteredTableComponent?.addNewRow(with: row.columns, rowSortId: newRow?.sortUuid)
             }
         }
-        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
-            layout.addRow(nRow: rowCount)
-        }
-        
         DispatchQueue.main.async {
             FPUtility.hideHUD()
+            if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                layout.addRow(nRow: self.rowCount)
+                layout.invalidateLayout()
+            }
             self.collectionView.reloadData()
             self.fpReapplyTableTextSearchIfNeeded()
         }
@@ -369,8 +369,9 @@ class FPTableEditViewController: UIViewController {
         if isSortFilterApplied{
             _ = self.sortFilteredTableComponent?.addNewRow(with: row.columns, rowSortId: newRow?.sortUuid, ignoreDefaultVal: true)
         }
-        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
+        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
             layout.addRow(nRow: 1)
+            layout.invalidateLayout()
         }
         self.collectionView.reloadData()
         self.fpReapplyTableTextSearchIfNeeded()
@@ -925,7 +926,14 @@ extension FPTableEditViewController{
         self.isSortFilterApplied = false
         self.sortFilterColumn = nil
         self.sortFilteredTableComponent = nil
-        self.resetMultipleSeletion()
+        // Reset selection state without triggering an intermediate reloadData
+        self.arrSelectedIndexes = []
+        self.arrSelectedRows = []
+        self.isSelectedAll = false
+        self.refreshActionButtons()
+        // Reset scroll position BEFORE invalidating layout so the layout captures (0,0) as
+        // originalContentOffset — prevents cells rendering at stale offsets (UI glitch after Clear).
+        self.collectionView.setContentOffset(.zero, animated: false)
         if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
             layout.invalidateDataSourceCounts()
         } else {
@@ -1148,17 +1156,18 @@ extension FPTableEditViewController{
     func refreshWithSortFilter(){
         DispatchQueue.main.async {
             self.isSortFilterApplied = !self.arrAppliedFilters.isEmpty
+            if self.arrAppliedFilters.isEmpty {
+                // resetToDefault handles setContentOffset + layout invalidation + reloadData
+                self.resetToDefault()
+                return
+            }
             self.collectionView.setContentOffset(.zero, animated: false)
             if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
                 layout.invalidateDataSourceCounts()
             } else {
                 self.collectionView.collectionViewLayout.invalidateLayout()
             }
-            if self.arrAppliedFilters.isEmpty{
-                self.resetToDefault()
-            }else{
-                self.collectionView.reloadData()
-            }
+            self.collectionView.reloadData()
             self.fpReapplyTableTextSearchIfNeeded()
         }
     }
@@ -1196,14 +1205,14 @@ extension FPTableEditViewController: TableContentCellDelegate{
                         _ = self.tableComponent?.addDuplicateRow(columns: duplicaterow.columns, at: insertAtDisplay)
                     }
                 }
+                if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                    layout.addRow()
+                    layout.invalidateLayout()
+                }
                 self.fpReapplyTableTextSearchIfNeeded()
                 self.collectionView.reloadData()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
-            
-        }
-        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
-            layout.addRow()
-            layout.invalidateLayout()
+
         }
     }
     
@@ -1251,6 +1260,13 @@ extension FPTableEditViewController: TableContentCellDelegate{
     
     func deleteRow(at index:IndexPath){
         self.view.endEditing(true)
+        let totalRows = self.isSortFilterApplied
+            ? (self.sortFilteredTableComponent?.rows?.count ?? 0)
+            : (self.tableComponent?.rows?.count ?? 0)
+        guard totalRows > 1 else {
+            _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: FPLocalizationHelper.localize("msg_tbl_atleast_need_one_row"), completion: nil)
+            return
+        }
         DispatchQueue.main.async{
             FPUtility.showAlertController(title: FPLocalizationHelper.localize("alert_dialog_title"), andMessage:FPLocalizationHelper.localizeWith(args: ["\(index.section)"], key: "msg_delete_row"), completion: nil, withPositiveAction: FPLocalizationHelper.localize("Yes"), style: .default, andHandler: { (action) in
                 self.deleteIfAnyAssetLinking(index: index)
@@ -1290,22 +1306,28 @@ extension FPTableEditViewController: TableContentCellDelegate{
                         }
                     }
                 }
+                if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                    layout.removeRow()
+                    layout.invalidateLayout()
+                }
                 self.fpReapplyTableTextSearchIfNeeded()
                 self.collectionView.reloadData()
             }, withNegativeAction: FPLocalizationHelper.localize("Cancel"), style: .default, andHandler: nil)
-            
-        }
-        if let layout = collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
-            layout.removeRow()
-            layout.invalidateLayout()
+
         }
     }
     
     func deleteMultipleRows(_ arrRows:[Rows]){
         self.view.endEditing(true)
+        let totalRows = self.tableComponent?.rows?.count ?? 0
+        guard !(totalRows == 1 && arrRows.count == 1 && !self.isSelectedAll) else {
+            self.resetMultipleSeletion()
+            _ = FPUtility.showAlertController(title: FPLocalizationHelper.localize("error_dialog_title"), message: FPLocalizationHelper.localize("msg_tbl_atleast_need_one_row"), completion: nil)
+            return
+        }
         FPUtility.showHUDWithLoadingMessage()
         let hasActiveSearch = !(self.fpTableSearchBar?.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-        if self.isSelectedAll{
+        if self.isSelectedAll || arrRows.count >= totalRows {
             self.addEmptyRowToTable()
         }
         self.resetMultipleSeletion()
@@ -1354,6 +1376,9 @@ extension FPTableEditViewController: TableContentCellDelegate{
     }
     
     func updateData(at index:IndexPath, with data:ColumnData, filedData filed:FPFieldDetails?){
+        // Invalidate cached row columns so reloadItems/reloadSections picks up the new value,
+        // not stale ColumnData from the per-row filter cache.
+        viewModel?.invalidateColumnCache()
         guard let dRow = fp_visibleSectionToDisplayRowIndex(index.section) else { return }
         if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent{
             if var row = sortCompnt.rows?[safe:dRow]{
@@ -1675,9 +1700,6 @@ extension FPTableEditViewController{
                     }
                 }
                 upsertAddAssetLinkIntoDB(assetData:assetData, rowLocalId: assetRowLocalId, rowId: assetRowId)
-                DispatchQueue.main.async {
-                    self.collectionView.reloadData()
-                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                     self.collectionView.reloadData()
                     FPUtility.hideHUD()
