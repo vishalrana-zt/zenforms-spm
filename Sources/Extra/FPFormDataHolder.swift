@@ -168,15 +168,17 @@ struct FPFormDataHolder{
         var sectionToInsert = section.copyFPSectionDetails(false)
         sectionToInsert.sectionOptions = sectionOption
         sectionToInsert.sortPosition = scannerSortPosition
-        sectionToInsert.displayName = "\(sectionToInsert.name ?? "")(\(asset?.first?.fields.first(where: {$0.name == "serialNumber"})?.value ?? ""))"
+        let serialNumber = asset?.first?.fields.first(where: {$0.name == "serialNumber"})?.value ?? ""
+        let assetName = assetData.assetName ?? ""
+        sectionToInsert.displayName = "\(sectionToInsert.name ?? "") (\(serialNumber) / \(assetName))"
         sectionToInsert.objectId = nil
         sectionToInsert.objectStringId = nil
-        if let assetData = asset {
+        if let assetFields = asset {
             let insertSectionOptions = sectionToInsert.sectionOptions
             //Auto Populate ASSET based on mapping
             if let  assetMapping = insertSectionOptions?["assetMapping"] as?[String:String] {
                 assetMapping.forEach { mappingKey, mappingValue in
-                    let assetField = getAssetField(assetData, forField:mappingValue)
+                    let assetField = getAssetField(assetFields, forField:mappingValue)
                     if let fieldIndex = sectionToInsert.fields.firstIndex(where: {$0.name?.lowercased() == mappingKey.lowercased()}){
                         if mappingValue.lowercased() == "assetConditionId".lowercased() ||  mappingValue.lowercased() == "assetTypeId".lowercased(){
                             //if mapping value name is assetConditionId/assetTypeId then fetch value from dropdown options as asset condition/type value will be id not value.
@@ -322,7 +324,7 @@ struct FPFormDataHolder{
         return hiddenField
     }
     
-    public mutating func updateAssetSection(_ section:FPSectionDetails,at sectionIndex:Int,forAsset asset:[FPSectionDetails]?,assetObjectId:NSNumber?,completion:@escaping (_ error:Error?,_ response:Any?)->Void) {
+    public mutating func updateAssetSection(_ section:FPSectionDetails,at sectionIndex:Int,forAsset asset:[FPSectionDetails]?,assetData:AssetInspectionData?,completion:@escaping (_ error:Error?,_ response:Any?)->Void) {
         var sectionOption = section.sectionOptions
         sectionOption?.removeValue(forKey:"isHidden")
         let prevSection = sections?[sectionIndex]
@@ -361,13 +363,15 @@ struct FPFormDataHolder{
         sectionToInsert.sortPosition = prevSectionPosition
         sectionToInsert.objectId = nil
         sectionToInsert.objectStringId = nil
-        sectionToInsert.displayName = "\(sectionToInsert.name ?? "")(\(asset?.first?.fields.first(where: {$0.name == "serialNumber"})?.value ?? ""))"
-        if let assetData = asset {
+        let serialNumber = asset?.first?.fields.first(where: {$0.name == "serialNumber"})?.value ?? ""
+        let assetName = assetData?.assetName ?? ""
+        sectionToInsert.displayName = "\(sectionToInsert.name ?? "") (\(serialNumber) / \(assetName))"
+        if let assetFields = asset {
             let insertSectionOptions = sectionToInsert.sectionOptions
             //Auto Populate ASSET based on mapping
             if let  assetMapping = insertSectionOptions?["assetMapping"] as?[String:String] {
                 assetMapping.forEach { mappingKey, mappingValue in
-                    let assetField = getAssetField(assetData, forField:mappingValue)
+                    let assetField = getAssetField(assetFields, forField:mappingValue)
                     if let fieldIndex = sectionToInsert.fields.firstIndex(where: {$0.name?.lowercased() == mappingKey.lowercased()}){
                         if mappingValue.lowercased() == "assetConditionId".lowercased() ||  mappingValue.lowercased() == "assetTypeId".lowercased(){
                             //if mapping value name is assetConditionId/assetTypeId then fetch value from dropdown options as asset condition/type value will be id not value.
@@ -391,7 +395,7 @@ struct FPFormDataHolder{
             }
             return field
         })
-        if let assetObjectId, let sortPosition = sectionToInsert.fields.last?.sortPosition {
+        if let assetObjectId = assetData?.assetObjectId, let sortPosition = sectionToInsert.fields.last?.sortPosition {
             sectionToInsert = self.addHiddenAssetFieldIn(sectionToInsert: sectionToInsert, assetId: assetObjectId, sortPostion: "\(sortPosition)1")
         }
         sections?.remove(at: sectionIndex)
@@ -1284,7 +1288,17 @@ struct FPFormDataHolder{
                 }
             }
         }
-        
+        // Hash in-memory file attachments (FILE/ATTACHMENT fields store files here, not in field.value)
+        let sortedKeys = filesAtIndex.keys.sorted { ($0.section, $0.row) < ($1.section, $1.row) }
+        for key in sortedKeys {
+            let files = filesAtIndex[key] ?? []
+            hasher.combine(files.count)
+            for file in files {
+                hasher.combine(file.name ?? "")
+                hasher.combine(file.serverUrl ?? "")
+                hasher.combine(file.filePath ?? "")
+            }
+        }
         return String(hasher.finalize())
     }
     

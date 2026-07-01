@@ -231,7 +231,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         
         // Capture initial form state for change detection
-        FPFormDataHolder.shared.captureInitialFormState()
+        DispatchQueue.main.async {
+            FPFormDataHolder.shared.captureInitialFormState()
+        }
         
         // Register memory warning observer
         NotificationCenter.default.addObserver(
@@ -838,7 +840,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 sections.first!,
                                 at: section,
                                 forAsset: [asset],
-                                assetObjectId: assetData.assetObjectId,
+                                assetData: assetData,
                                 completion: {
                                     error,
                                     response in
@@ -1784,15 +1786,29 @@ extension FPFormViewController: UITableViewDataSource,UITableViewDelegate{
     }
     
     private func safeReloadRows(_ indexPaths: [IndexPath]) {
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
             let section = 0
-            let maxRows = self.formTableView.numberOfRows(inSection: section)
-            let validPaths = indexPaths.filter { $0.row >= 0 && $0.row < maxRows }
+            let tableViewRows = self.formTableView.numberOfRows(inSection: section)
+            let dataSourceRows = FPFormDataHolder.shared.getFieldsCountFor(section: self.section)
+            
+            // If the counts don't match, reloadData is the only safe way to recover
+            if tableViewRows != dataSourceRows {
+                DispatchQueue.main.async{
+                    self.formTableView.reloadData()
+                }
+                return
+            }
+            
+            // Filter paths to ensure they are within current bounds and belong to the correct section
+            let validPaths = indexPaths.filter { $0.row >= 0 && $0.row < tableViewRows && $0.section == section }
             guard !validPaths.isEmpty else { return }
 
-            self.formTableView.beginUpdates()
-            self.formTableView.reloadRows(at: validPaths, with: .automatic)
-            self.formTableView.endUpdates()
+            DispatchQueue.main.async{
+                self.formTableView.beginUpdates()
+                self.formTableView.reloadRows(at: validPaths, with: .automatic)
+                self.formTableView.endUpdates()
+            }
         }
     }
     

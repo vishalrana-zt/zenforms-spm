@@ -59,6 +59,7 @@ public class AssetInspectionData: NSObject {
     public var assetObjectId:NSNumber?
     public var assetLocalId:NSNumber?
     public var isAssetSyncedToServer: Bool = false
+    public var assetName:String?
     public var assetSection:FPSectionDetails?
 }
 
