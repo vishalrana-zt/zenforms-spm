@@ -22,7 +22,10 @@ extension URLRequest {
 
 enum FPTraceIdGenerator {
     static func generate() -> String {
-        UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        let companyId = UserDefaults.standard.string(forKey: "companyId") ?? "0"
+        let userId = UserDefaults.standard.string(forKey: "userId") ?? "0"
+        let uuid = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        return "\(companyId)-\(userId)-\(uuid)"
     }
 }
 
