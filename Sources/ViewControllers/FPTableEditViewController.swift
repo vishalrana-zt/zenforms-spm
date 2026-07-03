@@ -2124,7 +2124,7 @@ extension FPTableEditViewController {
 
     func fp_setupAutoSave() {
         guard !isAnalysed && !isFromHistory else { return }
-        fp_autoSaveTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        fp_autoSaveTimer = Timer.scheduledTimer(withTimeInterval: 180, repeats: true) { [weak self] _ in
             self?.fp_autoSave()
         }
         NotificationCenter.default.addObserver(
