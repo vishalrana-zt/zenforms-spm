@@ -31,7 +31,7 @@ class TableComponent {
         return copy
     }
     
-    func prepareData(item: TableOptions, values: String?,index:IndexPath, fieldDetails:FPFieldDetails?, customForm:FPForms) -> TableComponent {
+    func prepareData(item: TableOptions, values: String?,index:IndexPath, rowCount: Int = 1, fieldDetails:FPFieldDetails?, customForm:FPForms) -> TableComponent {
         self.tableOptions = item
         self.headers = [Headers]()
         self.rows = [Rows]()
@@ -147,7 +147,7 @@ class TableComponent {
                 }
                 self.values?.append(emptyvalue)
             }
-            for _ in(0 ..< FPFormDataHolder.shared.getRowsAt(index: index)){
+            for _ in(0 ..< rowCount){
                 var tblRow = Rows(columns: columns)
                 var ncolumns = [ColumnData]()
                 for element in tblRow.columns {
