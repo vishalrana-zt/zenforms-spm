@@ -1331,47 +1331,63 @@ extension FPTableEditViewController: TableContentCellDelegate{
             self.addEmptyRowToTable()
         }
         self.resetMultipleSeletion()
-        let group = DispatchGroup()
-        for currentRow in arrRows {
-            group.enter()
-            var assetRowLocalId: String?
-            var assetRowId: String?
-            if let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == currentRow.sortUuid }){
-                if self.isSortFilterApplied{
-                    if let indexSRow = self.sortFilteredTableComponent?.rows?.firstIndex(where: { $0.sortUuid == currentRow.sortUuid }){
-                        self.sortFilteredTableComponent?.deleteSortedRow(at: indexSRow, orginalIndex: indexOfRow)
-                    }
-                }
-                if let dictvalue = self.tableComponent?.values?[safe:indexOfRow]{
-                    for (key, value) in dictvalue {
-                        if key == "__id__"{
-                            assetRowId = value as? String
-                        }else if key == "__localId__"{
-                            assetRowLocalId = value as? String
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            
+            var assetRowIds = [String]()
+            var assetRowLocalIds = [String]()
+            
+            for currentRow in arrRows {
+                if let indexOfRow = self.tableComponent?.rows?.firstIndex(where: { $0.sortUuid == currentRow.sortUuid }){
+                    
+                    if self.isSortFilterApplied {
+                        if let indexSRow = self.sortFilteredTableComponent?.rows?.firstIndex(where: { $0.sortUuid == currentRow.sortUuid }){
+                            self.sortFilteredTableComponent?.deleteSortedRow(at: indexSRow, orginalIndex: indexOfRow)
                         }
                     }
+                    
+                    if let dictvalue = self.tableComponent?.values?[safe:indexOfRow]{
+                        for (key, value) in dictvalue {
+                            if key == "__id__", let id = value as? String {
+                                assetRowIds.append(id)
+                            } else if key == "__localId__", let lid = value as? String {
+                                assetRowLocalIds.append(lid)
+                            }
+                        }
+                    }
+                    self.tableComponent?.deleteRow(at:indexOfRow)
                 }
-                self.tableComponent?.deleteRow(at:indexOfRow)
             }
-            self.upsertDeleteAssetLinking(assetRowId: assetRowId, assetRowLocalId: assetRowLocalId)
-            group.leave()
-        }
-        group.notify(queue: DispatchQueue.main) {
-            if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout{
+            
+            // Perform batch database update for asset linkings
+            if self.isAssetEnabled, let isAssetTable = self.tableComponent?.tableOptions?.isAssetTable, isAssetTable {
+                AssetFormLinkingDatabaseManager().batchUpsertDeleteAssetLinking(
+                    assetRowIds: assetRowIds, 
+                    assetRowLocalIds: assetRowLocalIds, 
+                    fieldTemplateId: self.fieldDetails?.templateId ?? "0", 
+                    form: FPFormDataHolder.shared.customForm
+                )
+            }
+            
+            DispatchQueue.main.async {
+                if let layout = self.collectionView.collectionViewLayout as? FPSpreadsheetCollectionViewLayout {
+                    if hasActiveSearch {
+                        layout.isNew = true
+                    } else {
+                        layout.removeRow(nRow: arrRows.count)
+                        layout.invalidateLayout()
+                    }
+                }
+                
                 if hasActiveSearch {
-                    layout.isNew = true
+                    self.fpApplyTableTextSearchFromField(animated: false)
                 } else {
-                    layout.removeRow(nRow: arrRows.count)
-                    layout.invalidateLayout()
+                    self.collectionView.reloadData()
                 }
+                self.collectionView.layoutIfNeeded()
+                FPUtility.hideHUD()
             }
-            if hasActiveSearch {
-                self.fpApplyTableTextSearchFromField(animated: false)
-            } else {
-                self.collectionView.reloadData()
-            }
-            self.collectionView.layoutIfNeeded()
-            FPUtility.hideHUD()
         }
     }
     

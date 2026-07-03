@@ -559,8 +559,30 @@ struct AssetFormLinkingDatabaseManager: FPDataBaseQueries {
         """
     }
     
-    func getUpdateQuery(item: AssetFormMappingData) -> String {
+    func batchUpsertDeleteAssetLinking(assetRowIds: [String], assetRowLocalIds: [String], fieldTemplateId: String, form: FPForms?) {
+        var queries = [String]()
+        let allIds = (assetRowIds + assetRowLocalIds).filter { !$0.isEmpty }
+        guard !allIds.isEmpty else { return }
+        let idsString = allIds.map { "'\($0)'" }.joined(separator: ",")
+        var fClause = ""
+        if let fid = form?.objectId, !fid.isEmpty { 
+            fClause = "AND (\(FPColumn.customFormId) = '\(fid)' OR \(FPColumn.customFormLocalId) = '\(form?.sqliteId?.stringValue ?? "")')" 
+        } else if let flid = form?.sqliteId?.stringValue, !flid.isEmpty { 
+            fClause = "AND \(FPColumn.customFormLocalId) = '\(flid)'" 
+        }
         
+        let activeConstraint = "AND \(FPColumn.addLinking) = 1"
+
+        let softQuery = "UPDATE \(AssetFormLinkingDatabaseManager.getTableName()) SET \(FPColumn.deleteLinking) = 1, \(FPColumn.addLinking) = 0, \(FPColumn.isSyncedToServer) = 0, \(FPColumn.isNotConfirmed) = 0 WHERE \(FPColumn.companyId) = \(companyId) AND \(FPColumn.fieldTemplateId) = '\(fieldTemplateId)' \(fClause) \(activeConstraint) AND \(FPColumn.isSyncedToServer) = 1 AND (\(FPColumn.tableRowId) IN (\(idsString)) OR \(FPColumn.tableRowLocalId) IN (\(idsString)))"
+        queries.append(softQuery)
+        
+        let hardQuery = "DELETE FROM \(AssetFormLinkingDatabaseManager.getTableName()) WHERE \(FPColumn.companyId) = \(companyId) AND \(FPColumn.fieldTemplateId) = '\(fieldTemplateId)' \(fClause) \(activeConstraint) AND \(FPColumn.isSyncedToServer) = 0 AND (\(FPColumn.tableRowId) IN (\(idsString)) OR \(FPColumn.tableRowLocalId) IN (\(idsString)))"
+        queries.append(hardQuery)
+        
+        if !queries.isEmpty { FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery(queries, dbManager: self) { _ in } }
+    }
+    
+    func getUpdateQuery(item: AssetFormMappingData) -> String {
         var updateQuery = self.getUpdateQuery()
         
         if let value = item.assetId {
