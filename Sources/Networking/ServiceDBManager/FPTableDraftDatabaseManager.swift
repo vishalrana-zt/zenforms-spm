@@ -34,12 +34,14 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
         return """
         CREATE TABLE IF NOT EXISTS \(self.getTableName()) (
         \(FPColumn.draftKey)      \(FPDataTypes.text) PRIMARY KEY,
+        \(FPColumn.customFormLocalId) \(FPDataTypes.text),
         \(FPColumn.fieldLocalId)  \(FPDataTypes.integer),
         \(FPColumn.fieldId)       \(FPDataTypes.text),
         \(FPColumn.value)         \(FPDataTypes.text),
         \(FPColumn.updatedAt)     \(FPDataTypes.date)
         );
         CREATE UNIQUE INDEX IF NOT EXISTS idx_table_draft_key ON \(self.getTableName())(\(FPColumn.draftKey));
+        CREATE INDEX IF NOT EXISTS idx_table_draft_form ON \(self.getTableName())(\(FPColumn.customFormLocalId));
         """
     }
 
@@ -51,24 +53,25 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
 
     // MARK: - Draft Operations (Key-centric)
 
-    private func getInsertQuery(key: String, sqliteId: Int64?, objectId: String?, value: String) -> String {
+    private func getInsertQuery(key: String, formLocalId: String?, sqliteId: Int64?, objectId: String?, value: String) -> String {
         let safeKey   = key
         let safeValue = value.processApostrophe()
         let now       = ISO8601DateFormatter().string(from: Date())
         
+        let fidStr = formLocalId != nil ? "'\(formLocalId ?? "")'" : "NULL"
         let sidStr = sqliteId != nil ? "\(sqliteId ?? 0)" : "NULL"
         let oidStr = objectId != nil ? "'\(objectId ?? "")'" : "NULL"
 
         return """
         INSERT OR REPLACE INTO \(FPTableDraftDatabaseManager.getTableName())
-        (\(FPColumn.draftKey), \(FPColumn.fieldLocalId), \(FPColumn.fieldId), \(FPColumn.value), \(FPColumn.updatedAt))
-        VALUES ('\(safeKey)', \(sidStr), \(oidStr), '\(safeValue)', '\(now)')
+        (\(FPColumn.draftKey), \(FPColumn.customFormLocalId), \(FPColumn.fieldLocalId), \(FPColumn.fieldId), \(FPColumn.value), \(FPColumn.updatedAt))
+        VALUES ('\(safeKey)', \(fidStr), \(sidStr), \(oidStr), '\(safeValue)', '\(now)')
         """
     }
 
-    func saveDraft(key: String, sqliteId: Int64?, objectId: String?, value: String) {
+    func saveDraft(key: String, formLocalId: String?, sqliteId: Int64?, objectId: String?, value: String) {
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery(
-            [getInsertQuery(key: key, sqliteId: sqliteId, objectId: objectId, value: value)],
+            [getInsertQuery(key: key, formLocalId: formLocalId, sqliteId: sqliteId, objectId: objectId, value: value)],
             dbManager: self
         )
     }
@@ -99,6 +102,18 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
         
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
     }
+
+    /// Deletes all table drafts associated with a specific form instance.
+    func deleteAllDraftsForForm(ticketId: String, formLocalId: String) {
+        let prefix = "fp_tbl_path_\(ticketId)_\(formLocalId)_"
+        let query = """
+            DELETE FROM \(FPTableDraftDatabaseManager.getTableName())
+            WHERE \(FPColumn.customFormLocalId) = '\(formLocalId)'
+               OR \(FPColumn.draftKey) LIKE '\(prefix)%'
+            """
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
+    }
+
 
     func fetchDraft(draftKey: String, completion: @escaping (String?) -> Void) {
         let safeKey = draftKey

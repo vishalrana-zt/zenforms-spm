@@ -172,7 +172,10 @@ class FPQueAnsTableEditViewController: UIViewController {
                 }
             }
             FPFormDataHolder.shared.tableMediaCache = []
-            self.fp_deleteDraft()
+            // Logic updated: Do NOT delete draft on table save. 
+            // Keep it until the whole form is submitted to prevent data loss if app crashes.
+            // self.fp_deleteDraft()
+            
             self.navigationController?.popViewController(animated: false)
         })
     }
@@ -949,7 +952,7 @@ extension FPQueAnsTableEditViewController {
         // We include the parent form's local sqliteId to distinguish between multiple
         // instances of the same form template on the same ticket.
         let ticketId = self.fpFormViewController?.ticketId?.stringValue ?? "0"
-        let parentFormLocalId = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? "0"
+        let parentFormLocalId = FPFormDataHolder.shared.customForm?.localClientId ?? FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? "0"
         
         let fieldTemplateId = self.fieldDetails?.templateId ?? ""
         let section = self.tableIndexPath?.section ?? 0
@@ -981,7 +984,9 @@ extension FPQueAnsTableEditViewController {
 
         let sid = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
         let oid = self.fieldDetails?.objectId?.stringValue
-        FPTableDraftDatabaseManager().saveDraft(key: key, sqliteId: sid, objectId: oid, value: value)
+        let fid = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? FPFormDataHolder.shared.customForm?.localClientId ?? "0"
+
+        FPTableDraftDatabaseManager().saveDraft(key: key, formLocalId: fid, sqliteId: sid, objectId: oid, value: value)
     }
 
     private func fp_refreshFieldDetailsFromHolder() {
@@ -1068,6 +1073,12 @@ extension FPQueAnsTableEditViewController {
                   let draftValue = draftValue,
                   !draftValue.isEmpty else { return }
 
+            // Only prompt if the draft contains data DIFFERENT from what is currently in the table.
+            // If the user already 'Saved' to memory, the current table data matches the draft.
+            if let currentJson = self.tableComponent?.getJsonValues(), currentJson == draftValue {
+                return
+            }
+
             DispatchQueue.main.async {
                 _ = FPUtility.showAlertController(
                     title: FPLocalizationHelper.localize("alert_dialog_title"),
@@ -1078,9 +1089,6 @@ extension FPQueAnsTableEditViewController {
                     andHandler: { [weak self] _ in
                         guard let self = self else { return }
                         self.fp_applyDraft(draftValue)
-                        // Delete after successful restore so stale
-                        // draft cannot be offered again on next open.
-                        self.fp_deleteDraft()
                     },
                     withNegativeAction: FPLocalizationHelper.localize("Discard"),
                     style: .destructive,
@@ -1119,6 +1127,10 @@ extension FPQueAnsTableEditViewController {
                 self.collectionView.reloadData()
                 FPUtility.hideHUD()
                 debugPrint("FPTableEdit: restored draft data")
+                
+                // Delete after successful restore so stale
+                // draft cannot be offered again on next open.
+                self.fp_deleteDraft()
             }
         }
     }

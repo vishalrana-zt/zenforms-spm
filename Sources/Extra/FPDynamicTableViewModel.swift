@@ -432,6 +432,11 @@ class TableComponent {
 //        }
         return values
     }
+
+    func getJsonValues() -> String? {
+        let values = self.getValuesObject()
+        return values.getJson()
+    }
     
     func getValueObject(from row: Rows, isDuplicate:Bool = false) -> [String: Any] {
         var value = [String: Any]()
