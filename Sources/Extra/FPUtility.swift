@@ -1125,8 +1125,25 @@ extension UserDefaults{
             return self.standard.object(forKey: "COMPUTED_FIELDS") as? [String:Any]
         }
         set{
-            self.standard.set(newValue,forKey: "COMPUTED_FIELDS")
-            self.standard.synchronize()
+            guard var value = newValue else {
+                self.standard.removeObject(forKey: "COMPUTED_FIELDS")
+                self.standard.removeObject(forKey: "COMPUTED_FIELDS_ORDER")
+                return
+            }
+            let existing = self.standard.object(forKey: "COMPUTED_FIELDS") as? [String: Any] ?? [:]
+            var order = self.standard.stringArray(forKey: "COMPUTED_FIELDS_ORDER") ?? Array(existing.keys)
+            // Move every written key to back (most-recently-used) — LRU eviction
+            value.keys.forEach { key in
+                order.removeAll { $0 == key }
+                order.append(key)
+            }
+            // Evict oldest-first when over limit
+            while value.count > 20, let oldest = order.first {
+                value.removeValue(forKey: oldest)
+                order.removeFirst()
+            }
+            self.standard.set(value, forKey: "COMPUTED_FIELDS")
+            self.standard.set(order, forKey: "COMPUTED_FIELDS_ORDER")
         }
     }
     

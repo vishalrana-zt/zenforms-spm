@@ -193,7 +193,7 @@ extension FPLocalDatabaseManager{
             if let result = try self.dbWriter?.read({ [unowned self] db -> [[String:Any]] in
                 return self.fetchResults(db, dbManager, strQuery)
             }) {
-                self.printAndSendLogToDatadog(dbManager, queryString: "Query: \(strQuery) Results: \(result.getJson())")
+                self.printAndSendLogToDatadog(dbManager, queryString: "Query: \(strQuery) Results: \(result.count) rows")
                 completionHandler(result)
             }else {
                 completionHandler([[String:Any]]())
