@@ -2218,33 +2218,40 @@ extension FPTableEditViewController {
                   let draftValue = draftValue,
                   !draftValue.isEmpty else { return }
 
-            // Only prompt if the draft contains data DIFFERENT from what is currently in the table.
-            // If the user already 'Saved' to memory, the current table data matches the draft.
-            if let currentJson = self.tableComponent?.getJsonValues(), currentJson == draftValue {
-                return
-            }
-
             DispatchQueue.main.async {
-                _ = FPUtility.showAlertController(
-                    title: FPLocalizationHelper.localize("alert_dialog_title"),
-                    andMessage: FPLocalizationHelper.localize("msg_restore_unsaved_changes"),
-                    completion: nil,
-                    withPositiveAction: FPLocalizationHelper.localize("Restore"),
-                    style: .default,
-                    andHandler: { [weak self] _ in
-                        guard let self = self else { return }
-                        self.fp_applyDraft(draftValue)
-                    },
-                    withNegativeAction: FPLocalizationHelper.localize("Discard"),
-                    style: .destructive,
-                    andHandler: { [weak self] _ in
-                        self?.fp_deleteDraft()
+                // 1. Capture snapshot safely on main thread
+                let currentValues = self.tableComponent?.getValuesObject()
+                
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    guard let self = self else { return }
+                    
+                    // 2. Perform heavy serialization and comparison on background thread
+                    if let currentJson = currentValues?.getJson(), currentJson == draftValue {
+                        return // Data is identical, skip prompt
                     }
-                )
+                    
+                    DispatchQueue.main.async {
+                        _ = FPUtility.showAlertController(
+                            title: FPLocalizationHelper.localize("alert_dialog_title"),
+                            andMessage: FPLocalizationHelper.localize("msg_restore_unsaved_changes"),
+                            completion: nil,
+                            withPositiveAction: FPLocalizationHelper.localize("Restore"),
+                            style: .default,
+                            andHandler: { [weak self] _ in
+                                guard let self = self else { return }
+                                self.fp_applyDraft(draftValue)
+                            },
+                            withNegativeAction: FPLocalizationHelper.localize("Discard"),
+                            style: .destructive,
+                            andHandler: { [weak self] _ in
+                                self?.fp_deleteDraft()
+                            }
+                        )
+                    }
+                }
             }
         }
     }
-
     private func fp_applyDraft(_ draftValue: String) {
         guard let tableOptions = self.tableComponent?.tableOptions,
               let form = FPFormDataHolder.shared.customForm else { return }

@@ -406,12 +406,10 @@ class TableComponent {
     func getValuesObject() -> [[String: Any]] {
         var values = [[String: Any]]()
         self.rows?.enumerated().forEach { (index, row) in
-            print("\(index): \(row)")
             var value = [String: Any]()
             row.columns.forEach { column in
                 value[column.key] = column.value
             }
-            //TODO: Kuldeep Need to check with  him
             if let rowValue = self.values?[safe:index]{
                 if let localId = rowValue["__localId__"] as? String{
                     value["__localId__"] = localId
