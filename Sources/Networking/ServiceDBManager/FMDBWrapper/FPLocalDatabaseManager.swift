@@ -22,6 +22,8 @@ protocol FPDataBaseQueries {
     var fpLoggerModal: FPLoggerModal? { get }
 }
 
+let dbName = "fpform_db.sqlite"
+
 class FPLocalDatabaseManager: NSObject {
     fileprivate var localLogger:FPLoggerModal? = FPLoggerModal().setLoger("DBManager")
     var pool:DatabasePool!
