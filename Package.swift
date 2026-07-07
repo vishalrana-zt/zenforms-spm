@@ -21,7 +21,6 @@ let package = Package(
         .package(url: "https://github.com/jdg/MBProgressHUD.git", .upToNextMajor(from: "1.2.0")),
         .package(url: "https://github.com/ElaWorkshop/TagListView.git", exact: "1.4.1"),
         .package(url: "https://github.com/harshirzentrades/Zen-UIView-Shimmer.git", .upToNextMajor(from: "1.0.0")),
-        .package(url: "https://github.com/harshirzentrades/ZenColorPicker.git", branch: "spm"),
 
         // MARK: - Networking & Observability
         .package(url: "https://github.com/Alamofire/Alamofire.git", exact: "5.6.0"),
@@ -57,7 +56,6 @@ let package = Package(
                 .product(name: "MBProgressHUD", package: "MBProgressHUD"),
                 .product(name: "TagListView", package: "TagListView"),
                 .product(name: "UIView-Shimmer", package: "Zen-UIView-Shimmer"),
-                .product(name: "ZenColorPicker", package: "ZenColorPicker"),
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "IQKeyboardManagerSwift", package: "IQKeyboardManager"),
                 .product(name: "Reachability", package: "Reachability.swift"),
