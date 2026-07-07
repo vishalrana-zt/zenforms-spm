@@ -1,5 +1,5 @@
 {
-  "originHash" : "b40dbe6bc3ec8effd1a19bcfc0622985687ba192bb4732169b586341040a228e",
+  "originHash" : "ea0b8f15a8babe459b38eea53f21c40febd2b673e3612d11ba0ca0e5e4269b1b",
   "pins" : [
     {
       "identity" : "acedrawingview",
@@ -26,15 +26,6 @@
       "state" : {
         "revision" : "c4dc12da013508db4d3dc2993faa4b1b3eb56fc9",
         "version" : "3.5.0"
-      }
-    },
-    {
-      "identity" : "fmdb",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ccgus/fmdb.git",
-      "state" : {
-        "revision" : "1227a3fa2b9916bfd75fe380eb45cd210e69e251",
-        "version" : "2.7.12"
       }
     },
     {

@@ -28,7 +28,6 @@ let package = Package(
         .package(url: "https://github.com/Datadog/dd-sdk-ios.git", .upToNextMajor(from: "3.0.0")),
         
         // MARK: - Database
-        .package(url: "https://github.com/ccgus/fmdb.git", .upToNextMajor(from:"2.7.12")),
         .package(url: "https://github.com/groue/GRDB.swift", branch: "master"),
 
         // MARK: - Keyboard Management
@@ -59,7 +58,6 @@ let package = Package(
                 .product(name: "TagListView", package: "TagListView"),
                 .product(name: "UIView-Shimmer", package: "Zen-UIView-Shimmer"),
                 .product(name: "ZenColorPicker", package: "ZenColorPicker"),
-                .product(name: "FMDB", package: "fmdb"),
                 .product(name: "GRDB", package: "GRDB.swift"),
                 .product(name: "IQKeyboardManagerSwift", package: "IQKeyboardManager"),
                 .product(name: "Reachability", package: "Reachability.swift"),
