@@ -296,6 +296,12 @@ public final class ZenForms {
         }
     }
     
+    public class func updateFPFormDownloadStatus(objectId: String, downloadStatus: String, downloadURL: String?, completion: @escaping (() -> ())) {
+        FPFormsDatabaseManager().updateDownloadStatus(objectId: objectId, downloadStatus: downloadStatus, downloadURL: downloadURL) {
+            completion()
+        }
+    }
+
     public class func upsertFPForms(forms: [FPForms], bySqliteId: Bool, ticketId:NSNumber, completion: @escaping (() -> ())) {
         if bySqliteId{
             FPFormsDatabaseManager().upsertForms(forms: forms, moduleId: FPFormMduleId, ticketId: ticketId) {

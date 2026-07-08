@@ -550,6 +550,18 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         }
     }
     
+    func updateDownloadStatus(objectId: String, downloadStatus: String, downloadURL: String?, completion: @escaping (() -> ())) {
+        let query = """
+            UPDATE \(FPFormsDatabaseManager.getTableName())
+            SET \(FPColumn.downloadStatus)='\(downloadStatus)',
+                \(FPColumn.downloadURL)='\(downloadURL ?? "")'
+            WHERE \(FPColumn.id)='\(objectId)'
+            """
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self) { _ in
+            completion()
+        }
+    }
+
     func updateServerFormOnly(form: FPForms, ticketId: NSNumber, completion: @escaping FormCompletionHandler) {
         let updateQuery = self.getUpdateQuery(form: form, sqliteId: form.sqliteId ?? 0, ticketId: ticketId, moduleId: FPFormMduleId, sectionDelta: false)
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([updateQuery], dbManager: self) { success in
