@@ -70,6 +70,7 @@ class FPQueAnsTableEditViewController: UIViewController {
     var sectionDetails:FPSectionDetails?
     var fpFormViewController:FPFormViewController?
     private var fp_autoSaveTimer: Timer?
+    private var fp_hasFirstChangeSaved = false
 
     private var qaTableSearchBar: UISearchBar?
     private var qaTableSearchFilterButton: UIButton?
@@ -172,9 +173,6 @@ class FPQueAnsTableEditViewController: UIViewController {
                 }
             }
             FPFormDataHolder.shared.tableMediaCache = []
-            // Logic updated: Do NOT delete draft on table save. 
-            // Keep it until the whole form is submitted to prevent data loss if app crashes.
-            // self.fp_deleteDraft()
             
             self.navigationController?.popViewController(animated: false)
         })
@@ -564,6 +562,7 @@ extension FPQueAnsTableEditViewController: TableContentCellDelegate{
     
     
     func updateData(at index: IndexPath, with data: ColumnData, filedData filed: FPFieldDetails?) {
+        fp_triggerFirstSaveIfNeeded()
         guard let dRow = qa_visibleSectionToDisplayRowIndex(index.section) else { return }
         if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent{
             if var row = sortCompnt.rows?[safe:dRow]{
@@ -963,16 +962,15 @@ extension FPQueAnsTableEditViewController {
     }
 
     // MARK: DB dispatch helpers
-
     private func fp_saveDraftToDB(key: String, value: String) {
-        if let parentForm = self.fpFormViewController?.customForm, parentForm.sqliteId == nil {
-            // Edge case: parent form not yet saved locally. 
+        if let parentForm = FPFormDataHolder.shared.customForm, parentForm.sqliteId == nil {
+            // Edge case: parent form not yet saved locally.
             // We must persist the form record first so this draft has a valid parent.
             self.fpFormViewController?.saveFormOfflineForTable { [weak self] success in
                 if success {
                     // 1. Refresh local reference to fieldDetails to pick up the new sqliteId
                     self?.fp_refreshFieldDetailsFromHolder()
-                    
+
                     // 2. Retry save with REGENERATED key
                     if let newKey = self?.fp_draftKey {
                         self?.fp_saveDraftToDB(key: newKey, value: value)
@@ -993,12 +991,13 @@ extension FPQueAnsTableEditViewController {
         guard let holderForm = FPFormDataHolder.shared.customForm,
               let sectionIndex = self.tableIndexPath?.section,
               let fieldIndex = self.tableIndexPath?.row else { return }
-        
+
         if let section = holderForm.sections?[safe: sectionIndex],
            let field = section.fields[safe: fieldIndex] {
             self.fieldDetails = field
         }
     }
+    
 
     private func fp_fetchDraftFromDB(key: String, completion: @escaping (String?) -> Void) {
         let sid = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
@@ -1051,6 +1050,12 @@ extension FPQueAnsTableEditViewController {
             self.fp_saveDraftToDB(key: key, value: jsonValue)
             debugPrint("FPTableEdit: auto-saved draft key=\(key) rows=\(valuesSnapshot.count)")
         }
+    }
+
+    private func fp_triggerFirstSaveIfNeeded() {
+        guard !fp_hasFirstChangeSaved else { return }
+        fp_hasFirstChangeSaved = true
+        fp_autoSave()
     }
 
     // MARK: Delete draft

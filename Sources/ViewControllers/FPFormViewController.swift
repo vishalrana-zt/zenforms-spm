@@ -1275,7 +1275,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     }
                     FPFormDataHolder.shared.arrLinkingDB = []
                     FPFormDataHolder.shared.customForm = form
-                    self.fpClearAllTableDrafts()
                     completion?(true)
                 }
             }

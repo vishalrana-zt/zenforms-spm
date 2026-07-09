@@ -73,6 +73,7 @@ class FPTableEditViewController: UIViewController {
     var isSortFilterApplied:Bool = false
     var zenFormsDelegate: ZenFormsDelegate?
     private var fp_autoSaveTimer: Timer?
+    private var fp_hasFirstChangeSaved = false
 
     
     var arrAppliedFilters = [SortFilter]()
@@ -307,9 +308,6 @@ class FPTableEditViewController: UIViewController {
                 FPFormDataHolder.shared.arrLinkingDB = []
                 FPFormDataHolder.shared.arrLinkingDB.append(contentsOf: arrLocalLinkings)
             }
-            // Logic updated: Do NOT delete draft on table save.
-            // Keep it until the whole form is submitted to prevent data loss if app crashes.
-            // self.fp_deleteDraft()
             
             self.navigationController?.popViewController(animated: false)
         })
@@ -346,9 +344,10 @@ class FPTableEditViewController: UIViewController {
             return
         }
         guard let row = self.tableComponent?.rows?.first else { return }
-        
+
+        fp_triggerFirstSaveIfNeeded()
         FPUtility.showHUDWithLoadingMessage()
-        
+
         for _ in 1...rowCount {
             let newRow = self.tableComponent?.addNewRow(with: row.columns)
             if isSortFilterApplied{
@@ -368,6 +367,7 @@ class FPTableEditViewController: UIViewController {
     
     func addEmptyRowToTable(){
         guard let row = self.tableComponent?.rows?.first else { return }
+        fp_triggerFirstSaveIfNeeded()
         let newRow = self.tableComponent?.addNewRow(with: row.columns, ignoreDefaultVal: true)
         if isSortFilterApplied{
             _ = self.sortFilteredTableComponent?.addNewRow(with: row.columns, rowSortId: newRow?.sortUuid, ignoreDefaultVal: true)
@@ -487,6 +487,7 @@ class FPTableEditViewController: UIViewController {
         vc.isAutoCalculateEnabled = isAutoCalculateEnabled
         vc.didEditedRows = { [weak self] tableComponent in
             DispatchQueue.main.async {
+                self?.fp_triggerFirstSaveIfNeeded()
                 self?.tableComponent = tableComponent
                 if self?.isSortFilterApplied == true {
                     self?.reapplySortFilterAfterEdit()
@@ -1398,6 +1399,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
         // Invalidate cached row columns so reloadItems/reloadSections picks up the new value,
         // not stale ColumnData from the per-row filter cache.
         viewModel?.invalidateColumnCache()
+        fp_triggerFirstSaveIfNeeded()
         guard let dRow = fp_visibleSectionToDisplayRowIndex(index.section) else { return }
         if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent{
             if var row = sortCompnt.rows?[safe:dRow]{
@@ -2101,7 +2103,7 @@ extension FPTableEditViewController {
                 if success {
                     // 1. Refresh local reference to fieldDetails to pick up the new sqliteId
                     self?.fp_refreshFieldDetailsFromHolder()
-                    
+
                     // 2. Retry save with REGENERATED key
                     if let newKey = self?.fp_draftKey {
                         self?.fp_saveDraftToDB(key: newKey, value: value)
@@ -2110,7 +2112,7 @@ extension FPTableEditViewController {
             }
             return
         }
-        
+
         let sid = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
         let oid = self.fieldDetails?.objectId?.stringValue
         let fid = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? FPFormDataHolder.shared.customForm?.localClientId ?? "0"
@@ -2122,7 +2124,7 @@ extension FPTableEditViewController {
         guard let holderForm = FPFormDataHolder.shared.customForm,
               let sectionIndex = self.tableIndexPath?.section,
               let fieldIndex = self.tableIndexPath?.row else { return }
-        
+
         if let section = holderForm.sections?[safe: sectionIndex],
            let field = section.fields[safe: fieldIndex] {
             self.fieldDetails = field
@@ -2176,12 +2178,7 @@ extension FPTableEditViewController {
         guard !isAnalysed && !isFromHistory else { return }
         guard let tableComponent = self.tableComponent else { return }
         
-        // Capture everything needed from main thread RIGHT NOW,
-        // before dispatching to background.
-        let key       = fp_draftKey          // stable stored value
-        
-        // getValuesObject() must be called on main thread.
-        // Capture the snapshot synchronously here.
+        let key = fp_draftKey
         let valuesSnapshot = tableComponent.getValuesObject()
         
         DispatchQueue.global(qos: .background).async {
@@ -2196,6 +2193,12 @@ extension FPTableEditViewController {
             self.fp_saveDraftToDB(key: key, value: jsonValue)
             debugPrint("FPTableEdit: auto-saved draft key=\(key) rows=\(valuesSnapshot.count)")
         }
+    }
+
+    private func fp_triggerFirstSaveIfNeeded() {
+        guard !fp_hasFirstChangeSaved else { return }
+        fp_hasFirstChangeSaved = true
+        fp_performAutoSave()
     }
 
     // MARK: Delete draft
