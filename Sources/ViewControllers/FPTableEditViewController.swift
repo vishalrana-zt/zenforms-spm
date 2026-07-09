@@ -284,6 +284,7 @@ class FPTableEditViewController: UIViewController {
 
     
     @objc func saveButtonAction(){
+        fp_performAutoSave()
         fp_stopAutoSave()
         view.endEditing(true)
         DispatchQueue.main.asyncAfter(deadline: .now()+1, execute: {

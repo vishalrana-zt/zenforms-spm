@@ -159,6 +159,7 @@ class FPQueAnsTableEditViewController: UIViewController {
 
    
     @objc func saveButtonAction(){
+        fp_performAutoSave()
         fp_stopAutoSave()
         view.endEditing(true)
         DispatchQueue.main.asyncAfter(deadline: .now()+1, execute: {
@@ -656,7 +657,7 @@ extension FPQueAnsTableEditViewController: AttachmentPickerDelegate{
                 }
             }
             self.collectionView.reloadData()
-            fp_autoSave()
+            fp_performAutoSave()
             fp_hasFirstChangeSaved = false
         }
     }
@@ -1041,6 +1042,10 @@ extension FPQueAnsTableEditViewController {
     // MARK: Save draft
 
     @objc func fp_autoSave() {
+        fp_performAutoSave()
+    }
+
+    func fp_performAutoSave() {
         guard !isAnalysed && !isFromHistory else { return }
         guard let tableComponent = self.tableComponent else { return }
 
@@ -1057,7 +1062,7 @@ extension FPQueAnsTableEditViewController {
     private func fp_triggerFirstSaveIfNeeded() {
         guard !fp_hasFirstChangeSaved else { return }
         fp_hasFirstChangeSaved = true
-        fp_autoSave()
+        fp_performAutoSave()
     }
 
     // MARK: Delete draft
