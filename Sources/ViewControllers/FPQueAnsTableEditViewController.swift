@@ -562,7 +562,6 @@ extension FPQueAnsTableEditViewController: TableContentCellDelegate{
     
     
     func updateData(at index: IndexPath, with data: ColumnData, filedData filed: FPFieldDetails?) {
-        fp_triggerFirstSaveIfNeeded()
         guard let dRow = qa_visibleSectionToDisplayRowIndex(index.section) else { return }
         if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent{
             if var row = sortCompnt.rows?[safe:dRow]{
@@ -587,6 +586,7 @@ extension FPQueAnsTableEditViewController: TableContentCellDelegate{
             }
             self.collectionView.reloadItems(at: [index])
         }
+        fp_triggerFirstSaveIfNeeded()
     }
     
     func showAddAttachment(at index:IndexPath,with data:ColumnData){
@@ -656,9 +656,11 @@ extension FPQueAnsTableEditViewController: AttachmentPickerDelegate{
                 }
             }
             self.collectionView.reloadData()
+            fp_autoSave()
+            fp_hasFirstChangeSaved = false
         }
     }
-    
+
 }
 
 protocol FPQueAnsTableEditViewControllerDelegate{

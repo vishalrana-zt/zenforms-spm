@@ -1399,7 +1399,6 @@ extension FPTableEditViewController: TableContentCellDelegate{
         // Invalidate cached row columns so reloadItems/reloadSections picks up the new value,
         // not stale ColumnData from the per-row filter cache.
         viewModel?.invalidateColumnCache()
-        fp_triggerFirstSaveIfNeeded()
         guard let dRow = fp_visibleSectionToDisplayRowIndex(index.section) else { return }
         if isSortFilterApplied, let sortCompnt = sortFilteredTableComponent{
             if var row = sortCompnt.rows?[safe:dRow]{
@@ -1440,6 +1439,7 @@ extension FPTableEditViewController: TableContentCellDelegate{
                 self.collectionView.reloadItems(at: [index])
             }
         }
+        fp_triggerFirstSaveIfNeeded()
     }
     
     func inferValue(_ value: String) -> Any {
@@ -1563,9 +1563,11 @@ extension FPTableEditViewController: AttachmentPickerDelegate{
                 }
             }
             self.collectionView.reloadData()
+            fp_performAutoSave()
+            fp_hasFirstChangeSaved = false
         }
     }
-    
+
 }
 
 protocol FPTableEditViewControllerDelegate{
