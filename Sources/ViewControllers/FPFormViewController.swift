@@ -1247,6 +1247,24 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     }
     
     
+    private func renameForm(name: String) {
+        guard let form = FPFormDataHolder.shared.customForm else { return }
+        form.name = name
+        form.displayName = name
+        FPFormsServiceManager.renameCustomForm(form: form) { [weak self] _, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.stopLoadings()
+                if error == nil {
+                    self.delegate?.refreshListNeeded()
+                    self.dismiss()
+                } else {
+                    FPUtility.printErrorAndShowAlert(error: error)
+                }
+            }
+        }
+    }
+
     func saveFormOfflineForTable( completion: ((_ status:Bool)->Void)? = nil){
         guard let form = FPFormDataHolder.shared.getProcessedForm(isNew:  self.isNew) else {
             completion?(false)
@@ -1452,17 +1470,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         fileNameTooLongAlert.applyLegacyActionSheetStyle()
                         self.present(fileNameTooLongAlert, animated: true, completion: nil)
                     }else{
-                        self.customForm.name = strName
-                        self.customForm.displayName = strName
-                        FPFormDataHolder.shared.customForm?.name = strName
-                        FPFormDataHolder.shared.customForm?.displayName = strName
-                        self.imgFormTitleEdit.isHidden = true
-                        self.formNameActivityLoader.isHidden = false
-                        self.formNameActivityLoader.startAnimating()
-                        self.btnNext.updateInteraction(isEnabled: false)
-                        self.btnPrevious.updateInteraction(isEnabled: false)
-                        self.barSaveButton?.isEnabled = false
-                        self.saveForm()
+                        self.proceedToEditFormName(strName: strName)
                     }
                 }else{
                     let invalidNameAlert = UIAlertController(title: FPLocalizationHelper.localize("Invalid_Name"),
@@ -1482,6 +1490,25 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }))
         alertController.applyLegacyActionSheetStyle()
         self.present(alertController, animated: true)
+    }
+    
+    func proceedToEditFormName(strName:String){
+        self.customForm.name = strName
+        self.customForm.displayName = strName
+        FPFormDataHolder.shared.customForm?.name = strName
+        FPFormDataHolder.shared.customForm?.displayName = strName
+        self.imgFormTitleEdit.isHidden = true
+        self.formNameActivityLoader.isHidden = false
+        self.formNameActivityLoader.startAnimating()
+        self.btnNext.updateInteraction(isEnabled: false)
+        self.btnPrevious.updateInteraction(isEnabled: false)
+        self.barSaveButton?.isEnabled = false
+        let formExistsLocally = self.customForm.objectId != nil || self.customForm.sqliteId != nil
+        if formExistsLocally {
+            self.renameForm(name: strName)
+        } else {
+            self.saveForm()
+        }
     }
     
     func cloneCurrentForm() {

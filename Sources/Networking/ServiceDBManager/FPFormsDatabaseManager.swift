@@ -486,6 +486,22 @@ struct FPFormsDatabaseManager : FPDataBaseQueries {
         }
     }
     
+    func updateFormName(form: FPForms, completion: @escaping (Bool) -> Void) {
+        let name        = FPUtility.getSQLiteCompatibleStringValue(form.name, isForLocal: true) ?? ""
+        let displayName = FPUtility.getSQLiteCompatibleStringValue(form.displayName, isForLocal: true) ?? ""
+        let setClause   = "\(FPColumn.name)='\(name)', \(FPColumn.displayName)='\(displayName)'"
+        let query: String
+        if let sqliteId = form.sqliteId {
+            query = "UPDATE \(FPFormsDatabaseManager.getTableName()) SET \(setClause) WHERE \(FPColumn.sqliteId)=\(sqliteId)"
+        } else if let objectId = form.objectId {
+            query = "UPDATE \(FPFormsDatabaseManager.getTableName()) SET \(setClause) WHERE \(FPColumn.id)='\(objectId)'"
+        } else {
+            completion(false)
+            return
+        }
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self) { completion($0) }
+    }
+
     func updateForm(form: FPForms, ticketId: NSNumber, moduleId: Int, shouldUpdateBySqliteId: Bool, sectionDelta:Bool = false, completion: @escaping FormCompletionHandler) {
         var updateQuery = ""
         if shouldUpdateBySqliteId {

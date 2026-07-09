@@ -734,6 +734,38 @@ class FPFormsServiceManager: NSObject {
         }
     }
     
+    class func renameCustomForm(form: FPForms, completion: @escaping GetFormWithError) {
+        // If no server ID or offline, just update locally
+        guard FPUtility.isConnectedToNetwork(), let objectId = Int(form.objectId ?? "") else {
+            DispatchQueue.global(qos: .userInitiated).async {
+                form.isSyncedToServer = false
+                FPFormsDatabaseManager().updateFormName(form: form) { success in
+                    completion(success ? form : nil, success ? nil : FPErrorHandler.getError(code: 500, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                }
+            }
+            return
+        }
+        var dictJson: [String: Any] = [:]
+        dictJson["id"] = objectId
+        dictJson["name"] = form.name
+        dictJson["displayName"] = form.displayName
+        dictJson["templateId"] = form.templateId ?? ""
+        router.request(.updateCustomForm(dictJson)) { (json, _, _, _error) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard _error == nil, let result = json?["result"] as? [String: Any] else {
+                    completion(nil, _error ?? FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                    return
+                }
+                let serverForm = FPForms(dict: result, isForLocal: true)
+                serverForm.sqliteId = form.sqliteId
+                serverForm.isSyncedToServer = true
+                FPFormsDatabaseManager().updateFormName(form: serverForm) { success in
+                    completion(success ? serverForm : nil, success ? nil : FPErrorHandler.getError(code: 500, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                }
+            }
+        }
+    }
+
     class func addCustomForm(ticketId: NSNumber, form: FPForms, setSynced: Bool, assetLinkDetail:[String:Any]? = nil, completion: @escaping GetFormWithError) {
         guard FPUtility.isConnectedToNetwork() else {
             DispatchQueue.global(qos: .userInitiated).async {
