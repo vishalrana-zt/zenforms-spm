@@ -1256,7 +1256,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 guard let self = self else { return }
                 self.stopLoadings()
                 if error == nil {
-                    self.delegate?.refreshListNeeded()
+                    self.delegate?.formUpdated()
                     self.dismiss()
                 } else {
                     FPUtility.printErrorAndShowAlert(error: error)
