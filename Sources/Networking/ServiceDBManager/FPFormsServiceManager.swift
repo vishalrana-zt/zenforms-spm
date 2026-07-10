@@ -30,20 +30,31 @@ class FPFormsServiceManager: NSObject {
     
     static let router = FPRouter<FPFormsApiName>()
     
-    class func getComputedFields(ticketID:String){
-        guard FPUtility.isConnectedToNetwork() else {
+    private static let computedFieldsTTL: TimeInterval = 300 // 5 minutes
+
+    /// Call after a successful form/section save to force a fresh fetch next time the form opens.
+    static func invalidateComputedFieldsCache(ticketID: String) {
+        UserDefaults.standard.removeObject(forKey: "computedFields_fetchedAt_\(ticketID)")
+    }
+
+    class func getComputedFields(ticketID: String) {
+        guard FPUtility.isConnectedToNetwork() else { return }
+
+        // Skip API call if cached data exists and is fresh (within TTL)
+        let tsKey = "computedFields_fetchedAt_\(ticketID)"
+        if let lastFetch = UserDefaults.standard.object(forKey: tsKey) as? Date,
+           Date().timeIntervalSince(lastFetch) < computedFieldsTTL,
+           let existing = UserDefaults.computedFields?[ticketID] as? [String: Any], !existing.isEmpty {
             return
         }
-        var parms:[String:Any] = [:]
-        parms["ticketId"] = ticketID
+
+        var parms: [String: Any] = ["ticketId": ticketID]
         router.request(.getComputedFields(parms)) { json, data, response, error in
-            if let result = json?["result"] as? [String:Any]{
-                if let tokens = result["tokens"] as? [String:Any]{
-                    var ticketComputedFields = UserDefaults.computedFields ?? [:]
-                    ticketComputedFields[ticketID] = tokens
-                    UserDefaults.computedFields = ticketComputedFields
-                }
-                
+            if let tokens = (json?["result"] as? [String: Any])?["tokens"] as? [String: Any] {
+                var fields = UserDefaults.computedFields ?? [:]
+                fields[ticketID] = tokens
+                UserDefaults.computedFields = fields
+                UserDefaults.standard.set(Date(), forKey: tsKey)
             }
         }
     }
@@ -587,7 +598,7 @@ class FPFormsServiceManager: NSObject {
         }
     }
 
-    
+
     static func uploadTableAttachments(medias:[TableMedia] =  [],startIndex:Int = 0,completion:@escaping(_ status:Bool)->Void){
         guard FPUtility.isConnectedToNetwork() else {
             completion(true)
