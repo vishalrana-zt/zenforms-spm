@@ -1103,13 +1103,11 @@ extension FPQueAnsTableEditViewController {
                   !draftValue.isEmpty else { return }
 
             DispatchQueue.main.async {
-                // 1. Capture snapshot safely on main thread
                 let currentValues = self.tableComponent?.getValuesObject()
                 
                 DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                     guard let self = self else { return }
                     
-                    // 2. Perform heavy serialization and comparison on background thread
                     if let currentJson = currentValues?.getJson() {
                         let normCurrent = self.fp_normalizeJsonForComparison(currentJson)
                         let normDraft   = self.fp_normalizeJsonForComparison(draftValue)
