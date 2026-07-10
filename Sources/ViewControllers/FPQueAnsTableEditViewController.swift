@@ -1076,6 +1076,23 @@ extension FPQueAnsTableEditViewController {
 
     // MARK: Recovery
 
+    private func fp_normalizeJsonForComparison(_ json: String) -> String {
+        guard let data = json.data(using: .utf8),
+              let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+            return json
+        }
+        let stripped = array.map { row -> [String: Any] in
+            var r = row
+            r.removeValue(forKey: "__localId__")
+            return r
+        }
+        guard let result = try? JSONSerialization.data(withJSONObject: stripped, options: .sortedKeys),
+              let str = String(data: result, encoding: .utf8) else {
+            return json
+        }
+        return str
+    }
+
     func fp_checkAndRecoverDraft() {
         guard !isAnalysed && !isFromHistory else { return }
         let key = fp_draftKey
@@ -1093,8 +1110,10 @@ extension FPQueAnsTableEditViewController {
                     guard let self = self else { return }
                     
                     // 2. Perform heavy serialization and comparison on background thread
-                    if let currentJson = currentValues?.getJson(), currentJson == draftValue {
-                        return // Data is identical, skip prompt
+                    if let currentJson = currentValues?.getJson() {
+                        let normCurrent = self.fp_normalizeJsonForComparison(currentJson)
+                        let normDraft   = self.fp_normalizeJsonForComparison(draftValue)
+                        if normCurrent == normDraft { return }
                     }
                     
                     DispatchQueue.main.async {
