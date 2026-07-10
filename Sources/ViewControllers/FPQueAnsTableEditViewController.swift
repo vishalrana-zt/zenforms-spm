@@ -159,9 +159,9 @@ class FPQueAnsTableEditViewController: UIViewController {
 
    
     @objc func saveButtonAction(){
+        view.endEditing(true)
         fp_performAutoSave()
         fp_stopAutoSave()
-        view.endEditing(true)
         DispatchQueue.main.asyncAfter(deadline: .now()+1, execute: {
             if let tableComponent = self.tableComponent,let index = self.tableIndexPath{
                 FPFormDataHolder.shared.addTableComponentAt(index: index, component: tableComponent)
