@@ -102,6 +102,13 @@ public final class ZenForms {
         FPLocalDatabaseManager.shared.migrateGRDB()
     }
 
+    /// Call on logout — removes all table draft data so stale restore prompts never appear for the next user.
+    public class func clearAllTableDrafts() {
+        DispatchQueue.global(qos: .utility).async {
+            FPTableDraftDatabaseManager().deleteAllDrafts()
+        }
+    }
+
     public class func configureZenForms(serverInfo:ZenServerAndAuthenticationInfo, userInfo:ZenUserInfo){
         baseUrlString =  serverInfo.apiBaseUrl
         aibaseUrlString = serverInfo.aiapibaseUrl

@@ -182,6 +182,8 @@ class FPFormsServiceManager: NSObject {
         DispatchQueue.global(qos: .userInitiated).async {
             FPFormsDatabaseManager().deleteFormBySqliteId(form: form, moduleId: moduleId, ticketId: ticketId) { success in
                 if success {
+                    let fid = form.sqliteId?.stringValue ?? form.localClientId ?? "0"
+                    FPTableDraftDatabaseManager().deleteAllDraftsForForm(ticketId: ticketId.stringValue, formLocalId: fid)
                     completion(form, nil)
                 }else {
                     let tempError = FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong"))
@@ -1059,6 +1061,13 @@ class FPFormsServiceManager: NSObject {
                     return
                 }
                 FPFormsDatabaseManager().deleteFormsByObjectId(forms: forms, moduleId: FPFormMduleId, ticketId: ticketId) {
+                    let tid = ticketId.stringValue
+                    for form in forms {
+                        let fid = form.sqliteId?.stringValue ?? form.localClientId ?? "0"
+                        if fid != "0" {
+                            FPTableDraftDatabaseManager().deleteAllDraftsForForm(ticketId: tid, formLocalId: fid)
+                        }
+                    }
                     completion(true, nil)
                 }
                 completion(true, nil)

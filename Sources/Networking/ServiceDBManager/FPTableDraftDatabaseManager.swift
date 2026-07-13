@@ -103,6 +103,11 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
     }
 
+    /// Deletes every table draft in the DB — call on logout.
+    func deleteAllDrafts() {
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([getDeleteQuery()], dbManager: self)
+    }
+
     /// Deletes all table drafts associated with a specific form instance.
     func deleteAllDraftsForForm(ticketId: String, formLocalId: String) {
         let prefix = "fp_tbl_path_\(ticketId)_\(formLocalId)_"
