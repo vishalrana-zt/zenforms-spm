@@ -1216,12 +1216,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                                 if form.objectId == nil {
                                                     // the list for the first time via server refresh.
                                                     self?.delegate?.refreshListNeeded()
+                                                    self?.dismiss()
                                                 } else {
-                                                    // Existing form: local DB already has the complete updated
-                                                    // data from upsertServerData. formUpdated avoids the server
-                                                    self?.delegate?.formUpdated()
+                                                    // Existing form: local DB already has the complete data.
+                                                    // dismiss(isRefreshNeeded: true) calls formUpdated() inside
+                                                    // the dismiss animation completion, so the list reloads only
+                                                    // after the VC is fully dismissed — no race with user taps.
+                                                    self?.dismiss(isRefreshNeeded: true)
                                                 }
-                                                self?.dismiss()
                                             }
                                         }
                                         if isRefreshForm, let serverForm = serverForm{
