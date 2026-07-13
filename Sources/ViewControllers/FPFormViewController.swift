@@ -32,6 +32,17 @@ public protocol ZenFormsDelegate: NSObject {
     func mixpanelEvent(eventName: String, properties:[String:Any]?)
 }
 
+public extension ZenFormsDelegate {
+    /// Overload with a completion — called after an existing form is saved so the host can
+    /// refresh its list from local DB before the form VC dismisses. Override this to get
+    /// proper sequencing: fetch data, call completion(), THEN dismiss fires.
+    /// Default falls back to fire-and-forget formUpdated() for hosts that haven't adopted it.
+    func formUpdated(completion: @escaping () -> Void) {
+        formUpdated()
+        completion()
+    }
+}
+
 public protocol ZenFormsAssetLinkingDelegate: NSObject {
     func openBarcodeScanner(isOverWriteAsset:Bool, baseVc: UIViewController?, linkedAssets:[[String:NSNumber?]], fieldTemplateId:String?)
     func openScannerField(baseVc: UIViewController?, fieldTemplateId:String?)
@@ -1213,16 +1224,18 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         
                                         if isDismiss{
                                             DispatchQueue.main.async { [weak self] in
+                                                guard let self = self else { return }
                                                 if form.objectId == nil {
-                                                    // the list for the first time via server refresh.
-                                                    self?.delegate?.refreshListNeeded()
-                                                    self?.dismiss()
+                                                    // New form: must add it to the list for the first time.
+                                                    self.delegate?.refreshListNeeded()
+                                                    self.dismiss()
                                                 } else {
-                                                    // Existing form: local DB already has the complete data.
-                                                    // dismiss(isRefreshNeeded: true) calls formUpdated() inside
-                                                    // the dismiss animation completion, so the list reloads only
-                                                    // after the VC is fully dismissed — no race with user taps.
-                                                    self?.dismiss(isRefreshNeeded: true)
+                                                    // Existing form: give the host a chance to refresh its list
+                                                    // from local DB before dismiss fires. The form VC stays on
+                                                    // screen during the fetch — list is ready when it becomes visible.
+                                                    self.delegate?.formUpdated { [weak self] in
+                                                        self?.dismiss()
+                                                    }
                                                 }
                                             }
                                         }
