@@ -1088,12 +1088,13 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                             FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, justScannedSection: justScannedSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] form, error in
                                 if error == nil {
                                     DispatchQueue.main.async { [weak self] in
-                                        self?.stopLoadings()
                                         self?.fpClearAllTableDrafts()
                                         if isDismiss{
                                             self?.delegate?.formUpdated(completion: { [weak self] in
                                                 self?.dismiss()
                                             })
+                                        }else{
+                                            self?.stopLoadings()
                                         }
                                     }
                                     completion(true)
@@ -1209,28 +1210,29 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                             FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { [weak self] assetLinkJson in
                                 guard let self = self else { return }
                                 FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] serverForm, error in
-                                    self?.stopLoadings()
                                     if error == nil {
                                         self?.fpClearAllTableDrafts()
                                         // Update session ID to use sqliteId if it became available after save
                                         FPFormDataHolder.shared.updateSessionIdWithSqliteId()
-                                        
+
                                         if isDismiss{
                                             DispatchQueue.main.async { [weak self] in
                                                 guard let self = self else { return }
                                                 if form.objectId == nil {
-                                                    // New form: must add it to the list for the first time.
+                                                    // New form: stop loader, then refresh list + dismiss.
+                                                    self.stopLoadings()
                                                     self.delegate?.refreshListNeeded()
                                                     self.dismiss()
                                                 } else {
-                                                    // Existing form: give the host a chance to refresh its list
-                                                    // from local DB before dismiss fires. The form VC stays on
-                                                    // screen during the fetch — list is ready when it becomes visible.
+                                                    // Existing form: keep loader running while the host fetches local DB.
+                                                    // dismiss() calls stopLoadings() internally — no flash before dismiss.
                                                     self.delegate?.formUpdated(completion: { [weak self] in
                                                         self?.dismiss()
                                                     })
                                                 }
                                             }
+                                        } else {
+                                            self?.stopLoadings()
                                         }
                                         if isRefreshForm, let serverForm = serverForm{
                                             let fpform = serverForm
@@ -1243,6 +1245,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         }
                                         completion?(true)
                                     }else {
+                                        self?.stopLoadings()
                                         FPUtility.printErrorAndShowAlert(error: error)
                                         completion?(false)
                                     }
