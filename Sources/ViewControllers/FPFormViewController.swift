@@ -1213,7 +1213,14 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         
                                         if isDismiss{
                                             DispatchQueue.main.async { [weak self] in
-                                                self?.delegate?.refreshListNeeded()
+                                                if form.objectId == nil {
+                                                    // the list for the first time via server refresh.
+                                                    self?.delegate?.refreshListNeeded()
+                                                } else {
+                                                    // Existing form: local DB already has the complete updated
+                                                    // data from upsertServerData. formUpdated avoids the server
+                                                    self?.delegate?.formUpdated()
+                                                }
                                                 self?.dismiss()
                                             }
                                         }
