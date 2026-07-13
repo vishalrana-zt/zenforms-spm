@@ -1225,7 +1225,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                                     self.dismiss()
                                                 } else {
                                                     // Existing form: keep loader running while the host fetches local DB.
-                                                    // dismiss() calls stopLoadings() internally — no flash before dismiss.
                                                     self.delegate?.formUpdated(completion: { [weak self] in
                                                         self?.dismiss()
                                                     })
