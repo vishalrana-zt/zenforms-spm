@@ -1091,7 +1091,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         self?.stopLoadings()
                                         self?.fpClearAllTableDrafts()
                                         if isDismiss{
-                                            self.delegate?.formUpdated(completion: { [weak self] in
+                                            self?.delegate?.formUpdated(completion: { [weak self] in
                                                 self?.dismiss()
                                             })
                                         }
