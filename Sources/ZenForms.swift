@@ -374,6 +374,7 @@ public final class ZenForms {
     public class func logoutUser(){
         FPFormsServiceManager.resetDifferntialMetaFor(commonTemplate:commonFPFormTemplates) {}
         FPTempStore.shared.clear()
+        ZenForms.clearAllTableDrafts()
     }
     
     public class func proceedWithAssetFormLinking(assetData:AssetInspectionData, isScannedResult:Bool, fieldTemplateId:String?){
