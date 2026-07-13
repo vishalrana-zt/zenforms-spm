@@ -25,23 +25,15 @@ protocol FPCollectionCellDelegate{
 
 
 public protocol ZenFormsDelegate: NSObject {
-    func formUpdated()//reload locally
+    /// Reload list from local DB. Pass a completion to get a callback when done —
+    /// used by the library to sequence dismiss after the list is fully up-to-date.
+    func formUpdated(completion: (() -> Void)?)
     func refreshListNeeded()//refresh list from server
     func newFormCancelClicked()
     func addQuickNoteClicked()
     func mixpanelEvent(eventName: String, properties:[String:Any]?)
 }
 
-public extension ZenFormsDelegate {
-    /// Overload with a completion — called after an existing form is saved so the host can
-    /// refresh its list from local DB before the form VC dismisses. Override this to get
-    /// proper sequencing: fetch data, call completion(), THEN dismiss fires.
-    /// Default falls back to fire-and-forget formUpdated() for hosts that haven't adopted it.
-    func formUpdated(completion: @escaping () -> Void) {
-        formUpdated()
-        completion()
-    }
-}
 
 public protocol ZenFormsAssetLinkingDelegate: NSObject {
     func openBarcodeScanner(isOverWriteAsset:Bool, baseVc: UIViewController?, linkedAssets:[[String:NSNumber?]], fieldTemplateId:String?)
@@ -1060,7 +1052,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         self.isNew = false
                         FPFormDataHolder.shared.customForm = nfpform
                         self.fpClearAllTableDrafts()
-                        self.delegate?.formUpdated()
+                        self.delegate?.formUpdated(completion: nil)
                         self.stopLoadings()
                     }
                     completion(true)
@@ -1099,8 +1091,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         self?.stopLoadings()
                                         self?.fpClearAllTableDrafts()
                                         if isDismiss{
-                                            self?.delegate?.formUpdated()
-                                            self?.dismiss()
+                                            self.delegate?.formUpdated(completion: { [weak self] in
+                                                self?.dismiss()
+                                            })
                                         }
                                     }
                                     completion(true)
@@ -1233,9 +1226,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                                     // Existing form: give the host a chance to refresh its list
                                                     // from local DB before dismiss fires. The form VC stays on
                                                     // screen during the fetch — list is ready when it becomes visible.
-                                                    self.delegate?.formUpdated { [weak self] in
+                                                    self.delegate?.formUpdated(completion: { [weak self] in
                                                         self?.dismiss()
-                                                    }
+                                                    })
                                                 }
                                             }
                                         }
@@ -1278,8 +1271,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 guard let self = self else { return }
                 self.stopLoadings()
                 if error == nil {
-                    self.delegate?.formUpdated()
-                    self.dismiss()
+                    self.delegate?.formUpdated(completion: { [weak self] in
+                        self?.dismiss()
+                    })
                 } else {
                     FPUtility.printErrorAndShowAlert(error: error)
                 }
@@ -1615,7 +1609,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         self.navigationController?.dismiss(animated: true) {
             if isRefreshNeeded{
-                self.delegate?.formUpdated()
+                self.delegate?.formUpdated(completion: nil)
             }
         }
     }
