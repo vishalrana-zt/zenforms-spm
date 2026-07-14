@@ -173,6 +173,28 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
         }
     }
 
+    /// Removes drafts whose parent form no longer exists in local DB.
+    /// Call on app start to prevent stale drafts accumulating after reinstall,
+    /// form deletions that bypassed draft cleanup, or other edge cases.
+    func deleteOrphanedDrafts() {
+        let query = """
+        DELETE FROM \(FPTableDraftDatabaseManager.getTableName())
+        WHERE \(FPColumn.customFormLocalId) IS NOT NULL
+          AND \(FPColumn.customFormLocalId) != '0'
+          AND \(FPColumn.customFormLocalId) NOT IN (
+              SELECT CAST(\(FPColumn.sqliteId) AS TEXT)
+              FROM \(FPTableName.form)
+              WHERE \(FPColumn.sqliteId) IS NOT NULL
+          )
+          AND \(FPColumn.customFormLocalId) NOT IN (
+              SELECT \(FPColumn.localClientId)
+              FROM \(FPTableName.form)
+              WHERE \(FPColumn.localClientId) IS NOT NULL
+          )
+        """
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
+    }
+
     // MARK: - Install scope ID (namespaces fallback keys per device)
 
     /// Stable per-install UUID. Generated once, persisted in UserDefaults.

@@ -100,6 +100,9 @@ public final class ZenForms {
         
     public class func initializeDB(){
         FPLocalDatabaseManager.shared.migrateGRDB()
+        DispatchQueue.global(qos: .utility).async {
+            FPTableDraftDatabaseManager().deleteOrphanedDrafts()
+        }
     }
 
     /// Call on logout — removes all table draft data so stale restore prompts never appear for the next user.
