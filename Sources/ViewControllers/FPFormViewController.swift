@@ -401,7 +401,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.previousSection) { [weak self] isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
                             FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self?.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
-                                self?.fpClearAllTableDrafts()
                                 self?.handleSectionControlUI()
                             }
                         }else{
@@ -558,7 +557,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.section) { isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
                             FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
-                                self?.fpClearAllTableDrafts()
                                 self?.showPreviousSection()
                             }
                         }else{
@@ -662,7 +660,6 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.section) { isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
                             FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
-                                self?.fpClearAllTableDrafts()
                                 self?.showNextSection()
                             }
                         }else{
