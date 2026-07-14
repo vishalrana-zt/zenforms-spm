@@ -173,6 +173,21 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
         }
     }
 
+    /// Deletes table drafts for a specific field identified by its local sqliteId or server objectId.
+    /// Used after a section is saved to clear only that section's table field drafts.
+    func deleteDraftsForField(fieldLocalId: Int64?, fieldId: String?) {
+        var clauses: [String] = []
+        if let sid = fieldLocalId, sid > 0 {
+            clauses.append("\(FPColumn.fieldLocalId) = \(sid)")
+        }
+        if let fid = fieldId, !fid.isEmpty, fid != "0" {
+            clauses.append("\(FPColumn.fieldId) = '\(fid)'")
+        }
+        guard !clauses.isEmpty else { return }
+        let query = "DELETE FROM \(FPTableDraftDatabaseManager.getTableName()) WHERE \(clauses.joined(separator: " OR "))"
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
+    }
+
     /// Removes drafts whose parent form no longer exists in local DB.
     /// Call on app start to prevent stale drafts accumulating after reinstall,
     /// form deletions that bypassed draft cleanup, or other edge cases.

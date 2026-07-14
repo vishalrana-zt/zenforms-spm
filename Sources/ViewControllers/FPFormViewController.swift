@@ -401,6 +401,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.previousSection) { [weak self] isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
                             FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self?.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
+                                self?.fpClearTableDraftsForSection(formSection)
                                 self?.handleSectionControlUI()
                             }
                         }else{
@@ -557,6 +558,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.section) { isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
                             FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
+                                self?.fpClearTableDraftsForSection(formSection)
                                 self?.showPreviousSection()
                             }
                         }else{
@@ -660,6 +662,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.section) { isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
                             FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
+                                self?.fpClearTableDraftsForSection(formSection)
                                 self?.showNextSection()
                             }
                         }else{
@@ -1084,9 +1087,10 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                             guard let self = self else { return }
                             FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, justScannedSection: justScannedSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] form, error in
                                 if error == nil {
+                                    self?.fpClearTableDraftsForSection(formSection)
                                     DispatchQueue.main.async { [weak self] in
-                                        self?.fpClearAllTableDrafts()
                                         if isDismiss{
+                                            // Full form dismissed — full draft cleanup handled by saveForm (line ~1211)
                                             self?.delegate?.formUpdated(completion: { [weak self] in
                                                 self?.dismiss()
                                             })
@@ -1639,6 +1643,21 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         let tid = self.ticketId?.stringValue ?? "0"
         let fid = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? FPFormDataHolder.shared.customForm?.localClientId ?? "0"
         FPTableDraftDatabaseManager().deleteAllDraftsForForm(ticketId: tid, formLocalId: fid)
+    }
+
+    private func fpClearTableDraftsForSection(_ section: FPSectionDetails) {
+        let tableFields = section.fields.filter {
+            let t = $0.getUIType()
+            return t == .TABLE || t == .TABLE_RESTRICTED
+        }
+        guard !tableFields.isEmpty else { return }
+        DispatchQueue.global(qos: .utility).async {
+            for field in tableFields {
+                let sid = field.sqliteId?.int64Value
+                let oid = field.objectId?.stringValue
+                FPTableDraftDatabaseManager().deleteDraftsForField(fieldLocalId: sid, fieldId: oid)
+            }
+        }
     }
 }
 
