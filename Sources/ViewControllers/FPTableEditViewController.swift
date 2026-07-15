@@ -2086,8 +2086,8 @@ extension FPTableEditViewController {
         // We include the parent form's local sqliteId to distinguish between multiple 
         // instances of the same form template on the same ticket.
         let ticketId = self.fpFormViewController?.ticketId?.stringValue ?? "0"
-        let parentFormLocalId = FPFormDataHolder.shared.customForm?.localClientId ?? FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? "0"
-        
+        let parentFormLocalId = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? FPFormDataHolder.shared.customForm?.localClientId ?? "0"
+
         let fieldTemplateId = self.fieldDetails?.templateId ?? ""
         let section = self.tableIndexPath?.section ?? 0
         let row = self.tableIndexPath?.row ?? 0
