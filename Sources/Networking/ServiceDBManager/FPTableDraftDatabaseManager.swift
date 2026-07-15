@@ -188,6 +188,20 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
     }
 
+    /// Updates customFormLocalId from the old form sqliteId to the new one after an offline→online sync.
+    /// Also updates any draftKey that embeds the old ID so fetch lookups keep working.
+    func migrateFormTableDrafts(from oldSqliteId: NSNumber, to newSqliteId: NSNumber) {
+        let old = oldSqliteId.stringValue
+        let new = newSqliteId.stringValue
+        let queries = [
+            // Update the customFormLocalId column
+            "UPDATE \(FPTableDraftDatabaseManager.getTableName()) SET \(FPColumn.customFormLocalId) = '\(new)' WHERE \(FPColumn.customFormLocalId) = '\(old)'",
+            // Update draftKey segments that contain the old ID (replaces _{old}_ with _{new}_)
+            "UPDATE \(FPTableDraftDatabaseManager.getTableName()) SET \(FPColumn.draftKey) = REPLACE(\(FPColumn.draftKey), '_\(old)_', '_\(new)_') WHERE \(FPColumn.draftKey) LIKE '%_\(old)_%'"
+        ]
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery(queries, dbManager: self)
+    }
+
     /// Removes drafts whose parent form no longer exists in local DB.
     /// Call on app start to prevent stale drafts accumulating after reinstall,
     /// form deletions that bypassed draft cleanup, or other edge cases.
