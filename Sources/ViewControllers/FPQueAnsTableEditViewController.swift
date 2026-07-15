@@ -1024,6 +1024,12 @@ extension FPQueAnsTableEditViewController {
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(fp_autoSave),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(fp_autoSave),
             name: UIApplication.didEnterBackgroundNotification,
             object: nil
         )
@@ -1034,6 +1040,11 @@ extension FPQueAnsTableEditViewController {
         fp_autoSaveTimer = nil
         NotificationCenter.default.removeObserver(
             self,
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.removeObserver(
+            self,
             name: UIApplication.didEnterBackgroundNotification,
             object: nil
         )
@@ -1042,6 +1053,7 @@ extension FPQueAnsTableEditViewController {
     // MARK: Save draft
 
     @objc func fp_autoSave() {
+        view.endEditing(true)
         fp_performAutoSave()
     }
 
@@ -1052,7 +1064,7 @@ extension FPQueAnsTableEditViewController {
         let key            = fp_draftKey
         let valuesSnapshot = tableComponent.getValuesObject()
 
-        DispatchQueue.global(qos: .background).async {
+        DispatchQueue.global(qos: .userInitiated).async {
             let jsonValue = valuesSnapshot.getJson()
             self.fp_saveDraftToDB(key: key, value: jsonValue)
             debugPrint("FPTableEdit: auto-saved draft key=\(key) rows=\(valuesSnapshot.count)")

@@ -2158,6 +2158,14 @@ extension FPTableEditViewController {
         fp_autoSaveTimer = Timer.scheduledTimer(withTimeInterval: 180, repeats: true) { [weak self] _ in
             self?.fp_autoSave()
         }
+        // willResignActive fires for BOTH app-switch AND incoming calls (carrier + VoIP).
+        // before the system might kill or suspend the app.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(fp_autoSave),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(fp_autoSave),
@@ -2171,6 +2179,11 @@ extension FPTableEditViewController {
         fp_autoSaveTimer = nil
         NotificationCenter.default.removeObserver(
             self,
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.removeObserver(
+            self,
             name: UIApplication.didEnterBackgroundNotification,
             object: nil
         )
@@ -2179,25 +2192,27 @@ extension FPTableEditViewController {
     // MARK: Save draft
 
     @objc func fp_autoSave() {
+        // Commit any active text field BEFORE taking the snapshot so the draft
+        // captures the full current state including in-progress text input.
+        view.endEditing(true)
         fp_performAutoSave()
     }
-    
+
     func fp_performAutoSave() {
         guard !isAnalysed && !isFromHistory else { return }
         guard let tableComponent = self.tableComponent else { return }
-        
+
         let key = fp_draftKey
         let valuesSnapshot = tableComponent.getValuesObject()
-        
-        DispatchQueue.global(qos: .background).async {
-            // JSON serialization happens off main thread.
+
+        DispatchQueue.global(qos: .userInitiated).async {
             let jsonValue = valuesSnapshot.getJson()
-            
+
             guard !jsonValue.isEmpty else {
                 debugPrint("FPTableEdit: auto-save skipped — empty JSON for key=\(key)")
                 return
             }
-            
+
             self.fp_saveDraftToDB(key: key, value: jsonValue)
             debugPrint("FPTableEdit: auto-saved draft key=\(key) rows=\(valuesSnapshot.count)")
         }
