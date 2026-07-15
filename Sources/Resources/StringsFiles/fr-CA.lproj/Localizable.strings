@@ -75,6 +75,9 @@
 "lbl_Attach_file" = "Joindre un fichier";
 "error_dialog_title" = "Erreur!";
 "alert_dialog_title" = "Alerte!";
+"msg_restore_unsaved_changes" = "Vous avez des modifications non enregistrées d'une session précédente. Souhaitez-vous les restaurer ?";
+"Restore" = "Restaurer";
+"Discard" = "Ignorer";
 "lbl_Permission_Denied" = "Permission refusée";
 "lbl_Permission_limited" = "Accès limité accordé";
 "lbl_Go_to_Settings" = "Aller aux paramètres";
