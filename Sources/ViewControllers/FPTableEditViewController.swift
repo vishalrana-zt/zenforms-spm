@@ -208,6 +208,11 @@ class FPTableEditViewController: UIViewController {
         self.view.layoutIfNeeded()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        fp_showAutoSaveHintIfNeeded()
+    }
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.registerAssetObservers()
@@ -2306,6 +2311,104 @@ extension FPTableEditViewController {
                 // draft cannot be offered again on next open.
                 self.fp_deleteDraft()
             }
+        }
+    }
+}
+
+// MARK: - Auto-save hint banner
+
+private extension FPTableEditViewController {
+
+    func fp_showAutoSaveHintIfNeeded() {
+        guard !isAnalysed && !isFromHistory else { return }
+        let key = "ZenForms.tableDraftHintSeen"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+
+        let banner = UIView()
+        banner.backgroundColor = .secondarySystemBackground
+        banner.layer.cornerRadius = 10
+        banner.layer.borderWidth = 1
+        banner.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.35).cgColor
+        banner.translatesAutoresizingMaskIntoConstraints = false
+
+        banner.layer.shadowColor = UIColor.black.cgColor
+        banner.layer.shadowOpacity = traitCollection.userInterfaceStyle == .dark ? 0.45 : 0.18
+        banner.layer.shadowRadius = 10
+        banner.layer.shadowOffset = CGSize(width: 0, height: 4)
+        banner.layer.masksToBounds = false
+
+        let icon = UIImageView(image: UIImage(systemName: "arrow.counterclockwise.circle.fill"))
+        icon.tintColor = .systemBlue
+        icon.contentMode = .scaleAspectFit
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.setContentHuggingPriority(.required, for: .horizontal)
+
+        let label = UILabel()
+        label.text = FPLocalizationHelper.localize("msg_table_autosave_hint")
+        label.font = UIFontMetrics(forTextStyle: .footnote).scaledFont(for: .systemFont(ofSize: 14))
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = .label
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let closeBtn = UIButton(type: .system)
+        closeBtn.setImage(UIImage(systemName: "xmark"), for: .normal)
+        closeBtn.tintColor = .secondaryLabel
+        closeBtn.accessibilityLabel = FPLocalizationHelper.localize("DISMISS")
+        closeBtn.translatesAutoresizingMaskIntoConstraints = false
+        closeBtn.setContentHuggingPriority(.required, for: .horizontal)
+
+        banner.addSubview(icon)
+        banner.addSubview(label)
+        banner.addSubview(closeBtn)
+        view.addSubview(banner)
+
+        NSLayoutConstraint.activate([
+            banner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10),
+            banner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10),
+            banner.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+
+            icon.leadingAnchor.constraint(equalTo: banner.leadingAnchor, constant: 10),
+            icon.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 22),
+            icon.heightAnchor.constraint(equalToConstant: 22),
+
+            label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
+            label.trailingAnchor.constraint(equalTo: closeBtn.leadingAnchor, constant: -8),
+            label.topAnchor.constraint(equalTo: banner.topAnchor, constant: 10),
+            label.bottomAnchor.constraint(equalTo: banner.bottomAnchor, constant: -10),
+
+            closeBtn.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -10),
+            closeBtn.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
+            closeBtn.widthAnchor.constraint(equalToConstant: 26),
+            closeBtn.heightAnchor.constraint(equalToConstant: 26),
+        ])
+
+        banner.alpha = 0
+        banner.transform = CGAffineTransform(translationX: 0, y: -32)
+
+        UIView.animate(withDuration: 0.35, delay: 0.4, usingSpringWithDamping: 0.85, initialSpringVelocity: 0) {
+            banner.alpha = 1
+            banner.transform = .identity
+        } completion: { _ in
+            banner.layer.shadowPath = UIBezierPath(
+                roundedRect: banner.bounds,
+                cornerRadius: banner.layer.cornerRadius
+            ).cgPath
+        }
+
+        let dismiss = { [weak banner] in
+            UIView.animate(withDuration: 0.25) {
+                banner?.alpha = 0
+                banner?.transform = CGAffineTransform(translationX: 0, y: -32)
+            } completion: { _ in banner?.removeFromSuperview() }
+        }
+
+        closeBtn.addAction(UIAction { _ in dismiss() }, for: .touchUpInside)
+
+        if !UIAccessibility.isVoiceOverRunning {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { dismiss() }
         }
     }
 }

@@ -197,3 +197,4 @@
 "msg_restore_unsaved_changes" = "You have unsaved changes from a previous session. Would you like to restore them?";
 "Restore" = "Restore";
 "Discard" = "Discard";
+"msg_table_autosave_hint" = "Auto-save is on. If the app closes unexpectedly while filling this table, return here to restore your data.";
