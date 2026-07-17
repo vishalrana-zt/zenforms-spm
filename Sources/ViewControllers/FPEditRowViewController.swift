@@ -145,14 +145,33 @@ class FPEditRowViewController: UIViewController, UINavigationControllerDelegate 
         setupNavBar()
         IQKeyboardManager.shared.isEnabled = true
         IQKeyboardToolbarManager.shared.isEnabled = true
+        // Save in-progress edits when the app is interrupted (call, switch, background).
+        // FPTableEditViewController's auto-save observers may be inactive while this VC is shown.
+        NotificationCenter.default.addObserver(self, selector: #selector(fp_saveInProgressEdits), name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(fp_saveInProgressEdits), name: UIApplication.didEnterBackgroundNotification, object: nil)
     }
-    
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         IQKeyboardManager.shared.isEnabled = false
         IQKeyboardToolbarManager.shared.isEnabled = false
+        NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.didEnterBackgroundNotification, object: nil)
     }
     
+    /// Called when the app is interrupted (incoming call, switch to another app, background).
+    /// Mirrors the "Done" flow without dismissing: commits any active text field, applies
+    /// bulk edits if active, then hands the current tableComponent to the parent via
+    /// didEditedRows so FPTableEditViewController can auto-save the draft immediately.
+    @objc private func fp_saveInProgressEdits() {
+        view.endEditing(true)
+        if isBulkEditMode {
+            applyBulkEditsToSelectedRows()
+            synchronizeTableComponentValuesFromRows()
+        }
+        didEditedRows?(tableComponent)
+    }
+
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
