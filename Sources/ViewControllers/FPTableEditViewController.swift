@@ -2336,9 +2336,11 @@ private extension FPTableEditViewController {
 
     func fp_showAutoSaveHintIfNeeded() {
         guard !isAnalysed && !isFromHistory else { return }
+        // Use Keychain so the flag survives logout/login switches and persists per install.
+        // UserDefaults is cleared on logout which would incorrectly re-show the hint for each user.
         let key = "ZenForms.tableDraftHintSeen"
-        guard !UserDefaults.standard.bool(forKey: key) else { return }
-        UserDefaults.standard.set(true, forKey: key)
+        guard !fp_hintSeenFromKeychain(key: key) else { return }
+        fp_setHintSeenInKeychain(key: key)
 
         let banner = UIView()
         banner.backgroundColor = .secondarySystemBackground
@@ -2425,6 +2427,25 @@ private extension FPTableEditViewController {
         if !UIAccessibility.isVoiceOverRunning {
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { dismiss() }
         }
+    }
+
+    private func fp_hintSeenFromKeychain(key: String) -> Bool {
+        let query: [CFString: Any] = [
+            kSecClass:            kSecClassGenericPassword,
+            kSecAttrAccount:      key,
+            kSecReturnData:       true,
+            kSecMatchLimit:       kSecMatchLimitOne
+        ]
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
+
+    private func fp_setHintSeenInKeychain(key: String) {
+        let attributes: [CFString: Any] = [
+            kSecClass:       kSecClassGenericPassword,
+            kSecAttrAccount: key,
+            kSecValueData:   Data([1])
+        ]
+        SecItemAdd(attributes as CFDictionary, nil)
     }
 }
 

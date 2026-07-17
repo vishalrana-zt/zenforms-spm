@@ -115,6 +115,11 @@ class FPQueAnsTableEditViewController: UIViewController {
         self.view.layoutIfNeeded()
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        fp_showAutoSaveHintIfNeeded()
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         IQKeyboardManager.shared.isEnabled = true
