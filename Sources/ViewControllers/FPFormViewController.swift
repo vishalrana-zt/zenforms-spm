@@ -1212,6 +1212,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 guard let self = self else { return }
                                 FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] serverForm, error in
                                     if error == nil {
+                                        if let newSqliteId = serverForm?.sqliteId {
+                                            FPFormDataHolder.shared.customForm?.sqliteId = newSqliteId
+                                        }
                                         self?.fpClearAllTableDrafts()
                                         // Update session ID to use sqliteId if it became available after save
                                         FPFormDataHolder.shared.updateSessionIdWithSqliteId()
@@ -1332,17 +1335,20 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 return
                             }
                             FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { assetLinkJson in
-                                FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { form, error in
+                                FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { [weak self]  serverForm, error in
                                     DispatchQueue.main.async {
-                                        self.stopLoadings()
+                                        self?.stopLoadings()
                                         if error == nil {
-                                            self.fpClearAllTableDrafts()
-                                            FPFormDataHolder.shared.customForm = form
+                                            if let newSqliteId = serverForm?.sqliteId {
+                                                FPFormDataHolder.shared.customForm?.sqliteId = newSqliteId
+                                            }
+                                            self?.fpClearAllTableDrafts()
+                                            FPFormDataHolder.shared.customForm = serverForm
                                             // Update session ID to use sqliteId if it became available after save
                                             FPFormDataHolder.shared.updateSessionIdWithSqliteId()
-                                            self.customForm = form
-                                            self.isNew = false
-                                            self.delegate?.refreshListNeeded()
+                                            self?.customForm = serverForm
+                                            self?.isNew = false
+                                            self?.delegate?.refreshListNeeded()
                                             completion(true)
                                         }else{
                                             FPUtility.printErrorAndShowAlert(error: error)
