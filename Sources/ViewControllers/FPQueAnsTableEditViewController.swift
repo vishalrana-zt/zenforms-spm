@@ -1189,3 +1189,100 @@ extension FPQueAnsTableEditViewController {
     }
 }
 
+// MARK: - Auto-save hint banner
+
+private extension FPQueAnsTableEditViewController {
+
+    func fp_showAutoSaveHintIfNeeded() {
+        guard !isAnalysed && !isFromHistory else { return }
+        let key = "ZenForms.tableDraftHintSeen"
+        guard !fp_hintSeenFromKeychain(key: key) else { return }
+        fp_setHintSeenInKeychain(key: key)
+
+        let banner = UIView()
+        banner.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
+        banner.layer.cornerRadius = 10
+        banner.layer.borderWidth = 1
+        banner.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.25).cgColor
+        banner.translatesAutoresizingMaskIntoConstraints = false
+
+        let icon = UIImageView(image: UIImage(systemName: "arrow.counterclockwise.circle.fill"))
+        icon.tintColor = .systemBlue
+        icon.contentMode = .scaleAspectFit
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.setContentHuggingPriority(.required, for: .horizontal)
+
+        let label = UILabel()
+        label.text = FPLocalizationHelper.localize("msg_table_autosave_hint")
+        label.font = .systemFont(ofSize: 13)
+        label.textColor = .label
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let closeBtn = UIButton(type: .system)
+        closeBtn.setImage(UIImage(systemName: "xmark"), for: .normal)
+        closeBtn.tintColor = .secondaryLabel
+        closeBtn.translatesAutoresizingMaskIntoConstraints = false
+        closeBtn.setContentHuggingPriority(.required, for: .horizontal)
+
+        banner.addSubview(icon)
+        banner.addSubview(label)
+        banner.addSubview(closeBtn)
+        view.addSubview(banner)
+
+        NSLayoutConstraint.activate([
+            banner.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            banner.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            banner.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            icon.leadingAnchor.constraint(equalTo: banner.leadingAnchor, constant: 12),
+            icon.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
+            icon.widthAnchor.constraint(equalToConstant: 22),
+            icon.heightAnchor.constraint(equalToConstant: 22),
+            label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
+            label.trailingAnchor.constraint(equalTo: closeBtn.leadingAnchor, constant: -8),
+            label.topAnchor.constraint(equalTo: banner.topAnchor, constant: 10),
+            label.bottomAnchor.constraint(equalTo: banner.bottomAnchor, constant: -10),
+            closeBtn.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -10),
+            closeBtn.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
+            closeBtn.widthAnchor.constraint(equalToConstant: 26),
+            closeBtn.heightAnchor.constraint(equalToConstant: 26),
+        ])
+
+        banner.alpha = 0
+        banner.transform = CGAffineTransform(translationX: 0, y: -10)
+        UIView.animate(withDuration: 0.35, delay: 0.4, usingSpringWithDamping: 0.85, initialSpringVelocity: 0) {
+            banner.alpha = 1
+            banner.transform = .identity
+        }
+
+        let dismiss = { [weak banner] in
+            UIView.animate(withDuration: 0.25) {
+                banner?.alpha = 0
+                banner?.transform = CGAffineTransform(translationX: 0, y: -10)
+            } completion: { _ in banner?.removeFromSuperview() }
+        }
+
+        closeBtn.addAction(UIAction { _ in dismiss() }, for: .touchUpInside)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { dismiss() }
+    }
+
+    private func fp_hintSeenFromKeychain(key: String) -> Bool {
+        let query: [CFString: Any] = [
+            kSecClass:        kSecClassGenericPassword,
+            kSecAttrAccount:  key,
+            kSecReturnData:   true,
+            kSecMatchLimit:   kSecMatchLimitOne
+        ]
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
+    }
+
+    private func fp_setHintSeenInKeychain(key: String) {
+        let attributes: [CFString: Any] = [
+            kSecClass:       kSecClassGenericPassword,
+            kSecAttrAccount: key,
+            kSecValueData:   Data([1])
+        ]
+        SecItemAdd(attributes as CFDictionary, nil)
+    }
+}
+
