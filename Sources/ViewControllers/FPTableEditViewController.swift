@@ -493,13 +493,15 @@ class FPTableEditViewController: UIViewController {
         vc.isAutoCalculateEnabled = isAutoCalculateEnabled
         vc.didEditedRows = { [weak self] tableComponent in
             DispatchQueue.main.async {
-                self?.fp_triggerFirstSaveIfNeeded()
                 self?.tableComponent = tableComponent
                 if self?.isSortFilterApplied == true {
                     self?.reapplySortFilterAfterEdit()
                 } else {
                     self?.collectionView.reloadData()
                 }
+                // Save immediately after the full-row edit is committed so the
+                // draft reflects the latest state if the app is killed/crashed.
+                self?.fp_performAutoSave()
             }
         }
         let nav = UINavigationController(rootViewController: vc)
