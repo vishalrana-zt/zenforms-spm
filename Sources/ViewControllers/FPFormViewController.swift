@@ -1191,6 +1191,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             stopLoadings()
             return
         }
+        let snapshotFormLocalId = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue
+                                  ?? FPFormDataHolder.shared.customForm?.localClientId
 
         isSaveRefreshing = true
         
@@ -1212,10 +1214,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 guard let self = self else { return }
                                 FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] serverForm, error in
                                     if error == nil {
-                                        if let newSqliteId = serverForm?.sqliteId {
-                                            FPFormDataHolder.shared.customForm?.sqliteId = newSqliteId
-                                        }
-                                        self?.fpClearAllTableDrafts()
+                                        self?.fpClearAllTableDrafts(formLocalId: snapshotFormLocalId)
                                         // Update session ID to use sqliteId if it became available after save
                                         FPFormDataHolder.shared.updateSessionIdWithSqliteId()
 
@@ -1645,9 +1644,12 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         return true
     }
 
-    private func fpClearAllTableDrafts() {
+    private func fpClearAllTableDrafts(formLocalId override: String? = nil) {
         let tid = self.ticketId?.stringValue ?? "0"
-        let fid = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue ?? FPFormDataHolder.shared.customForm?.localClientId ?? "0"
+        let fid = override
+                  ?? FPFormDataHolder.shared.customForm?.sqliteId?.stringValue
+                  ?? FPFormDataHolder.shared.customForm?.localClientId
+                  ?? "0"
         FPTableDraftDatabaseManager().deleteAllDraftsForForm(ticketId: tid, formLocalId: fid)
     }
 
