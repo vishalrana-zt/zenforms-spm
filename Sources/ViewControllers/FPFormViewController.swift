@@ -1214,7 +1214,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 guard let self = self else { return }
                                 FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] serverForm, error in
                                     if error == nil {
-                                        self?.fpClearAllTableDrafts(formLocalId: snapshotFormLocalId)
+                                        let clearId = serverForm?.sqliteId?.stringValue ?? snapshotFormLocalId
+                                        self?.fpClearAllTableDrafts(formLocalId: clearId)
                                         // Update session ID to use sqliteId if it became available after save
                                         FPFormDataHolder.shared.updateSessionIdWithSqliteId()
 

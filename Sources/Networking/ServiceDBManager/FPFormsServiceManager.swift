@@ -856,12 +856,13 @@ class FPFormsServiceManager: NSObject {
                         FPFormsDatabaseManager().deleteFormBySqliteId(form: form, moduleId: FPFormMduleId, ticketId: ticketId) { _ in
                             FPFormsDatabaseManager().insertForm(form: formOnline, ticketId: ticketId, moduleId: FPFormMduleId) { _ , success in
                                 if success {
-                                    // Migrate any table drafts that reference the old sqliteId to the new one,
-                                    // so restore prompts continue to work after offline→online sync.
                                     if let newSqliteId = formOnline.sqliteId, newSqliteId != prevSqliteId {
-                                        FPTableDraftDatabaseManager().migrateFormTableDrafts(from: prevSqliteId, to: newSqliteId)
+                                        FPTableDraftDatabaseManager().migrateFormTableDrafts(from: prevSqliteId, to: newSqliteId) {
+                                            completion(formOnline, nil)
+                                        }
+                                    } else {
+                                        completion(formOnline, nil)
                                     }
-                                    completion(formOnline, nil)
                                 }else {
                                     let tempError = FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong"))
                                     completion(nil, tempError)

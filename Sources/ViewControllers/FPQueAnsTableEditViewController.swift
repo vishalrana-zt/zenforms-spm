@@ -1014,9 +1014,11 @@ extension FPQueAnsTableEditViewController {
     }
 
     private func fp_deleteDraftFromDB(key: String) {
-        let sid = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
-        let oid = self.fieldDetails?.objectId?.stringValue
-        FPTableDraftDatabaseManager().deleteDraftByMultiPath(draftKey: key, fieldLocalId: sid, fieldId: oid)
+        let sid  = (self.fieldDetails?.sqliteId as? NSNumber)?.int64Value
+        let oid  = self.fieldDetails?.objectId?.stringValue
+        let flid = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue
+                   ?? FPFormDataHolder.shared.customForm?.localClientId
+        FPTableDraftDatabaseManager().deleteDraftByMultiPath(draftKey: key, fieldLocalId: sid, fieldId: oid, formLocalId: flid)
     }
 
     // MARK: Setup / teardown

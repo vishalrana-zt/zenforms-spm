@@ -86,20 +86,26 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
     }
 
     /// Robust delete that clears any draft matching the current field's identifiers.
-    func deleteDraftByMultiPath(draftKey: String, fieldLocalId: Int64?, fieldId: String?) {
+    /// formLocalId (customFormLocalId) is included as a final fallback so the delete
+    /// succeeds even when draftKey/fieldLocalId/fieldId are stale after an offline sync.
+    func deleteDraftByMultiPath(draftKey: String, fieldLocalId: Int64?, fieldId: String?, formLocalId: String? = nil) {
         var clauses = ["\(FPColumn.draftKey) = '\(draftKey)'"]
-        
+
         if let sid = fieldLocalId, sid > 0 {
             clauses.append("\(FPColumn.fieldLocalId) = \(sid)")
         }
-        
+
         if let fid = fieldId, !fid.isEmpty, fid != "0" {
             clauses.append("\(FPColumn.fieldId) = '\(fid)'")
         }
-        
+
+        if let flid = formLocalId, !flid.isEmpty, flid != "0" {
+            clauses.append("\(FPColumn.customFormLocalId) = '\(flid)'")
+        }
+
         let whereClause = clauses.joined(separator: " OR ")
         let query = "DELETE FROM \(FPTableDraftDatabaseManager.getTableName()) WHERE \(whereClause)"
-        
+
         FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery([query], dbManager: self)
     }
 
@@ -190,16 +196,18 @@ struct FPTableDraftDatabaseManager: FPDataBaseQueries {
 
     /// Updates customFormLocalId from the old form sqliteId to the new one after an offline→online sync.
     /// Also updates any draftKey that embeds the old ID so fetch lookups keep working.
-    func migrateFormTableDrafts(from oldSqliteId: NSNumber, to newSqliteId: NSNumber) {
+    /// Calls completion (if provided) after the migration queries are committed — callers that need
+    /// to delete drafts by the new ID should do so inside the completion.
+    func migrateFormTableDrafts(from oldSqliteId: NSNumber, to newSqliteId: NSNumber, completion: (() -> Void)? = nil) {
         let old = oldSqliteId.stringValue
         let new = newSqliteId.stringValue
         let queries = [
-            // Update the customFormLocalId column
             "UPDATE \(FPTableDraftDatabaseManager.getTableName()) SET \(FPColumn.customFormLocalId) = '\(new)' WHERE \(FPColumn.customFormLocalId) = '\(old)'",
-            // Update draftKey segments that contain the old ID (replaces _{old}_ with _{new}_)
             "UPDATE \(FPTableDraftDatabaseManager.getTableName()) SET \(FPColumn.draftKey) = REPLACE(\(FPColumn.draftKey), '_\(old)_', '_\(new)_') WHERE \(FPColumn.draftKey) LIKE '%_\(old)_%'"
         ]
-        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery(queries, dbManager: self)
+        FPLocalDatabaseManager.shared.executeInsertUpdateDeleteQuery(queries, dbManager: self) { _ in
+            completion?()
+        }
     }
 
     /// Removes drafts whose parent form no longer exists in local DB.
