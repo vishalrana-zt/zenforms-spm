@@ -1323,6 +1323,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
     
     func saveEmptyForm(completion:@escaping(_ status:Bool)->Void){
         self.view.endEditing(true)
+        let snapshotFormLocalId = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue
+                                  ?? FPFormDataHolder.shared.customForm?.localClientId
         isSaveRefreshing = true
         DispatchQueue.main.asyncAfter(deadline: .now()+0.25, execute: {
             FPFormsServiceManager.uploadMediasAttached { status in
@@ -1338,10 +1340,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                     DispatchQueue.main.async {
                                         self?.stopLoadings()
                                         if error == nil {
-                                            if let newSqliteId = serverForm?.sqliteId {
-                                                FPFormDataHolder.shared.customForm?.sqliteId = newSqliteId
-                                            }
-                                            self?.fpClearAllTableDrafts()
+                                            self?.fpClearAllTableDrafts(formLocalId: snapshotFormLocalId)
                                             FPFormDataHolder.shared.customForm = serverForm
                                             // Update session ID to use sqliteId if it became available after save
                                             FPFormDataHolder.shared.updateSessionIdWithSqliteId()
