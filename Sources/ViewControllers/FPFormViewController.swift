@@ -25,12 +25,15 @@ protocol FPCollectionCellDelegate{
 
 
 public protocol ZenFormsDelegate: NSObject {
-    func formUpdated()//reload locally
+    /// Reload list from local DB. Pass a completion to get a callback when done —
+    /// used by the library to sequence dismiss after the list is fully up-to-date.
+    func formUpdated(completion: (() -> Void)?)
     func refreshListNeeded()//refresh list from server
     func newFormCancelClicked()
     func addQuickNoteClicked()
     func mixpanelEvent(eventName: String, properties:[String:Any]?)
 }
+
 
 public protocol ZenFormsAssetLinkingDelegate: NSObject {
     func openBarcodeScanner(isOverWriteAsset:Bool, baseVc: UIViewController?, linkedAssets:[[String:NSNumber?]], fieldTemplateId:String?)
@@ -212,8 +215,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             form.objectId = nil
         }
         FPFormDataHolder.shared.resetData()
-        // Use sqliteId as session ID if available, otherwise fallback to UUID for new forms
-        FPFormDataHolder.shared.currentFormSessionId = form.sqliteId?.stringValue ?? UUID().uuidString
+        // Use localClientId as a stable session identifier that survives crashes and syncs.
+        FPFormDataHolder.shared.currentFormSessionId = form.sqliteId?.stringValue ?? form.localClientId ?? UUID().uuidString
         FPFormDataHolder.shared.customForm = form
         FPFormDataHolder.shared.getFilesFromValue(form: form)
         btnPrevious.currentView = self.navigationController?.view ?? self.view
@@ -401,6 +404,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.previousSection) { [weak self] isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
                             FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self?.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
+                                self?.fpClearTableDraftsForSection(formSection)
                                 self?.handleSectionControlUI()
                             }
                         }else{
@@ -556,8 +560,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 if(status){
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.section) { isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
-                            FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { form, _error in
-                                self.showPreviousSection()
+                            FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
+                                self?.fpClearTableDraftsForSection(formSection)
+                                self?.showPreviousSection()
                             }
                         }else{
                             self.stopLoadings()
@@ -659,8 +664,9 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                 if(status){
                     FPFormsServiceManager.uploadTableAttachmentsForCurrentSection(section: self.section) { isTableAttachmentUploaded in
                         if(isTableAttachmentUploaded){
-                            FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { form, _error in
-                                self.showNextSection()
+                            FPFormsServiceManager.routeToOfflinePartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, form: form) { [weak self] form, _error in
+                                self?.fpClearTableDraftsForSection(formSection)
+                                self?.showNextSection()
                             }
                         }else{
                             self.stopLoadings()
@@ -1017,9 +1023,10 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         FPFormDataHolder.shared.resetData()
         FPFormDataHolder.shared.customForm = fpform
         FPFormDataHolder.shared.getFilesFromValue(form: fpform)
-        FPFormsDatabaseManager().updateForm(form: fpform, ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId, shouldUpdateBySqliteId: false) {  _, _ in
+        FPFormsDatabaseManager().updateForm(form: fpform, ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId, shouldUpdateBySqliteId: false) {  [weak self] _, _ in
+            self?.fpClearAllTableDrafts()
             DispatchQueue.main.async {
-                self.formTableView.reloadData()
+                self?.formTableView.reloadData()
             }
         }
     }
@@ -1047,7 +1054,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         }
                         self.isNew = false
                         FPFormDataHolder.shared.customForm = nfpform
-                        self.delegate?.formUpdated()
+                        self.fpClearAllTableDrafts()
+                        self.delegate?.formUpdated(completion: nil)
                         self.stopLoadings()
                     }
                     completion(true)
@@ -1082,11 +1090,15 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                             guard let self = self else { return }
                             FPFormsServiceManager.routeToPartialSaveCustomFormSection(ticketId: self.ticketId ?? 0, section: formSection, justScannedSection: justScannedSection, form: form, sectionIndex:sectionIndex, setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] form, error in
                                 if error == nil {
+                                    self?.fpClearTableDraftsForSection(formSection)
                                     DispatchQueue.main.async { [weak self] in
-                                        self?.stopLoadings()
                                         if isDismiss{
-                                            self?.delegate?.formUpdated()
-                                            self?.dismiss()
+                                            // Full form dismissed — full draft cleanup handled by saveForm (line ~1211)
+                                            self?.delegate?.formUpdated(completion: { [weak self] in
+                                                self?.dismiss()
+                                            })
+                                        }else{
+                                            self?.stopLoadings()
                                         }
                                     }
                                     completion(true)
@@ -1182,6 +1194,8 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             stopLoadings()
             return
         }
+        let snapshotFormLocalId = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue
+                                  ?? FPFormDataHolder.shared.customForm?.localClientId
 
         isSaveRefreshing = true
         
@@ -1202,16 +1216,29 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                             FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { [weak self] assetLinkJson in
                                 guard let self = self else { return }
                                 FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { [weak self] serverForm, error in
-                                    self?.stopLoadings()
                                     if error == nil {
+                                        let clearId = serverForm?.sqliteId?.stringValue ?? snapshotFormLocalId
+                                        self?.fpClearAllTableDrafts(formLocalId: clearId)
                                         // Update session ID to use sqliteId if it became available after save
                                         FPFormDataHolder.shared.updateSessionIdWithSqliteId()
-                                        
+
                                         if isDismiss{
                                             DispatchQueue.main.async { [weak self] in
-                                                self?.delegate?.refreshListNeeded()
-                                                self?.dismiss()
+                                                guard let self = self else { return }
+                                                if form.objectId == nil {
+                                                    // New form: stop loader, then refresh list + dismiss.
+                                                    self.stopLoadings()
+                                                    self.delegate?.refreshListNeeded()
+                                                    self.dismiss()
+                                                } else {
+                                                    // Existing form: keep loader running while the host fetches local DB.
+                                                    self.delegate?.formUpdated(completion: { [weak self] in
+                                                        self?.dismiss()
+                                                    })
+                                                }
                                             }
+                                        } else {
+                                            self?.stopLoadings()
                                         }
                                         if isRefreshForm, let serverForm = serverForm{
                                             let fpform = serverForm
@@ -1224,6 +1251,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                         }
                                         completion?(true)
                                     }else {
+                                        self?.stopLoadings()
                                         FPUtility.printErrorAndShowAlert(error: error)
                                         completion?(false)
                                     }
@@ -1242,8 +1270,65 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         })
     }
     
+    
+    private func renameForm(name: String) {
+        guard let form = FPFormDataHolder.shared.customForm else { return }
+        form.name = name
+        form.displayName = name
+        FPFormsServiceManager.renameCustomForm(form: form) { [weak self] _, error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.stopLoadings()
+                if error == nil {
+                    self.delegate?.formUpdated(completion: { [weak self] in
+                        self?.dismiss()
+                    })
+                } else {
+                    FPUtility.printErrorAndShowAlert(error: error)
+                }
+            }
+        }
+    }
+
+    func saveFormOfflineForTable( completion: ((_ status:Bool)->Void)? = nil){
+        guard let form = FPFormDataHolder.shared.getProcessedForm(isNew:  self.isNew) else {
+            completion?(false)
+            return
+        }
+        FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { [weak self] assetLinkJson in
+            guard let self = self else { return }
+            DispatchQueue.global(qos: .userInitiated).async {
+                // Generate localClientId if not already set (similar to sqliteId assignment pattern)
+                if form.localClientId == nil || form.localClientId?.isEmpty == true {
+                    form.localClientId = FPUtility.nanoID()
+                }
+                form.isSyncedToServer = false
+                form.isActive = true
+                FPFormsServiceManager.upsertLocalData(ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId, form: form) { form, error in
+                    FPFormDataHolder.shared.updateSessionIdWithSqliteId()
+                    let group = DispatchGroup()
+                    for linking in FPFormDataHolder.shared.arrLinkingDB{
+                        let updated = linking
+                        updated.customFormLocalId = form?.sqliteId
+                        updated.isNotConfirmed = false
+                        group.enter()
+                        AssetFormLinkingDatabaseManager().upsert(item: updated) { _ in
+                            group.leave()
+                        }
+                    }
+                    FPFormDataHolder.shared.arrLinkingDB = []
+                    FPFormDataHolder.shared.customForm = form
+                    completion?(true)
+                }
+            }
+            return
+        }
+    }
+    
     func saveEmptyForm(completion:@escaping(_ status:Bool)->Void){
         self.view.endEditing(true)
+        let snapshotFormLocalId = FPFormDataHolder.shared.customForm?.sqliteId?.stringValue
+                                  ?? FPFormDataHolder.shared.customForm?.localClientId
         isSaveRefreshing = true
         DispatchQueue.main.asyncAfter(deadline: .now()+0.25, execute: {
             FPFormsServiceManager.uploadMediasAttached { status in
@@ -1255,16 +1340,17 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                                 return
                             }
                             FPUtility.findAssetLinkingsFor(form: form, linkingDelegate: self.linkingDelegate) { assetLinkJson in
-                                FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { form, error in
+                                FPFormsServiceManager.routeToSaveCustomForm(ticketId:self.ticketId ?? 0, isNew: self.isNew, form:form , setSynced: false, assetLinkDetail: assetLinkJson) { [weak self]  serverForm, error in
                                     DispatchQueue.main.async {
-                                        self.stopLoadings()
+                                        self?.stopLoadings()
                                         if error == nil {
-                                            FPFormDataHolder.shared.customForm = form
+                                            self?.fpClearAllTableDrafts(formLocalId: snapshotFormLocalId)
+                                            FPFormDataHolder.shared.customForm = serverForm
                                             // Update session ID to use sqliteId if it became available after save
                                             FPFormDataHolder.shared.updateSessionIdWithSqliteId()
-                                            self.customForm = form
-                                            self.isNew = false
-                                            self.delegate?.refreshListNeeded()
+                                            self?.customForm = serverForm
+                                            self?.isNew = false
+                                            self?.delegate?.refreshListNeeded()
                                             completion(true)
                                         }else{
                                             FPUtility.printErrorAndShowAlert(error: error)
@@ -1411,17 +1497,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                         fileNameTooLongAlert.applyLegacyActionSheetStyle()
                         self.present(fileNameTooLongAlert, animated: true, completion: nil)
                     }else{
-                        self.customForm.name = strName
-                        self.customForm.displayName = strName
-                        FPFormDataHolder.shared.customForm?.name = strName
-                        FPFormDataHolder.shared.customForm?.displayName = strName
-                        self.imgFormTitleEdit.isHidden = true
-                        self.formNameActivityLoader.isHidden = false
-                        self.formNameActivityLoader.startAnimating()
-                        self.btnNext.updateInteraction(isEnabled: false)
-                        self.btnPrevious.updateInteraction(isEnabled: false)
-                        self.barSaveButton?.isEnabled = false
-                        self.saveForm()
+                        self.proceedToEditFormName(strName: strName)
                     }
                 }else{
                     let invalidNameAlert = UIAlertController(title: FPLocalizationHelper.localize("Invalid_Name"),
@@ -1441,6 +1517,25 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }))
         alertController.applyLegacyActionSheetStyle()
         self.present(alertController, animated: true)
+    }
+    
+    func proceedToEditFormName(strName:String){
+        self.customForm.name = strName
+        self.customForm.displayName = strName
+        FPFormDataHolder.shared.customForm?.name = strName
+        FPFormDataHolder.shared.customForm?.displayName = strName
+        self.imgFormTitleEdit.isHidden = true
+        self.formNameActivityLoader.isHidden = false
+        self.formNameActivityLoader.startAnimating()
+        self.btnNext.updateInteraction(isEnabled: false)
+        self.btnPrevious.updateInteraction(isEnabled: false)
+        self.barSaveButton?.isEnabled = false
+        let formExistsLocally = self.customForm.objectId != nil || self.customForm.sqliteId != nil
+        if formExistsLocally {
+            self.renameForm(name: strName)
+        } else {
+            self.saveForm()
+        }
     }
     
     func cloneCurrentForm() {
@@ -1470,6 +1565,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     FPFormsServiceManager.deleteFormLocally(form: form, ticketId: self.ticketId ?? 0, moduleId: FPFormMduleId) { form, error in
                         DispatchQueue.main.async {
                             AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
+                            self.fpClearAllTableDrafts()
                             self.dismiss(isRefreshNeeded: true)
                         }
                     }
@@ -1490,6 +1586,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
                     style: .default,
                     andHandler: { (action) in
                         AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
+                        self.fpClearAllTableDrafts()
                         // Dismiss without saving - no refresh needed
                         self.dismiss(isRefreshNeeded: false)
                     },
@@ -1500,6 +1597,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             } else {
                 // No changes detected - dismiss directly without alert or refresh
                 AssetFormLinkingDatabaseManager().fetchAndRemoveNotConfirmedAssetLinkingForForm(FPFormDataHolder.shared.customForm)
+                self.fpClearAllTableDrafts()
                 // Dismiss without refresh since nothing changed
                 self.dismiss(isRefreshNeeded: false)
             }
@@ -1522,7 +1620,7 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
         }
         self.navigationController?.dismiss(animated: true) {
             if isRefreshNeeded{
-                self.delegate?.formUpdated()
+                self.delegate?.formUpdated(completion: nil)
             }
         }
     }
@@ -1547,6 +1645,30 @@ class FPFormViewController: UIViewController, UINavigationControllerDelegate {
             }
         }
         return true
+    }
+
+    private func fpClearAllTableDrafts(formLocalId override: String? = nil) {
+        let tid = self.ticketId?.stringValue ?? "0"
+        let fid = override
+                  ?? FPFormDataHolder.shared.customForm?.sqliteId?.stringValue
+                  ?? FPFormDataHolder.shared.customForm?.localClientId
+                  ?? "0"
+        FPTableDraftDatabaseManager().deleteAllDraftsForForm(ticketId: tid, formLocalId: fid)
+    }
+
+    private func fpClearTableDraftsForSection(_ section: FPSectionDetails) {
+        let tableFields = section.fields.filter {
+            let t = $0.getUIType()
+            return t == .TABLE || t == .TABLE_RESTRICTED
+        }
+        guard !tableFields.isEmpty else { return }
+        DispatchQueue.global(qos: .utility).async {
+            for field in tableFields {
+                let sid = field.sqliteId?.int64Value
+                let oid = field.objectId?.stringValue
+                FPTableDraftDatabaseManager().deleteDraftsForField(fieldLocalId: sid, fieldId: oid)
+            }
+        }
     }
 }
 

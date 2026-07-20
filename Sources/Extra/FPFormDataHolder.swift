@@ -523,7 +523,8 @@ struct FPFormDataHolder{
                         }
                     }else if fieldDetails.getUIType() == .TABLE || fieldDetails.getUIType() == .TABLE_RESTRICTED {
                         let tableOptions = fieldDetails.getTableOptions(strJson: fieldDetails.options ?? "")
-                        let tableComponent = TableComponent().prepareData(item: tableOptions ?? TableOptions(), values: fieldDetails.value,index: indexPath, fieldDetails: fieldDetails, customForm: form)
+                        let rowCount = getRowsAt(index: indexPath)
+                        let tableComponent = TableComponent().prepareData(item: tableOptions ?? TableOptions(), values: fieldDetails.value, index: indexPath, rowCount: rowCount, fieldDetails: fieldDetails, customForm: form)
                         tableComponent.rows?.enumerated().forEach({ (rowIndex, row) in
                             row.columns.enumerated().forEach { (columnIndex, data) in
                                 if(data.uiType == "ATTACHMENT"){

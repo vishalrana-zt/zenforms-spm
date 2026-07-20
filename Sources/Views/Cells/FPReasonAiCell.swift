@@ -560,15 +560,15 @@ extension FPReasonAiCell : UICollectionViewDelegate, UICollectionViewDataSource,
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         if collectionView == self.collectionViewImage{
-            self.fileItemDidTapped(self.ssMediaArray[indexPath.row].name)
-        }else if collectionView == self.collectionViewSuggestion{
-            self.recommendationTextField.text = aiSuggestionData[indexPath.row]
+            self.fileItemDidTapped(self.ssMediaArray[safe:indexPath.row]?.name ?? "")
+        } else if collectionView == self.collectionViewSuggestion{
+            self.recommendationTextField.text = aiSuggestionData[safe:indexPath.row]
             self.setRecommendationChecklist()
             self.updateData()
-            FPFormDataHolder.shared.removeAiSuggestion(indexPath: self.indexPath!)
+            if let indexPth = self.indexPath {
+                FPFormDataHolder.shared.removeAiSuggestion(indexPath: indexPth)
+            }
             self.delegate1?.updateCustomAiSuggestionWith()
-        }else{
-            
         }
     }
     fileprivate func fileItemDidTapped(_ title: String) {

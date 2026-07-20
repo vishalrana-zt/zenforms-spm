@@ -22,6 +22,8 @@ protocol FPDataBaseQueries {
     var fpLoggerModal: FPLoggerModal? { get }
 }
 
+let dbName = "fpform_db.sqlite"
+
 class FPLocalDatabaseManager: NSObject {
     fileprivate var localLogger:FPLoggerModal? = FPLoggerModal().setLoger("DBManager")
     var pool:DatabasePool!
@@ -191,7 +193,7 @@ extension FPLocalDatabaseManager{
             if let result = try self.dbWriter?.read({ [unowned self] db -> [[String:Any]] in
                 return self.fetchResults(db, dbManager, strQuery)
             }) {
-                self.printAndSendLogToDatadog(dbManager, queryString: "Query: \(strQuery) Results: \(result.getJson())")
+                self.printAndSendLogToDatadog(dbManager, queryString: "Query: \(strQuery) Results: \(result.count) rows")
                 completionHandler(result)
             }else {
                 completionHandler([[String:Any]]())
@@ -592,6 +594,28 @@ extension FPLocalDatabaseManager {
         }
 
                 
+        migrator.registerMigration("tableDraftData") { db in
+            if(!self.isTableExist(db, FPTableName.tableDraftData)){
+                try db.create(table: FPTableName.tableDraftData) { t in
+                    t.column(FPColumn.draftKey, .text).primaryKey()
+                    t.column(FPColumn.customFormLocalId, .text)
+                    t.column(FPColumn.fieldLocalId, .integer)
+                    t.column(FPColumn.fieldId, .text)
+                    t.column(FPColumn.value, .text)
+                    t.column(FPColumn.updatedAt, .date)
+                }
+                try db.create(index: "idx_table_draft_key", on: FPTableName.tableDraftData, columns: [FPColumn.draftKey], unique: true)
+                try db.create(index: "idx_table_draft_form", on: FPTableName.tableDraftData, columns: [FPColumn.customFormLocalId])
+            }
+        }
+        
+        migrator.registerMigration("addCustomFormLocalIdToTableDraft") { [unowned self] db in
+            if !self.exists(db, column: FPColumn.customFormLocalId, in: FPTableName.tableDraftData) {
+                self.addColumn(to: db, tableName: FPTableName.tableDraftData, columnName: FPColumn.customFormLocalId, constraintName: FPDataTypes.text)
+                try db.create(index: "idx_table_draft_form", on: FPTableName.tableDraftData, columns: [FPColumn.customFormLocalId])
+            }
+        }
+
         return migrator
     }
     

@@ -410,7 +410,7 @@ extension FPChartViewController: UICollectionViewDataSource {
     
     func btnDatasetColorTapedAt(_ indexPth: IndexPath, cell:UICollectionViewCell){
         if let dictValue = self.cloneItem.value?.getDictonary(), !dictValue.isEmpty {
-            let colorVC =  DatasetColorPickerViewController(nibName: "DatasetColorPickerViewController", bundle: ZenFormsBundle.bundle)
+            let colorVC = DatasetColorPickerViewController()
             colorVC.fieldItem = cloneItem
             colorVC.delegate = self
             colorVC.indexPath = indexPth

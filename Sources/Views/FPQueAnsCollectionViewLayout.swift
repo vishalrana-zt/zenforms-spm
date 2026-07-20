@@ -60,7 +60,12 @@ final class FPQueAnsCollectionViewLayout: UICollectionViewLayout {
 
         return contentSize
     }
-
+    
+    func updateRowCountOnly(to count: Int) {
+        rowCountCache = count
+        contentSizeCache = .zero
+        invalidateLayout()
+    }
     
     override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
         let itemSize = CGSize(

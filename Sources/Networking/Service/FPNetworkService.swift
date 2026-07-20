@@ -45,7 +45,9 @@ class FPRouter<EndPoint: FPEndPointType>: FPNetworkRouter {
             print("CURL----------------------------------------------------------\n\n\(request.cURL())\n---------------------------------------------------------\n\n")
             let context = AlamofireFPRequestContext()
             request.addFPTraceId(context.traceId)
-            FPSSSessionManager.shared.session?.request(request).responseData { (responseData) in
+            let apiMethod = request.httpMethod ?? "?"
+            let apiPath = request.url?.path ?? "?"
+            FPSSSessionManager.shared.session?.request(request).responseData(queue: .global(qos: .userInitiated)) { (responseData) in
                 DispatchQueue.background {
                     var objMettics: APIFPTransactionMetrics?
                     if let obj = FPTempStore.shared.getAPITransactionMetrics(context.traceId){
@@ -53,12 +55,48 @@ class FPRouter<EndPoint: FPEndPointType>: FPNetworkRouter {
                     }
                     FPNetworkLogger.sendResponseLogToDatadog(route: route, urlRequest: request, context: context, metrics: objMettics, responseData: responseData)
                 } completion: {}
+                let statusCode = responseData.response?.statusCode ?? (responseData.error == nil ? 200 : 0)
+                let durationMs = context.durationMs()
+                let startTime = context.startTime
+                let errorDesc: String? = {
+                    if let err = responseData.error { return err.localizedDescription }
+                    if let code = responseData.response?.statusCode, !(200...299).contains(code) {
+                        return "HTTP \(code)"
+                    }
+                    return nil
+                }()
+                DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.1) {
+                    let metrics = FPTempStore.shared.getAPITransactionMetrics(context.traceId)
+                    var info: [String: Any] = [
+                        "endpoint": apiPath,
+                        "method": apiMethod,
+                        "statusCode": statusCode,
+                        "durationMs": durationMs,
+                        "timestamp": startTime
+                    ]
+                    if let desc = errorDesc { info["errorDescription"] = desc }
+                    if let m = metrics {
+                        if let v = m.dnsMs      { info["dnsMs"] = v }
+                        if let v = m.tcpMs      { info["tcpMs"] = v }
+                        if let v = m.tlsMs      { info["tlsMs"] = v }
+                        if let v = m.requestMs  { info["requestMs"] = v }
+                        if let v = m.responseMs { info["responseMs"] = v }
+                        if let v = m.totalMs    { info["responseNetworkMs"] = v }
+                        if let v = m.networkProtocol { info["protocol"] = v }
+                    }
+                    NotificationCenter.default.post(
+                        name: NSNotification.Name("ZTAPIPerformanceRecord"),
+                        object: nil,
+                        userInfo: info
+                    )
+                }
                 if let error = responseData.error as NSError? {
                     completion(nil, nil, nil, error)
                     return
                 }
                 guard let data = responseData.data else {
-                    FPUtility.hideHUD()
+                    DispatchQueue.main.async { FPUtility.hideHUD() }
+                    completion(nil, nil, responseData.response, nil)
                     return
                 }
                 var json: [String:Any]?
@@ -253,32 +291,6 @@ struct APIFPTransactionMetrics{
         let monitor = FPNetworkMetricsMonitor()
         session = Session(configuration: configuration,interceptor: RequestInterceptor(), eventMonitors: [monitor])
         
-    }
-    
-    func getCertificatePath(_ pathType: CERT_PATH) -> String? {
-        switch pathType {
-        case .PROD:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .STAGING:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .UAT:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .NOTIF_STAGE:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .NOTIF_UAT:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .NOTIF_PROD:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        }
-    }
-    
-    func getPinnedCertificateEvalueator(_ pathType: CERT_PATH) -> PinnedCertificatesTrustEvaluator {
-        if let path = self.getCertificatePath(pathType) {
-            let certificateData = try? Data(contentsOf: URL(fileURLWithPath:path)) as CFData
-            let certificate = SecCertificateCreateWithData(nil, certificateData!)
-            return PinnedCertificatesTrustEvaluator(certificates: [certificate!], acceptSelfSignedCertificates: true, performDefaultValidation: true, validateHost: true)
-        }
-        return PinnedCertificatesTrustEvaluator()
     }
 }
 

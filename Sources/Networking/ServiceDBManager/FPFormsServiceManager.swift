@@ -30,20 +30,31 @@ class FPFormsServiceManager: NSObject {
     
     static let router = FPRouter<FPFormsApiName>()
     
-    class func getComputedFields(ticketID:String){
-        guard FPUtility.isConnectedToNetwork() else {
+    private static let computedFieldsTTL: TimeInterval = 300 // 5 minutes
+
+    /// Call after a successful form/section save to force a fresh fetch next time the form opens.
+    static func invalidateComputedFieldsCache(ticketID: String) {
+        UserDefaults.standard.removeObject(forKey: "computedFields_fetchedAt_\(ticketID)")
+    }
+
+    class func getComputedFields(ticketID: String) {
+        guard FPUtility.isConnectedToNetwork() else { return }
+
+        // Skip API call if cached data exists and is fresh (within TTL)
+        let tsKey = "computedFields_fetchedAt_\(ticketID)"
+        if let lastFetch = UserDefaults.standard.object(forKey: tsKey) as? Date,
+           Date().timeIntervalSince(lastFetch) < computedFieldsTTL,
+           let existing = UserDefaults.computedFields?[ticketID] as? [String: Any], !existing.isEmpty {
             return
         }
-        var parms:[String:Any] = [:]
-        parms["ticketId"] = ticketID
+
+        var parms: [String: Any] = ["ticketId": ticketID]
         router.request(.getComputedFields(parms)) { json, data, response, error in
-            if let result = json?["result"] as? [String:Any]{
-                if let tokens = result["tokens"] as? [String:Any]{
-                    var ticketComputedFields = UserDefaults.computedFields ?? [:]
-                    ticketComputedFields[ticketID] = tokens
-                    UserDefaults.computedFields = ticketComputedFields
-                }
-                
+            if let tokens = (json?["result"] as? [String: Any])?["tokens"] as? [String: Any] {
+                var fields = UserDefaults.computedFields ?? [:]
+                fields[ticketID] = tokens
+                UserDefaults.computedFields = fields
+                UserDefaults.standard.set(Date(), forKey: tsKey)
             }
         }
     }
@@ -171,6 +182,8 @@ class FPFormsServiceManager: NSObject {
         DispatchQueue.global(qos: .userInitiated).async {
             FPFormsDatabaseManager().deleteFormBySqliteId(form: form, moduleId: moduleId, ticketId: ticketId) { success in
                 if success {
+                    let fid = form.sqliteId?.stringValue ?? form.localClientId ?? "0"
+                    FPTableDraftDatabaseManager().deleteAllDraftsForForm(ticketId: ticketId.stringValue, formLocalId: fid)
                     completion(form, nil)
                 }else {
                     let tempError = FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong"))
@@ -607,7 +620,7 @@ class FPFormsServiceManager: NSObject {
         }
     }
 
-    
+
     static func uploadTableAttachments(medias:[TableMedia] =  [],startIndex:Int = 0,completion:@escaping(_ status:Bool)->Void){
         guard FPUtility.isConnectedToNetwork() else {
             completion(true)
@@ -774,6 +787,38 @@ class FPFormsServiceManager: NSObject {
         }
     }
     
+    class func renameCustomForm(form: FPForms, completion: @escaping GetFormWithError) {
+        // If no server ID or offline, just update locally
+        guard FPUtility.isConnectedToNetwork(), let objectId = Int(form.objectId ?? "") else {
+            DispatchQueue.global(qos: .userInitiated).async {
+                form.isSyncedToServer = false
+                FPFormsDatabaseManager().updateFormName(form: form) { success in
+                    completion(success ? form : nil, success ? nil : FPErrorHandler.getError(code: 500, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                }
+            }
+            return
+        }
+        var dictJson: [String: Any] = [:]
+        dictJson["id"] = objectId
+        dictJson["name"] = form.name
+        dictJson["displayName"] = form.displayName
+        dictJson["templateId"] = form.templateId ?? ""
+        router.request(.updateCustomForm(dictJson)) { (json, _, _, _error) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                guard _error == nil, let result = json?["result"] as? [String: Any] else {
+                    completion(nil, _error ?? FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                    return
+                }
+                let serverForm = FPForms(dict: result, isForLocal: true)
+                serverForm.sqliteId = form.sqliteId
+                serverForm.isSyncedToServer = true
+                FPFormsDatabaseManager().updateFormName(form: serverForm) { success in
+                    completion(success ? serverForm : nil, success ? nil : FPErrorHandler.getError(code: 500, message: FPLocalizationHelper.localize("lbl_Something_went_wrong")))
+                }
+            }
+        }
+    }
+
     class func addCustomForm(ticketId: NSNumber, form: FPForms, setSynced: Bool, assetLinkDetail:[String:Any]? = nil, completion: @escaping GetFormWithError) {
         guard FPUtility.isConnectedToNetwork() else {
             DispatchQueue.global(qos: .userInitiated).async {
@@ -847,11 +892,17 @@ class FPFormsServiceManager: NSObject {
                     }
                     FPFormDataHolder.shared.arrLinkingDB = []
                     
-                    if let _ = form.sqliteId {
+                    if let prevSqliteId  = form.sqliteId {
                         FPFormsDatabaseManager().deleteFormBySqliteId(form: form, moduleId: FPFormMduleId, ticketId: ticketId) { _ in
                             FPFormsDatabaseManager().insertForm(form: formOnline, ticketId: ticketId, moduleId: FPFormMduleId) { _ , success in
                                 if success {
-                                    completion(formOnline, nil)
+                                    if let newSqliteId = formOnline.sqliteId, newSqliteId != prevSqliteId {
+                                        FPTableDraftDatabaseManager().migrateFormTableDrafts(from: prevSqliteId, to: newSqliteId) {
+                                            completion(formOnline, nil)
+                                        }
+                                    } else {
+                                        completion(formOnline, nil)
+                                    }
                                 }else {
                                     let tempError = FPErrorHandler.getError(code: 401, message: FPLocalizationHelper.localize("lbl_Something_went_wrong"))
                                     completion(nil, tempError)
@@ -1056,6 +1107,13 @@ class FPFormsServiceManager: NSObject {
                     return
                 }
                 FPFormsDatabaseManager().deleteFormsByObjectId(forms: forms, moduleId: FPFormMduleId, ticketId: ticketId) {
+                    let tid = ticketId.stringValue
+                    for form in forms {
+                        let fid = form.sqliteId?.stringValue ?? form.localClientId ?? "0"
+                        if fid != "0" {
+                            FPTableDraftDatabaseManager().deleteAllDraftsForForm(ticketId: tid, formLocalId: fid)
+                        }
+                    }
                     completion(true, nil)
                 }
                 completion(true, nil)
