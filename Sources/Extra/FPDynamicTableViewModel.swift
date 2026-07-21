@@ -31,7 +31,7 @@ class TableComponent {
         return copy
     }
     
-    func prepareData(item: TableOptions, values: String?,index:IndexPath, fieldDetails:FPFieldDetails?, customForm:FPForms) -> TableComponent {
+    func prepareData(item: TableOptions, values: String?,index:IndexPath, rowCount: Int = 1, fieldDetails:FPFieldDetails?, customForm:FPForms) -> TableComponent {
         self.tableOptions = item
         self.headers = [Headers]()
         self.rows = [Rows]()
@@ -52,6 +52,20 @@ class TableComponent {
             })
 //            self.values = values?.getArray()
         }
+        // Prepare headers once
+        item.columns?.forEach({ column in
+            self.headers?.append(Headers(name: column.name, type: column.uiType))
+        })
+        
+        // Batch fetch asset mappings to avoid O(N) database queries
+        let allMappings = AssetFormLinkingDatabaseManager().fetchAssetLinkigDataFor(fieldTemplateId: fieldDetails?.templateId ?? "", form: customForm)
+        var mapByLocalId: [String: AssetFormMappingData] = [:]
+        var mapByRowId: [String: AssetFormMappingData] = [:]
+        for m in allMappings {
+            if let lId = m.tableRowLocalId, !lId.isEmpty { mapByLocalId[lId] = m }
+            if let rId = m.tableRowId, !rId.isEmpty { mapByRowId[rId] = m }
+        }
+
         if((self.values?.count ?? 1)>1){
             self.values?.forEach({ object in
                 var localRowId:String?
@@ -66,7 +80,6 @@ class TableComponent {
                     columns.append(column)
                 }
                 item.columns?.forEach({ column in
-                    self.headers?.append(Headers(name: column.name, type: column.uiType))
                     var valueString = ""
                     if let value = object[column.name] as? String{
                         valueString = value
@@ -74,9 +87,8 @@ class TableComponent {
                         valueString =  value.getJson()
                     }
 
-                    let column = ColumnData(key: column.name, value: valueString, defaultValue: column.defaultValue, uiType: column.uiType, dataType: column.dataType, dropDownOptions: column.columnOptions?.dropdownOptions ?? nil, generateDynamically: column.columnOptions?.generateDynamically, dateFormat: column.columnOptions?.dateFormat ?? nil, readonly: column.readonly, scannable: column.scannable, isPartOfFormula: column.isPartOfFormula)
-                    columns.append(column)
-                   
+                    let columnData = ColumnData(key: column.name, value: valueString, defaultValue: column.defaultValue, uiType: column.uiType, dataType: column.dataType, dropDownOptions: column.columnOptions?.dropdownOptions ?? nil, generateDynamically: column.columnOptions?.generateDynamically, dateFormat: column.columnOptions?.dateFormat ?? nil, readonly: column.readonly, scannable: column.scannable, isPartOfFormula: column.isPartOfFormula)
+                    columns.append(columnData)
                 })
 //                self.rows?.append(Rows(columns: columns))
                 var tblRow = Rows(columns: columns)
@@ -87,8 +99,11 @@ class TableComponent {
                     ncolumns.append(nelement)
                 }
                 tblRow.columns = ncolumns
-                if let rowMappinng = AssetFormLinkingDatabaseManager().fetchAssetLinkigDataFor(fieldTemplateId: fieldDetails?.templateId ?? "", rowId: rowId, rowLocalId: localRowId, customForm: customForm).first, let  assetId = rowMappinng.assetId, rowMappinng.isAssetSynced == true {
-                    if let assetIdColumIndex = tblRow.columns.firstIndex(where: {(($0.getUIType() == .HIDDEN) && ($0.key.lowercased() == hiddenAssetIdColumnKey.lowercased()))}), let currentOne =  tblRow.columns[safe:assetIdColumIndex]{
+                
+                // O(1) Dictionary lookup instead of sequential DB queries
+                let rowMapping = (localRowId != nil ? mapByLocalId[localRowId!] : nil) ?? (rowId != nil ? mapByRowId[rowId!] : nil)
+                if let mapping = rowMapping, let assetId = mapping.assetId, mapping.isAssetSynced == true {
+                    if let assetIdColumIndex = tblRow.columns.firstIndex(where: {(($0.getUIType() == .HIDDEN) && ($0.key.lowercased() == hiddenAssetIdColumnKey.lowercased()))}) {
                         tblRow.columns[assetIdColumIndex].value = assetId.stringValue
                     }
                 }
@@ -99,7 +114,6 @@ class TableComponent {
             var rowId:String?
             var localRowId:String?
             item.columns?.forEach({ column in
-                self.headers?.append(Headers(name: column.name, type: column.uiType))
                 var value = ""
                 self.values?.forEach({ object in
                     if let localIdColoumn =  object["__localId__"] as? String{
@@ -119,8 +133,8 @@ class TableComponent {
                     }
                 })
         
-                let column = ColumnData(key: column.name, value: value, defaultValue: column.defaultValue, uiType: column.uiType, dataType: column.dataType, dropDownOptions: column.columnOptions?.dropdownOptions ?? nil, generateDynamically: column.columnOptions?.generateDynamically, dateFormat: column.columnOptions?.dateFormat ?? nil, readonly: column.readonly, scannable: column.scannable, isPartOfFormula: column.isPartOfFormula)
-                columns.append(column)
+                let columnData = ColumnData(key: column.name, value: value, defaultValue: column.defaultValue, uiType: column.uiType, dataType: column.dataType, dropDownOptions: column.columnOptions?.dropdownOptions ?? nil, generateDynamically: column.columnOptions?.generateDynamically, dateFormat: column.columnOptions?.dateFormat ?? nil, readonly: column.readonly, scannable: column.scannable, isPartOfFormula: column.isPartOfFormula)
+                columns.append(columnData)
             })
             
             if self.values?.isEmpty ?? false{
@@ -133,24 +147,24 @@ class TableComponent {
                 }
                 self.values?.append(emptyvalue)
             }
-            DispatchQueue.main.async {
-                for _ in(0 ..< FPFormDataHolder.shared.getRowsAt(index: index)){
-//                  self.rows?.append(Rows(columns: columns))
-                    var tblRow = Rows(columns: columns)
-                    var ncolumns = [ColumnData]()
-                    for (_, element) in tblRow.columns.enumerated() {
-                        var nelement = element
-                        nelement.rowSortUuid = tblRow.sortUuid
-                        ncolumns.append(nelement)
-                    }
-                    tblRow.columns = ncolumns
-                    if let rowMappinng = AssetFormLinkingDatabaseManager().fetchAssetLinkigDataFor(fieldTemplateId: fieldDetails?.templateId ?? "", rowId: rowId, rowLocalId: localRowId, customForm: customForm).first, let  assetId = rowMappinng.assetId, rowMappinng.isAssetSynced == true {
-                        if let assetIdColumIndex = tblRow.columns.firstIndex(where: {(($0.getUIType() == .HIDDEN) && ($0.key.lowercased() == hiddenAssetIdColumnKey.lowercased()))}), let currentOne =  tblRow.columns[safe:assetIdColumIndex]{
-                            tblRow.columns[assetIdColumIndex].value = assetId.stringValue
-                        }
-                    }
-                    self.rows?.append(tblRow)
+            for _ in(0 ..< rowCount){
+                var tblRow = Rows(columns: columns)
+                var ncolumns = [ColumnData]()
+                for element in tblRow.columns {
+                    var nelement = element
+                    nelement.rowSortUuid = tblRow.sortUuid
+                    ncolumns.append(nelement)
                 }
+                tblRow.columns = ncolumns
+                
+                // O(1) Dictionary lookup
+                let rowMapping = (localRowId != nil ? mapByLocalId[localRowId!] : nil) ?? (rowId != nil ? mapByRowId[rowId!] : nil)
+                if let mapping = rowMapping, let assetId = mapping.assetId, mapping.isAssetSynced == true {
+                    if let assetIdColumIndex = tblRow.columns.firstIndex(where: {(($0.getUIType() == .HIDDEN) && ($0.key.lowercased() == hiddenAssetIdColumnKey.lowercased()))}) {
+                        tblRow.columns[assetIdColumIndex].value = assetId.stringValue
+                    }
+                }
+                self.rows?.append(tblRow)
             }
             
         }
@@ -392,12 +406,10 @@ class TableComponent {
     func getValuesObject() -> [[String: Any]] {
         var values = [[String: Any]]()
         self.rows?.enumerated().forEach { (index, row) in
-            print("\(index): \(row)")
             var value = [String: Any]()
             row.columns.forEach { column in
                 value[column.key] = column.value
             }
-            //TODO: Kuldeep Need to check with  him
             if let rowValue = self.values?[safe:index]{
                 if let localId = rowValue["__localId__"] as? String{
                     value["__localId__"] = localId
@@ -417,6 +429,11 @@ class TableComponent {
 //            values.append(value)
 //        }
         return values
+    }
+
+    func getJsonValues() -> String? {
+        let values = self.getValuesObject()
+        return values.getJson()
     }
     
     func getValueObject(from row: Rows, isDuplicate:Bool = false) -> [String: Any] {

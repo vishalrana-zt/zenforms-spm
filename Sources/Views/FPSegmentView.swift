@@ -54,11 +54,13 @@ class FPSegmentView: UIView {
     }
 
     private func notifyTableToUpdateHeight() {
-        guard let tableView = sequence(first: superview, next: { $0?.superview })
-            .first(where: { $0 is UITableView }) as? UITableView else { return }
-
-        // Must be on main thread. Use async to avoid crashing if data source changed in current cycle
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [weak self] in
+            guard let self,
+                  let tableView = sequence(first: self.superview, next: { $0?.superview })
+                      .first(where: { $0 is UITableView }) as? UITableView,
+                  tableView.superview != nil,
+                  tableView.window != nil else { return }
+            
             UIView.performWithoutAnimation {
                 tableView.beginUpdates()
                 tableView.endUpdates()

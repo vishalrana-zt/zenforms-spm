@@ -58,6 +58,13 @@ class FPRouter<EndPoint: FPEndPointType>: FPNetworkRouter {
                 let statusCode = responseData.response?.statusCode ?? (responseData.error == nil ? 200 : 0)
                 let durationMs = context.durationMs()
                 let startTime = context.startTime
+                let errorDesc: String? = {
+                    if let err = responseData.error { return err.localizedDescription }
+                    if let code = responseData.response?.statusCode, !(200...299).contains(code) {
+                        return "HTTP \(code)"
+                    }
+                    return nil
+                }()
                 DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 0.1) {
                     let metrics = FPTempStore.shared.getAPITransactionMetrics(context.traceId)
                     var info: [String: Any] = [
@@ -67,6 +74,7 @@ class FPRouter<EndPoint: FPEndPointType>: FPNetworkRouter {
                         "durationMs": durationMs,
                         "timestamp": startTime
                     ]
+                    if let desc = errorDesc { info["errorDescription"] = desc }
                     if let m = metrics {
                         if let v = m.dnsMs      { info["dnsMs"] = v }
                         if let v = m.tcpMs      { info["tcpMs"] = v }
@@ -283,32 +291,6 @@ struct APIFPTransactionMetrics{
         let monitor = FPNetworkMetricsMonitor()
         session = Session(configuration: configuration,interceptor: RequestInterceptor(), eventMonitors: [monitor])
         
-    }
-    
-    func getCertificatePath(_ pathType: CERT_PATH) -> String? {
-        switch pathType {
-        case .PROD:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .STAGING:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .UAT:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .NOTIF_STAGE:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .NOTIF_UAT:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        case .NOTIF_PROD:
-            return Bundle.main.path(forResource: "smartserv", ofType: "der")
-        }
-    }
-    
-    func getPinnedCertificateEvalueator(_ pathType: CERT_PATH) -> PinnedCertificatesTrustEvaluator {
-        if let path = self.getCertificatePath(pathType) {
-            let certificateData = try? Data(contentsOf: URL(fileURLWithPath:path)) as CFData
-            let certificate = SecCertificateCreateWithData(nil, certificateData!)
-            return PinnedCertificatesTrustEvaluator(certificates: [certificate!], acceptSelfSignedCertificates: true, performDefaultValidation: true, validateHost: true)
-        }
-        return PinnedCertificatesTrustEvaluator()
     }
 }
 

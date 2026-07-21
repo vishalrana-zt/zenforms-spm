@@ -100,6 +100,16 @@ public final class ZenForms {
         
     public class func initializeDB(){
         FPLocalDatabaseManager.shared.migrateGRDB()
+        DispatchQueue.global(qos: .utility).async {
+            FPTableDraftDatabaseManager().deleteOrphanedDrafts()
+        }
+    }
+
+    /// Call on logout — removes all table draft data so stale restore prompts never appear for the next user.
+    public class func clearAllTableDrafts() {
+        DispatchQueue.global(qos: .utility).async {
+            FPTableDraftDatabaseManager().deleteAllDrafts()
+        }
     }
 
     public class func configureZenForms(serverInfo:ZenServerAndAuthenticationInfo, userInfo:ZenUserInfo){
@@ -367,6 +377,7 @@ public final class ZenForms {
     public class func logoutUser(){
         FPFormsServiceManager.resetDifferntialMetaFor(commonTemplate:commonFPFormTemplates) {}
         FPTempStore.shared.clear()
+        ZenForms.clearAllTableDrafts()
     }
     
     public class func proceedWithAssetFormLinking(assetData:AssetInspectionData, isScannedResult:Bool, fieldTemplateId:String?){
